@@ -596,9 +596,14 @@ function renderSprintLabel(){
 // ---------------- Firestore: cycle list ----------------
 async function loadCycleList(preferId){
   const sel = document.getElementById('cycleSelect');
-  const snap = await getDocs(collection(db,'cycles'));
-  const ids = [];
-  snap.forEach(d=>ids.push(d.id));
+  let ids = [];
+  try{
+    const snap = await getDocs(collection(db,'cycles'));
+    snap.forEach(d=>ids.push(d.id));
+  }catch(err){
+    console.error('Failed to load cycles', err);
+    alert('Could not load cycles from Firestore:\n' + err.message + '\n\nCheck that Firestore Rules are published (Firestore Database → Rules → Publish).');
+  }
   ids.sort((a,b)=>Number(a)-Number(b));
   sel.innerHTML = ids.map(id=>`<option value="${id}">Cycle ${id}</option>`).join('');
   if(isAdmin){
@@ -626,22 +631,38 @@ function subscribeToCycle(cycleId){
     renderAll();
   }, (err)=>{
     console.error('Firestore listen error', err);
+    alert('Could not read this cycle\'s data:\n' + err.message);
   });
 }
 
 async function saveCurrentCycle(){
   if(!currentCycleId) return;
-  await setDoc(doc(db,'cycles',currentCycleId), { goals: currentGoals });
+  try{
+    await setDoc(doc(db,'cycles',currentCycleId), { goals: currentGoals });
+  }catch(err){
+    console.error('Save failed', err);
+    alert('Save failed:\n' + err.message + '\n\nMost likely cause: Firestore Rules were not published yet, or you are not signed in as admin.');
+  }
+}
+
+async function createNewCycle(){
+  const n = prompt('New cycle number (e.g. 9):');
+  if(!n || isNaN(parseInt(n,10))) return;
+  const id = String(parseInt(n,10));
+  try{
+    await setDoc(doc(db,'cycles',id), { goals: [] });
+    await loadCycleList(id);
+  }catch(err){
+    console.error('Create cycle failed', err);
+    alert('Could not create the cycle:\n' + err.message + '\n\nMost likely cause: Firestore Rules were not published yet (Firestore Database → Rules → Publish), or you are not signed in as admin.');
+  }
 }
 
 document.getElementById('cycleSelect').addEventListener('change', async (e)=>{
   const v = e.target.value;
   if(v === '__new__'){
-    const n = prompt('New cycle number (e.g. 9):');
-    if(!n || isNaN(parseInt(n,10))){ await loadCycleList(currentCycleId); return; }
-    const id = String(parseInt(n,10));
-    await setDoc(doc(db,'cycles',id), { goals: [] });
-    await loadCycleList(id);
+    await createNewCycle();
+    if(!currentCycleId) await loadCycleList(); // reset selector if the prompt was cancelled
     return;
   }
   subscribeToCycle(v);
@@ -695,6 +716,10 @@ onAuthStateChanged(auth, (user)=>{
 
 // ---------------- Add Goal ----------------
 document.getElementById('addGoalBtn').addEventListener('click', ()=>{
+  if(!currentCycleId){
+    alert('Select or create a Cycle first (top-left Cycle selector), then add goals to it.');
+    return;
+  }
   addingGoal = true;
   editingGoalNo = null;
   renderAll();
@@ -861,8 +886,12 @@ function renderGoals(){
 
   if(!currentCycleId){
     noCycleMsg.style.display='block';
-    noCycleMsg.textContent = 'No cycle available yet.' + (isAdmin ? ' Use the Cycle selector to create one.' : ' Ask the admin to publish one.');
+    noCycleMsg.innerHTML = isAdmin
+      ? 'No cycle exists yet. <button class="btn primary small" id="createFirstCycleBtn" style="margin-left:8px;">+ Create a Cycle</button>'
+      : 'No cycle available yet — ask the admin to publish one.';
     empty.style.display='none';
+    const btn = document.getElementById('createFirstCycleBtn');
+    if(btn) btn.addEventListener('click', createNewCycle);
     return;
   }
   noCycleMsg.style.display='none';
