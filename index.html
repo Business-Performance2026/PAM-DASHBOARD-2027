@@ -482,7 +482,14 @@ h1 .sprint-num{color:var(--cyan);}
     <span class="adm-label">Cycle #</span>
     <select id="cycleSelect"><option value="">—</option></select>
     <span class="adm-label">Sprint #</span>
-    <input type="number" id="sprintInput" min="1" max="6" value="1">
+    <select id="sprintInput">
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+      <option value="5">5</option>
+      <option value="6">6</option>
+    </select>
 
     <div class="spacer"></div>
 
@@ -679,7 +686,7 @@ document.getElementById('cycleSelect').addEventListener('change', async (e)=>{
   subscribeToCycle(v);
 });
 
-document.getElementById('sprintInput').addEventListener('input', ()=>{
+document.getElementById('sprintInput').addEventListener('change', ()=>{
   renderSprintLabel();
   renderAll();
 });
