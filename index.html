@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Goals Execution Progress</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
+
+:root{
+  --bg: #0A1F2E;
+  --bg-grid: rgba(77,216,230,0.045);
+  --surface: #10283A;
+  --surface-hi: #17324A;
+  --line: #1F4258;
+  --cyan: #4DD8E6;
+  --cyan-dim: #2E8C99;
+  --amber: #F0A868;
+  --green: #4ECDA0;
+  --red: #E8697A;
+  --text: #E9F3F6;
+  --text-mid: #9CC0D1;
+  --text-dim: #5E8296;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:
+    linear-gradient(var(--bg-grid) 1px, transparent 1px) 0 0/44px 44px,
+    linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px) 0 0/44px 44px,
+    var(--bg);
+  color:var(--text);
+  font-family:'Inter','Segoe UI',sans-serif;
+  min-height:100vh;
+  padding:28px 20px 60px;
+}
+
+.wrap{max-width:1100px;margin:0 auto;}
+
+/* ---------- Admin bar ---------- */
+.adminbar{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:18px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11.5px;
+  color:var(--text-dim);
+}
+.adminbar .adm-label{letter-spacing:.08em;text-transform:uppercase;}
+.adminbar input{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:7px;
+  color:var(--cyan);
+  font-family:'IBM Plex Mono',monospace;
+  font-size:13px;
+  font-weight:600;
+  width:56px;
+  padding:5px 8px;
+  text-align:center;
+  outline:none;
+}
+.adminbar input:focus{border-color:var(--cyan-dim);}
+.adminbar .hint{color:var(--text-dim);font-style:normal;}
+
+/* ---------- Header ---------- */
+header{
+  border-bottom:1px solid var(--line);
+  padding-bottom:22px;
+  margin-bottom:26px;
+}
+.eyebrow{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12px;
+  letter-spacing:.14em;
+  color:var(--cyan);
+  text-transform:uppercase;
+  margin-bottom:8px;
+}
+h1{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:34px;
+  font-weight:700;
+  margin:0;
+  color:#fff;
+  letter-spacing:-.01em;
+}
+h1 .sprint-num{color:var(--cyan);}
+
+/* ---------- Stat strip ---------- */
+.stats{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:12px;
+  margin-bottom:26px;
+}
+.stat{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:16px 18px;
+  position:relative;
+  overflow:hidden;
+}
+.stat::after{
+  content:"";
+  position:absolute;inset:0;
+  background:linear-gradient(135deg, rgba(77,216,230,.06), transparent 60%);
+  pointer-events:none;
+}
+.stat .num{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:30px;
+  font-weight:700;
+  color:#fff;
+  line-height:1;
+}
+.stat .lbl{
+  font-size:12.5px;
+  color:var(--text-mid);
+  margin-top:8px;
+}
+.stat.complete .num{color:var(--green);}
+.stat.delayed .num{color:var(--amber);}
+.stat.avg .num{color:var(--cyan);}
+
+/* ---------- Filters ---------- */
+.controls{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  align-items:center;
+  margin-bottom:22px;
+}
+.controls .label{
+  font-size:12.5px;
+  color:var(--text-dim);
+  font-family:'IBM Plex Mono',monospace;
+  margin-right:4px;
+}
+.seg{
+  display:flex;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:3px;
+  gap:2px;
+}
+.seg button{
+  border:none;
+  background:transparent;
+  color:var(--text-mid);
+  font-family:inherit;
+  font-size:13px;
+  font-weight:600;
+  padding:8px 14px;
+  border-radius:7px;
+  cursor:pointer;
+  transition:.15s;
+  white-space:nowrap;
+}
+.seg button:hover{color:var(--text);}
+.seg button.active{
+  background:var(--cyan);
+  color:#04222b;
+}
+.search{
+  flex:1;
+  min-width:180px;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:9px 14px;
+  color:var(--text);
+  font-family:inherit;
+  font-size:13.5px;
+  outline:none;
+}
+.search::placeholder{color:var(--text-dim);}
+.search:focus{border-color:var(--cyan-dim);}
+
+/* ---------- Goal Cards ---------- */
+.goal{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:14px;
+  margin-bottom:12px;
+  overflow:hidden;
+  transition:border-color .15s;
+}
+.goal:hover{border-color:var(--cyan-dim);}
+
+.goal-head{
+  display:flex;
+  align-items:center;
+  gap:16px;
+  padding:16px 18px;
+}
+.gauge{
+  width:6px;
+  align-self:stretch;
+  min-height:44px;
+  border-radius:4px;
+  background:var(--line);
+  position:relative;
+  overflow:hidden;
+  flex-shrink:0;
+}
+.gauge-fill{
+  position:absolute;
+  bottom:0;left:0;right:0;
+  border-radius:4px;
+  transition:height .4s ease;
+}
+.goal-num{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12px;
+  color:var(--text-dim);
+  width:24px;
+  flex-shrink:0;
+}
+.goal-title-wrap{flex:1;min-width:0;}
+.goal-title{
+  font-size:15.5px;
+  font-weight:600;
+  color:var(--text);
+  margin-bottom:4px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.goal-tags{
+  display:flex;gap:6px;flex-wrap:wrap;
+}
+.tag{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10.5px;
+  padding:2px 8px;
+  border-radius:20px;
+  border:1px solid var(--line);
+  color:var(--text-mid);
+}
+.tag.dep{color:var(--cyan);border-color:rgba(77,216,230,.3);}
+.tag.taskcount{color:var(--text-dim);}
+
+.goal-avg{
+  text-align:right;
+  flex-shrink:0;
+}
+.goal-avg .pct{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:20px;
+  font-weight:600;
+  line-height:1;
+}
+.goal-avg .pctlbl{
+  font-size:10.5px;
+  color:var(--text-dim);
+  margin-top:3px;
+}
+.chevron{
+  color:var(--text-dim);
+  transition:transform .2s;
+  flex-shrink:0;
+}
+.goal.open .chevron{transform:rotate(180deg);}
+
+.status-dot{
+  width:8px;height:8px;border-radius:50%;flex-shrink:0;
+}
+
+/* ---------- Tasks table ---------- */
+.tasks{
+  border-top:1px solid var(--line);
+  padding:6px 18px 16px;
+}
+
+.task-row{
+  display:grid;
+  grid-template-columns:36px 1fr 110px 140px 100px;
+  gap:12px;
+  align-items:center;
+  padding:11px 6px;
+  border-bottom:1px solid rgba(255,255,255,.04);
+}
+.task-row:last-child{border-bottom:none;}
+.task-head-row{
+  display:grid;
+  grid-template-columns:36px 1fr 110px 140px 100px;
+  gap:12px;
+  padding:8px 6px 6px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10.5px;
+  color:var(--text-dim);
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+.t-id{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text-dim);}
+.t-name{font-size:13.5px;color:var(--text);line-height:1.5;}
+.t-dep{
+  font-size:11px;
+  color:var(--text-mid);
+  font-family:'IBM Plex Mono',monospace;
+}
+.t-progress{display:flex;align-items:center;gap:8px;}
+.bar{
+  flex:1;height:6px;background:var(--line);border-radius:4px;overflow:hidden;
+}
+.bar-fill{height:100%;border-radius:4px;}
+.t-pct{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12px;
+  font-weight:600;
+  width:34px;
+  text-align:right;
+  flex-shrink:0;
+}
+.t-status{
+  font-size:10.5px;
+  font-family:'IBM Plex Mono',monospace;
+  padding:3px 9px;
+  border-radius:20px;
+  text-align:center;
+  white-space:nowrap;
+}
+.t-status.complete{background:rgba(78,205,160,.12);color:var(--green);}
+.t-status.delayed{background:rgba(240,168,104,.14);color:var(--amber);}
+.t-status.transferred{background:rgba(255,255,255,.06);color:var(--text-dim);}
+
+.justif{
+  grid-column:1 / -1;
+  margin-top:8px;
+  background:rgba(240,168,104,.07);
+  border-left:3px solid var(--amber);
+  border-radius:6px;
+  padding:10px 14px;
+  font-size:12.5px;
+  color:#EFC79A;
+  line-height:1.7;
+}
+.justif b{color:var(--amber);font-family:'IBM Plex Mono',monospace;font-size:10.5px;display:block;margin-bottom:4px;letter-spacing:.05em;}
+
+.empty{
+  text-align:center;
+  padding:60px 20px;
+  color:var(--text-dim);
+  font-size:14px;
+}
+.no-task{
+  padding:14px 6px;
+  color:var(--text-dim);
+  font-size:12.5px;
+  font-style:italic;
+}
+
+@media (max-width:720px){
+  .stats{grid-template-columns:repeat(2,1fr);}
+  .task-row,.task-head-row{grid-template-columns:24px 1fr 90px;}
+  .t-dep{display:none;}
+  .task-head-row span:nth-child(4){display:none;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="adminbar">
+    <span class="adm-label">Cycle #</span>
+    <input type="number" id="cycleInput" min="1" max="30" value="8">
+    <span class="adm-label">Sprint #</span>
+    <input type="number" id="sprintInput" min="1" max="6" value="6">
+  </div>
+
+  <header>
+    <h1><span class="sprint-num" id="sprintTitleNum">Sprint 6</span></h1>
+  </header>
+
+  <div class="stats" id="statStrip"></div>
+
+  <div class="controls">
+    <span class="label">Filter by progress</span>
+    <div class="seg" id="filterSeg">
+      <button data-f="all" class="active">All</button>
+      <button data-f="complete">Complete (100%)</button>
+      <button data-f="delayed">Delayed</button>
+    </div>
+    <input class="search" id="search" placeholder="Search by goal or task name…">
+  </div>
+
+  <div id="goalsList"></div>
+  <div class="empty" id="emptyState" style="display:none;">No results match the current filter or search.</div>
+
+</div>
+
+<script>
+// Data is organized per Cycle. Each cycle number maps to its own list of Goals.
+// To add a new cycle: send me the updated file (or type out the changes) and
+// I'll add a new "CYCLES[<number>] = [...]" block here — Cycle 8's tasks stay
+// exactly as they are, Cycle 9's tasks live in their own separate block, etc.
+const CYCLES = {
+  8: [
+{ no:1, name:"Consultancy Services for Wastewater Network Infiltration Reduction Study", dependency:"Internal + SCM", avg:91.66,
+  tasks:[
+    {id:"1)", name:"Tender Preparation with Consultation with NWS departments", progress:100},
+    {id:"2)", name:"Tender Preparation & MITC Approval for Floating", progress:100},
+    {id:"3)", name:"Tender Float", progress:100},
+    {id:"4)", name:"Tender Float", progress:100},
+    {id:"5)", name:"Tender Evaluation", progress:50, note:"3 out of 5 consultants have requested an extension of the submission deadline (more than 50%). Some consultants raised concerns that obtaining quotations for flow measurement equipment and CCTV systems may take additional time while awaiting vendor responses. Extending the deadline would allow sufficient time to secure competitive quotations; without it, submitted costs may be higher."}
+  ]},
+{ no:2, name:"Consultancy Services for Assessing and Establishing the Level of Service in the NWS Service Area", dependency:"Internal + SCM", avg:91.66,
+  tasks:[
+    {id:"2.1)", name:"Tender Preparation with Consultation with APSR", progress:100},
+    {id:"2.2)", name:"Tender Preparation & MITC Approval for Floating", progress:100},
+    {id:"2.3)", name:"Tender Float", progress:100},
+    {id:"2.4)", name:"Tender Float", progress:100},
+    {id:"2.5)", name:"Tender Float", progress:100},
+    {id:"2.6)", name:"Tender Evaluation", progress:50, note:"30% of the consultants requested a time extension. Some of the consultants are also bidding for the Infiltration Study, which shares the same submission date after the extension."}
+  ]},
+{ no:3, name:"Wellfields Safe Yield Assessment Project (Phase 3)", dependency:"Internal", avg:97.5,
+  tasks:[
+    {id:"3.1)", name:"Geophysical Survey", progress:100},
+    {id:"3.2)", name:"Preparation for Model Database", progress:100},
+    {id:"3.3)", name:"Development of Conceptual Ground Water Model", progress:100},
+    {id:"3.4)", name:"Computation of water balance and Safe Yield", progress:100},
+    {id:"3.5)", name:"Quantifying the groundwater across surface water catchment", progress:100},
+    {id:"3.6)", name:"Scenario Analysis & Forecasting of the Ground water model", progress:85}
+  ]},
+{ no:4, name:"Concept Design for Barka-Shinas Strategic TE line", dependency:"Internal/External", avg:100,
+  tasks:[
+    {id:"4.1)", name:"Scope of work and Official commencement", progress:100},
+    {id:"4.2)", name:"Inception Report Stage", progress:100},
+    {id:"4.3)", name:"Inception Stage", progress:100},
+    {id:"4.4)", name:"Data Collection and Analysis Stage", progress:100},
+    {id:"4.5)", name:"Data Collection and Analysis Stage", progress:100},
+    {id:"4.6)", name:"Data Collection and Analysis Stage", progress:100}
+  ]},
+{ no:5, name:"Reduction of the variations", dependency:"Internal", avg:100,
+  tasks:[
+    {id:"5.1)", name:"Review & update of projects initiation process & procedures of PIAD & PC", progress:100},
+    {id:"5.2)", name:"Review & update of projects initiation process & procedures of PIAD & PC", progress:100},
+    {id:"5.3)", name:"Update change request form including PAM/CPD endorsement", progress:100},
+    {id:"5.4)", name:"Shared Procurement Plan 2026 from Planning to Engineering dept.", progress:100},
+    {id:"5.5)", name:"Shared Procurement Plan 2026 from Planning to Project dept.", progress:100},
+    {id:"5.6)", name:"Updating 2024–2025 projects charter", progress:100}
+  ]},
+{ no:6, name:"Soil Investigation for Seyh Al-Ahmer reservoir Compound", dependency:"Internal", avg:58.33,
+  tasks:[
+    {id:"6.1)", name:"Commencement of the project and data collection", progress:100},
+    {id:"6.2)", name:"Topographical survey", progress:100},
+    {id:"6.3)", name:"Geophysical Survey", progress:70, note:"Delays due to hot weather and mountain climbing conditions. Labourers work daily from 5am to 12pm and refuse to work after 3:30pm. All site work is expected to be completed within 7 days."},
+    {id:"6.4)", name:"Monitor of slope stability", progress:70, note:"Same cause of delay: hot weather, mountain climbing conditions, and restricted labour working hours."},
+    {id:"6.5)", name:"Stability analysis", progress:10},
+    {id:"6.6)", name:"Protection and mitigation measures", progress:0, note:"Delayed as a knock-on effect of the hot-weather and mountain-access delays impacting the preceding site work."}
+  ]},
+{ no:7, name:"Soil Investigation for Qurum Reservoirs", dependency:"Internal + SCM", avg:100,
+  tasks:[
+    {id:"7.1)", name:"50% Tender Document", progress:100},
+    {id:"7.2)", name:"100% Tender Document", progress:100},
+    {id:"7.3)", name:"Tender review by Contracts", progress:null, note:"Moved to O&M."},
+    {id:"7.4)", name:"Tender Float", progress:null, note:"Moved to O&M."},
+    {id:"7.5)", name:"Bidder evaluation", progress:null, note:"Moved to O&M."},
+    {id:"7.6)", name:"Tender Award", progress:null, note:"Moved to O&M."}
+  ]},
+{ no:8, name:"AL Khoud Water Reservoir", dependency:"Internal", avg:91.66,
+  tasks:[
+    {id:"8.1)", name:"Commencement of the project and data collection", progress:100},
+    {id:"8.2)", name:"Topographical survey", progress:100},
+    {id:"8.3)", name:"Geophysical Survey analysis", progress:100},
+    {id:"8.4)", name:"Design remedial alternatives 50%", progress:100},
+    {id:"8.5)", name:"Design remedial alternatives", progress:100},
+    {id:"8.6)", name:"Protection and mitigation measures", progress:50, note:"Final report in progress; a response from the consultant was received today."}
+  ]},
+{ no:9, name:"Pilot Project for Tertiary Filter Clear at A'Seeb STP", dependency:"Internal", avg:100,
+  tasks:[
+    {id:"9.1)", name:"Progress Meeting with technology provider — Third month Results", progress:100},
+    {id:"9.2)", name:"Laboratory Results — first half of the Fourth Month", progress:100},
+    {id:"9.3)", name:"Progress performance report — second half of the Fourth Month", progress:100},
+    {id:"9.4)", name:"Laboratory Results — first half of the Fifth Month", progress:100},
+    {id:"9.5)", name:"Progress performance report — second half of the Fifth Month", progress:100}
+  ]},
+{ no:10, name:"GIS Verification – Seeb", dependency:"Internal", avg:100,
+  tasks:[
+    {id:"10.1)", name:"GIS data verification and collection — Seeb area 4 DMAs", progress:100},
+    {id:"10.2)", name:"GIS data verification and collection — Seeb area 4 DMAs", progress:100},
+    {id:"10.3)", name:"GIS data verification and collection — Seeb area 4 DMAs", progress:100},
+    {id:"10.4)", name:"GIS data verification and collection — Seeb area 4 DMAs", progress:100},
+    {id:"10.5)", name:"GIS data verification and collection — Seeb area 4 DMAs", progress:100},
+    {id:"10.6)", name:"GIS data verification and collection — Seeb area 4 DMAs", progress:100}
+  ]},
+{ no:11, name:"Asset Register Verification & Valuation for RG", dependency:"Internal", avg:100,
+  tasks:[
+    {id:"11.1)", name:"Confirm the project plan and allocate the leader of each zone", progress:100},
+    {id:"11.2)", name:"Update sites and assets list for each zone — Resubmit to the contractor", progress:100},
+    {id:"11.3)", name:"Make all permit access ready to all project team — Internal and external", progress:100},
+    {id:"11.4)", name:"Conduct a meeting with first region in each zone — all nominated team", progress:100},
+    {id:"11.5)", name:"Start implementation and verification", progress:100},
+    {id:"11.6)", name:"Completion of 5% of Verification and Valuation for each zone", progress:100}
+  ]},
+{ no:12, name:"Water Balance Improvement", dependency:"Internal", avg:100,
+  tasks:[
+    {id:"12.1)", name:"Review of the water Balance procedure", progress:100},
+    {id:"12.2)", name:"Approve the target date of the report", progress:100},
+    {id:"12.3)", name:"Initiate the digitalization of water balance", progress:100},
+    {id:"12.4)", name:"Conduct a meeting with all stakeholders", progress:100},
+    {id:"12.5)", name:"Start implementation and verification", progress:100},
+    {id:"12.6)", name:"Start implementation and verification", progress:100}
+  ]},
+{ no:13, name:"Green Climate Fund", dependency:"Internal + SCM", avg:100,
+  tasks:[
+    {id:"13.1)", name:"Project Endorsement of CPAM", progress:100},
+    {id:"13.2)", name:"Start procurement process (PR)", progress:100},
+    {id:"13.3)", name:"Present it for MITC", progress:100},
+    {id:"13.4)", name:"Float the tender", progress:100},
+    {id:"13.5)", name:"Receiving the bids", progress:100},
+    {id:"13.6)", name:"Receiving the bids", progress:100}
+  ]},
+{ no:14, name:"Pilot Project for NRW using Operational Technologies", dependency:"Internal", avg:100,
+  tasks:[
+    {id:"14.1)", name:"Meeting with Technology Provider (University of Technology & Science)", progress:100},
+    {id:"14.2)", name:"Meeting with Technology Provider (University of Technology & Science)", progress:100},
+    {id:"14.3)", name:"Draft the scope of NRW pilot project", progress:100},
+    {id:"14.4)", name:"Review the scope of NRW pilot project", progress:100},
+    {id:"14.5)", name:"Meeting with the stakeholders (O&M - EP)", progress:100},
+    {id:"14.6)", name:"Endorsement of the project with CPAM", progress:100}
+  ]}
+  ] // end Cycle 8
+};
+
+
+// ---------- helpers ----------
+function statusColor(p){
+  if(p===null) return 'var(--text-dim)';
+  if(p===100) return 'var(--green)';
+  if(p>=70) return 'var(--amber)';
+  return 'var(--red)';
+}
+function taskStatus(t){
+  if(t.progress===null) return 'transferred';
+  return t.progress===100 ? 'complete' : 'delayed';
+}
+function goalStatus(g){
+  return g.avg>=100 ? 'complete' : 'delayed';
+}
+
+// ---------- sprint number (admin controlled, single source of truth) ----------
+// Sprint N maps to the Nth task (1-based) inside every Goal's task list. Capped at 6.
+function getSprintNumber(){
+  let n = parseInt(document.getElementById('sprintInput').value, 10);
+  if(isNaN(n) || n < 1) n = 1;
+  if(n > 6) n = 6;
+  document.getElementById('sprintInput').value = n;
+  return n;
+}
+function renderSprintLabel(){
+  document.getElementById('sprintTitleNum').textContent = 'Sprint ' + getSprintNumber();
+}
+document.getElementById('sprintInput').addEventListener('input', ()=>{
+  renderSprintLabel();
+  renderGoals();
+});
+
+// ---------- cycle number (admin controlled) ----------
+function getCycleNumber(){
+  const n = parseInt(document.getElementById('cycleInput').value, 10);
+  return isNaN(n) ? null : n;
+}
+function getCurrentCycleData(){
+  const c = getCycleNumber();
+  return CYCLES[c] || [];
+}
+document.getElementById('cycleInput').addEventListener('input', ()=>{
+  renderStats();
+  renderGoals();
+});
+
+// ---------- render stats ----------
+function renderStats(){
+  const data = getCurrentCycleData();
+  const total = data.length;
+  const completeGoals = data.filter(g=>g.avg>=100).length;
+  const delayedGoals = total - completeGoals;
+  const overallAvg = total ? (data.reduce((s,g)=>s+g.avg,0)/total).toFixed(1) : '—';
+  const el = document.getElementById('statStrip');
+  el.innerHTML = `
+    <div class="stat"><div class="num">${total}</div><div class="lbl">Total Goals</div></div>
+    <div class="stat complete"><div class="num">${completeGoals}</div><div class="lbl">Goals at 100%</div></div>
+    <div class="stat delayed"><div class="num">${delayedGoals}</div><div class="lbl">Goals with Delays</div></div>
+    <div class="stat avg"><div class="num">${overallAvg}${total? '%':''}</div><div class="lbl">Overall Average</div></div>
+  `;
+}
+
+// ---------- render goals ----------
+let currentFilter = 'all';
+let currentSearch = '';
+
+function renderGoals(){
+  const list = document.getElementById('goalsList');
+  const empty = document.getElementById('emptyState');
+  list.innerHTML='';
+
+  const DATA = getCurrentCycleData();
+
+  if(DATA.length === 0){
+    empty.style.display = 'block';
+    empty.textContent = `No data uploaded yet for Cycle ${getCycleNumber() ?? '—'}. Send me the updated file (or type out the changes) and I'll add it.`;
+    return;
+  }
+  empty.textContent = 'No results match the current filter or search.';
+
+  const sprintN = getSprintNumber();
+  const upTo = g => g.tasks.slice(0, sprintN); // tasks 1..N for this goal
+
+  const filtered = DATA.filter(g=>{
+    const visible = upTo(g);
+    const latest = visible[visible.length-1];
+    if(currentFilter==='complete' && (!latest || taskStatus(latest)!=='complete')) return false;
+    if(currentFilter==='delayed' && (!latest || taskStatus(latest)!=='delayed')) return false;
+    if(currentSearch){
+      const q = currentSearch.toLowerCase();
+      const inTitle = g.name.toLowerCase().includes(q);
+      const inTask = visible.some(t=>t.name.toLowerCase().includes(q));
+      if(!inTitle && !inTask) return false;
+    }
+    return true;
+  });
+
+  empty.style.display = filtered.length ? 'none':'block';
+
+  filtered.forEach(g=>{
+    const visible = upTo(g);
+    const latest = visible[visible.length-1];
+    const tStatus = latest ? taskStatus(latest) : 'transferred';
+    const dotColor = tStatus==='complete' ? 'var(--green)' : tStatus==='delayed' ? 'var(--amber)' : 'var(--text-dim)';
+    const avgColor = goalStatus(g)==='complete' ? 'var(--green)' : 'var(--amber)';
+
+    const card = document.createElement('div');
+    card.className = 'goal';
+    card.innerHTML = `
+      <div class="goal-head" data-goal="${g.no}">
+        <div class="gauge"><div class="gauge-fill" style="height:${g.avg}%;background:${avgColor}"></div></div>
+        <div class="goal-num">${String(g.no).padStart(2,'0')}</div>
+        <div class="status-dot" style="background:${dotColor}"></div>
+        <div class="goal-title-wrap">
+          <div class="goal-title">${g.name}</div>
+          <div class="goal-tags">
+            <span class="tag dep">${g.dependency}</span>
+            <span class="tag taskcount">${visible.length} of ${g.tasks.length} tasks shown</span>
+          </div>
+        </div>
+        <div class="goal-avg">
+          <div class="pct" style="color:${avgColor}">${g.avg}%</div>
+          <div class="pctlbl">Average %</div>
+        </div>
+      </div>
+      <div class="tasks">
+        <div class="task-head-row">
+          <span>#</span><span>Task</span><span>Dependencies</span><span>Progress (%)</span><span>Status</span>
+        </div>
+        ${ visible.length === 0
+          ? `<div class="no-task">No task at this position for this Goal.</div>`
+          : visible.map(t=>{
+              const st = taskStatus(t);
+              const stLabel = st==='complete' ? 'Complete' : st==='delayed' ? 'Delayed' : 'Moved to O&M';
+              const barColor = statusColor(t.progress);
+              const pctLabel = t.progress===null ? '—' : t.progress+'%';
+              return `
+              <div class="task-row">
+                <div class="t-id">${t.id}</div>
+                <div class="t-name">${t.name}</div>
+                <div class="t-dep">${g.dependency}</div>
+                <div class="t-progress">
+                  <div class="bar"><div class="bar-fill" style="width:${t.progress||0}%;background:${barColor}"></div></div>
+                  <div class="t-pct" style="color:${barColor}">${pctLabel}</div>
+                </div>
+                <div class="t-status ${st}">${stLabel}</div>
+                ${t.note ? `<div class="justif"><b>Justification of Delay</b>${t.note}</div>` : ''}
+              </div>`;
+            }).join('')
+        }
+      </div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+document.getElementById('filterSeg').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button');
+  if(!btn) return;
+  document.querySelectorAll('#filterSeg button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  currentFilter = btn.getAttribute('data-f');
+  renderGoals();
+});
+
+document.getElementById('search').addEventListener('input', (e)=>{
+  currentSearch = e.target.value.trim();
+  renderGoals();
+});
+
+renderSprintLabel();
+renderStats();
+renderGoals();
+</script>
+</body>
+</html>
