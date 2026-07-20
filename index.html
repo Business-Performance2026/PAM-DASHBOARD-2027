@@ -41,6 +41,7 @@ body{
 /* ---------- Admin bar ---------- */
 .adminbar{
   display:flex;
+  flex-wrap:wrap;
   align-items:center;
   gap:10px;
   margin-bottom:18px;
@@ -63,21 +64,93 @@ body{
   outline:none;
 }
 .adminbar input:focus{border-color:var(--cyan-dim);}
-.adminbar .hint{color:var(--text-dim);font-style:normal;}
+.adminbar select{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:7px;
+  color:var(--cyan);
+  font-family:'IBM Plex Mono',monospace;
+  font-size:13px;
+  font-weight:600;
+  padding:5px 8px;
+  outline:none;
+}
+.spacer{flex:1;}
+
+.authbox{display:flex;align-items:center;gap:8px;}
+.btn{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11.5px;
+  font-weight:600;
+  padding:7px 13px;
+  border-radius:7px;
+  border:1px solid var(--line);
+  background:var(--surface);
+  color:var(--text-mid);
+  cursor:pointer;
+  transition:.15s;
+}
+.btn:hover{border-color:var(--cyan-dim);color:var(--text);}
+.btn.primary{background:var(--cyan);color:#04222b;border-color:var(--cyan);}
+.btn.primary:hover{opacity:.9;}
+.btn.danger{color:var(--red);}
+.btn.small{padding:4px 9px;font-size:10.5px;}
+.pill-admin{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10.5px;
+  padding:4px 10px;
+  border-radius:20px;
+  background:rgba(78,205,160,.12);
+  color:var(--green);
+}
+
+/* login popover */
+.loginbox{
+  position:relative;
+}
+.loginform{
+  position:absolute;
+  top:calc(100% + 8px);
+  right:0;
+  background:var(--surface-hi);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:16px;
+  width:240px;
+  z-index:20;
+  display:none;
+  box-shadow:0 12px 30px rgba(0,0,0,.4);
+}
+.loginform.open{display:block;}
+.loginform label{
+  display:block;
+  font-size:10.5px;
+  color:var(--text-dim);
+  font-family:'IBM Plex Mono',monospace;
+  margin-bottom:4px;
+  margin-top:10px;
+}
+.loginform label:first-child{margin-top:0;}
+.loginform input{
+  width:100%;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:7px;
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  font-size:13px;
+  padding:8px 10px;
+  outline:none;
+}
+.loginform input:focus{border-color:var(--cyan-dim);}
+.loginform .btn{width:100%;margin-top:12px;}
+.loginform .err{color:var(--red);font-size:11px;margin-top:8px;display:none;}
 
 /* ---------- Header ---------- */
 header{
   border-bottom:1px solid var(--line);
   padding-bottom:22px;
   margin-bottom:26px;
-}
-.eyebrow{
-  font-family:'IBM Plex Mono',monospace;
-  font-size:12px;
-  letter-spacing:.14em;
-  color:var(--cyan);
-  text-transform:uppercase;
-  margin-bottom:8px;
 }
 h1{
   font-family:'Space Grotesk',sans-serif;
@@ -88,6 +161,11 @@ h1{
   letter-spacing:-.01em;
 }
 h1 .sprint-num{color:var(--cyan);}
+.no-cycle-msg{
+  color:var(--text-dim);
+  font-size:13px;
+  margin-top:8px;
+}
 
 /* ---------- Stat strip ---------- */
 .stats{
@@ -181,6 +259,12 @@ h1 .sprint-num{color:var(--cyan);}
 .search::placeholder{color:var(--text-dim);}
 .search:focus{border-color:var(--cyan-dim);}
 
+/* ---------- Add goal (admin) ---------- */
+.addgoal{
+  margin-bottom:14px;
+}
+.addgoal .btn{width:100%;padding:12px;border-style:dashed;}
+
 /* ---------- Goal Cards ---------- */
 .goal{
   background:var(--surface);
@@ -258,23 +342,16 @@ h1 .sprint-num{color:var(--cyan);}
   color:var(--text-dim);
   margin-top:3px;
 }
-.chevron{
-  color:var(--text-dim);
-  transition:transform .2s;
-  flex-shrink:0;
-}
-.goal.open .chevron{transform:rotate(180deg);}
-
 .status-dot{
   width:8px;height:8px;border-radius:50%;flex-shrink:0;
 }
+.goal-actions{display:flex;gap:6px;flex-shrink:0;}
 
 /* ---------- Tasks table ---------- */
 .tasks{
   border-top:1px solid var(--line);
   padding:6px 18px 16px;
 }
-
 .task-row{
   display:grid;
   grid-template-columns:36px 1fr 110px 140px 100px;
@@ -353,11 +430,48 @@ h1 .sprint-num{color:var(--cyan);}
   font-style:italic;
 }
 
+/* ---------- Edit mode ---------- */
+.editrow{
+  padding:14px 6px;
+  display:grid;
+  gap:10px;
+}
+.editrow .field{display:flex;flex-direction:column;gap:4px;}
+.editrow label{
+  font-size:10px;
+  color:var(--text-dim);
+  font-family:'IBM Plex Mono',monospace;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+}
+.editrow input, .editrow textarea{
+  background:var(--bg);
+  border:1px solid var(--line);
+  border-radius:7px;
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  font-size:13px;
+  padding:8px 10px;
+  outline:none;
+  width:100%;
+}
+.editrow input:focus, .editrow textarea:focus{border-color:var(--cyan-dim);}
+.editrow textarea{resize:vertical;min-height:50px;}
+.editrow .row2{display:grid;grid-template-columns:1fr 140px;gap:10px;}
+.editrow .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:4px;}
+.edit-goal-meta{
+  display:grid;
+  grid-template-columns:1fr 200px;
+  gap:10px;
+  padding:0 18px 14px;
+}
+
 @media (max-width:720px){
   .stats{grid-template-columns:repeat(2,1fr);}
   .task-row,.task-head-row{grid-template-columns:24px 1fr 90px;}
   .t-dep{display:none;}
   .task-head-row span:nth-child(4){display:none;}
+  .edit-goal-meta,.editrow .row2{grid-template-columns:1fr;}
 }
 </style>
 </head>
@@ -366,13 +480,32 @@ h1 .sprint-num{color:var(--cyan);}
 
   <div class="adminbar">
     <span class="adm-label">Cycle #</span>
-    <input type="number" id="cycleInput" min="1" max="30" value="8">
+    <select id="cycleSelect"><option value="">—</option></select>
     <span class="adm-label">Sprint #</span>
-    <input type="number" id="sprintInput" min="1" max="6" value="6">
+    <input type="number" id="sprintInput" min="1" max="6" value="1">
+
+    <div class="spacer"></div>
+
+    <div class="authbox">
+      <span id="adminPill" class="pill-admin" style="display:none;">Admin</span>
+      <button class="btn" id="logoutBtn" style="display:none;">Logout</button>
+      <div class="loginbox">
+        <button class="btn" id="loginToggleBtn">Admin Login</button>
+        <div class="loginform" id="loginForm">
+          <label>Email</label>
+          <input type="email" id="loginEmail" autocomplete="username">
+          <label>Password</label>
+          <input type="password" id="loginPassword" autocomplete="current-password">
+          <button class="btn primary" id="loginSubmitBtn">Sign in</button>
+          <div class="err" id="loginErr"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <header>
-    <h1><span class="sprint-num" id="sprintTitleNum">Sprint 6</span></h1>
+    <h1><span class="sprint-num" id="sprintTitleNum">Sprint 1</span></h1>
+    <div class="no-cycle-msg" id="noCycleMsg" style="display:none;"></div>
   </header>
 
   <div class="stats" id="statStrip"></div>
@@ -387,163 +520,59 @@ h1 .sprint-num{color:var(--cyan);}
     <input class="search" id="search" placeholder="Search by goal or task name…">
   </div>
 
+  <div class="addgoal" id="addGoalWrap" style="display:none;">
+    <button class="btn" id="addGoalBtn">+ Add Goal</button>
+  </div>
+
   <div id="goalsList"></div>
   <div class="empty" id="emptyState" style="display:none;">No results match the current filter or search.</div>
 
 </div>
 
-<script>
-// Data is organized per Cycle. Each cycle number maps to its own list of Goals.
-// To add a new cycle: send me the updated file (or type out the changes) and
-// I'll add a new "CYCLES[<number>] = [...]" block here — Cycle 8's tasks stay
-// exactly as they are, Cycle 9's tasks live in their own separate block, etc.
-const CYCLES = {
-  8: [
-{ no:1, name:"Consultancy Services for Wastewater Network Infiltration Reduction Study", dependency:"Internal + SCM", avg:91.66,
-  tasks:[
-    {id:"1)", name:"Tender Preparation with Consultation with NWS departments", progress:100},
-    {id:"2)", name:"Tender Preparation & MITC Approval for Floating", progress:100},
-    {id:"3)", name:"Tender Float", progress:100},
-    {id:"4)", name:"Tender Float", progress:100},
-    {id:"5)", name:"Tender Evaluation", progress:50, note:"3 out of 5 consultants have requested an extension of the submission deadline (more than 50%). Some consultants raised concerns that obtaining quotations for flow measurement equipment and CCTV systems may take additional time while awaiting vendor responses. Extending the deadline would allow sufficient time to secure competitive quotations; without it, submitted costs may be higher."}
-  ]},
-{ no:2, name:"Consultancy Services for Assessing and Establishing the Level of Service in the NWS Service Area", dependency:"Internal + SCM", avg:91.66,
-  tasks:[
-    {id:"2.1)", name:"Tender Preparation with Consultation with APSR", progress:100},
-    {id:"2.2)", name:"Tender Preparation & MITC Approval for Floating", progress:100},
-    {id:"2.3)", name:"Tender Float", progress:100},
-    {id:"2.4)", name:"Tender Float", progress:100},
-    {id:"2.5)", name:"Tender Float", progress:100},
-    {id:"2.6)", name:"Tender Evaluation", progress:50, note:"30% of the consultants requested a time extension. Some of the consultants are also bidding for the Infiltration Study, which shares the same submission date after the extension."}
-  ]},
-{ no:3, name:"Wellfields Safe Yield Assessment Project (Phase 3)", dependency:"Internal", avg:97.5,
-  tasks:[
-    {id:"3.1)", name:"Geophysical Survey", progress:100},
-    {id:"3.2)", name:"Preparation for Model Database", progress:100},
-    {id:"3.3)", name:"Development of Conceptual Ground Water Model", progress:100},
-    {id:"3.4)", name:"Computation of water balance and Safe Yield", progress:100},
-    {id:"3.5)", name:"Quantifying the groundwater across surface water catchment", progress:100},
-    {id:"3.6)", name:"Scenario Analysis & Forecasting of the Ground water model", progress:85}
-  ]},
-{ no:4, name:"Concept Design for Barka-Shinas Strategic TE line", dependency:"Internal/External", avg:100,
-  tasks:[
-    {id:"4.1)", name:"Scope of work and Official commencement", progress:100},
-    {id:"4.2)", name:"Inception Report Stage", progress:100},
-    {id:"4.3)", name:"Inception Stage", progress:100},
-    {id:"4.4)", name:"Data Collection and Analysis Stage", progress:100},
-    {id:"4.5)", name:"Data Collection and Analysis Stage", progress:100},
-    {id:"4.6)", name:"Data Collection and Analysis Stage", progress:100}
-  ]},
-{ no:5, name:"Reduction of the variations", dependency:"Internal", avg:100,
-  tasks:[
-    {id:"5.1)", name:"Review & update of projects initiation process & procedures of PIAD & PC", progress:100},
-    {id:"5.2)", name:"Review & update of projects initiation process & procedures of PIAD & PC", progress:100},
-    {id:"5.3)", name:"Update change request form including PAM/CPD endorsement", progress:100},
-    {id:"5.4)", name:"Shared Procurement Plan 2026 from Planning to Engineering dept.", progress:100},
-    {id:"5.5)", name:"Shared Procurement Plan 2026 from Planning to Project dept.", progress:100},
-    {id:"5.6)", name:"Updating 2024–2025 projects charter", progress:100}
-  ]},
-{ no:6, name:"Soil Investigation for Seyh Al-Ahmer reservoir Compound", dependency:"Internal", avg:58.33,
-  tasks:[
-    {id:"6.1)", name:"Commencement of the project and data collection", progress:100},
-    {id:"6.2)", name:"Topographical survey", progress:100},
-    {id:"6.3)", name:"Geophysical Survey", progress:70, note:"Delays due to hot weather and mountain climbing conditions. Labourers work daily from 5am to 12pm and refuse to work after 3:30pm. All site work is expected to be completed within 7 days."},
-    {id:"6.4)", name:"Monitor of slope stability", progress:70, note:"Same cause of delay: hot weather, mountain climbing conditions, and restricted labour working hours."},
-    {id:"6.5)", name:"Stability analysis", progress:10},
-    {id:"6.6)", name:"Protection and mitigation measures", progress:0, note:"Delayed as a knock-on effect of the hot-weather and mountain-access delays impacting the preceding site work."}
-  ]},
-{ no:7, name:"Soil Investigation for Qurum Reservoirs", dependency:"Internal + SCM", avg:100,
-  tasks:[
-    {id:"7.1)", name:"50% Tender Document", progress:100},
-    {id:"7.2)", name:"100% Tender Document", progress:100},
-    {id:"7.3)", name:"Tender review by Contracts", progress:null, note:"Moved to O&M."},
-    {id:"7.4)", name:"Tender Float", progress:null, note:"Moved to O&M."},
-    {id:"7.5)", name:"Bidder evaluation", progress:null, note:"Moved to O&M."},
-    {id:"7.6)", name:"Tender Award", progress:null, note:"Moved to O&M."}
-  ]},
-{ no:8, name:"AL Khoud Water Reservoir", dependency:"Internal", avg:91.66,
-  tasks:[
-    {id:"8.1)", name:"Commencement of the project and data collection", progress:100},
-    {id:"8.2)", name:"Topographical survey", progress:100},
-    {id:"8.3)", name:"Geophysical Survey analysis", progress:100},
-    {id:"8.4)", name:"Design remedial alternatives 50%", progress:100},
-    {id:"8.5)", name:"Design remedial alternatives", progress:100},
-    {id:"8.6)", name:"Protection and mitigation measures", progress:50, note:"Final report in progress; a response from the consultant was received today."}
-  ]},
-{ no:9, name:"Pilot Project for Tertiary Filter Clear at A'Seeb STP", dependency:"Internal", avg:100,
-  tasks:[
-    {id:"9.1)", name:"Progress Meeting with technology provider — Third month Results", progress:100},
-    {id:"9.2)", name:"Laboratory Results — first half of the Fourth Month", progress:100},
-    {id:"9.3)", name:"Progress performance report — second half of the Fourth Month", progress:100},
-    {id:"9.4)", name:"Laboratory Results — first half of the Fifth Month", progress:100},
-    {id:"9.5)", name:"Progress performance report — second half of the Fifth Month", progress:100}
-  ]},
-{ no:10, name:"GIS Verification – Seeb", dependency:"Internal", avg:100,
-  tasks:[
-    {id:"10.1)", name:"GIS data verification and collection — Seeb area 4 DMAs", progress:100},
-    {id:"10.2)", name:"GIS data verification and collection — Seeb area 4 DMAs", progress:100},
-    {id:"10.3)", name:"GIS data verification and collection — Seeb area 4 DMAs", progress:100},
-    {id:"10.4)", name:"GIS data verification and collection — Seeb area 4 DMAs", progress:100},
-    {id:"10.5)", name:"GIS data verification and collection — Seeb area 4 DMAs", progress:100},
-    {id:"10.6)", name:"GIS data verification and collection — Seeb area 4 DMAs", progress:100}
-  ]},
-{ no:11, name:"Asset Register Verification & Valuation for RG", dependency:"Internal", avg:100,
-  tasks:[
-    {id:"11.1)", name:"Confirm the project plan and allocate the leader of each zone", progress:100},
-    {id:"11.2)", name:"Update sites and assets list for each zone — Resubmit to the contractor", progress:100},
-    {id:"11.3)", name:"Make all permit access ready to all project team — Internal and external", progress:100},
-    {id:"11.4)", name:"Conduct a meeting with first region in each zone — all nominated team", progress:100},
-    {id:"11.5)", name:"Start implementation and verification", progress:100},
-    {id:"11.6)", name:"Completion of 5% of Verification and Valuation for each zone", progress:100}
-  ]},
-{ no:12, name:"Water Balance Improvement", dependency:"Internal", avg:100,
-  tasks:[
-    {id:"12.1)", name:"Review of the water Balance procedure", progress:100},
-    {id:"12.2)", name:"Approve the target date of the report", progress:100},
-    {id:"12.3)", name:"Initiate the digitalization of water balance", progress:100},
-    {id:"12.4)", name:"Conduct a meeting with all stakeholders", progress:100},
-    {id:"12.5)", name:"Start implementation and verification", progress:100},
-    {id:"12.6)", name:"Start implementation and verification", progress:100}
-  ]},
-{ no:13, name:"Green Climate Fund", dependency:"Internal + SCM", avg:100,
-  tasks:[
-    {id:"13.1)", name:"Project Endorsement of CPAM", progress:100},
-    {id:"13.2)", name:"Start procurement process (PR)", progress:100},
-    {id:"13.3)", name:"Present it for MITC", progress:100},
-    {id:"13.4)", name:"Float the tender", progress:100},
-    {id:"13.5)", name:"Receiving the bids", progress:100},
-    {id:"13.6)", name:"Receiving the bids", progress:100}
-  ]},
-{ no:14, name:"Pilot Project for NRW using Operational Technologies", dependency:"Internal", avg:100,
-  tasks:[
-    {id:"14.1)", name:"Meeting with Technology Provider (University of Technology & Science)", progress:100},
-    {id:"14.2)", name:"Meeting with Technology Provider (University of Technology & Science)", progress:100},
-    {id:"14.3)", name:"Draft the scope of NRW pilot project", progress:100},
-    {id:"14.4)", name:"Review the scope of NRW pilot project", progress:100},
-    {id:"14.5)", name:"Meeting with the stakeholders (O&M - EP)", progress:100},
-    {id:"14.6)", name:"Endorsement of the project with CPAM", progress:100}
-  ]}
-  ] // end Cycle 8
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import {
+  getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import {
+  getFirestore, collection, getDocs, doc, setDoc, onSnapshot
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCObXXRAlgfajndVIz8eDsSF--F3x8FJUU",
+  authDomain: "pam-dashboard-2027.firebaseapp.com",
+  projectId: "pam-dashboard-2027",
+  storageBucket: "pam-dashboard-2027.firebasestorage.app",
+  messagingSenderId: "533576693120",
+  appId: "1:533576693120:web:1284a23ef199bfa0917d65"
 };
 
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-// ---------- helpers ----------
+// ---------------- state ----------------
+let isAdmin = false;
+let currentCycleId = null;
+let currentGoals = [];           // live goals array for the selected cycle
+let unsubscribeCycle = null;
+let editingGoalNo = null;        // goal.no currently being edited, or null
+let addingGoal = false;
+
+let currentFilter = 'all';
+let currentSearch = '';
+
+// ---------------- helpers ----------------
 function statusColor(p){
-  if(p===null) return 'var(--text-dim)';
+  if(p===null || p===undefined) return 'var(--text-dim)';
   if(p===100) return 'var(--green)';
   if(p>=70) return 'var(--amber)';
   return 'var(--red)';
 }
 function taskStatus(t){
-  if(t.progress===null) return 'transferred';
+  if(t.progress===null || t.progress===undefined) return 'transferred';
   return t.progress===100 ? 'complete' : 'delayed';
 }
-function goalStatus(g){
-  return g.avg>=100 ? 'complete' : 'delayed';
-}
-
-// ---------- sprint number (admin controlled, single source of truth) ----------
-// Sprint N maps to the Nth task (1-based) inside every Goal's task list. Capped at 6.
 function getSprintNumber(){
   let n = parseInt(document.getElementById('sprintInput').value, 10);
   if(isNaN(n) || n < 1) n = 1;
@@ -551,138 +580,383 @@ function getSprintNumber(){
   document.getElementById('sprintInput').value = n;
   return n;
 }
+function visibleTasks(g, sprintN){
+  return (g.tasks||[]).slice(0, sprintN);
+}
+function goalDynamicAvg(g, sprintN){
+  const vals = visibleTasks(g, sprintN).filter(t=>t.progress!==null && t.progress!==undefined).map(t=>t.progress);
+  if(vals.length===0) return null;
+  return vals.reduce((a,b)=>a+b,0)/vals.length;
+}
+
 function renderSprintLabel(){
   document.getElementById('sprintTitleNum').textContent = 'Sprint ' + getSprintNumber();
 }
+
+// ---------------- Firestore: cycle list ----------------
+async function loadCycleList(preferId){
+  const sel = document.getElementById('cycleSelect');
+  const snap = await getDocs(collection(db,'cycles'));
+  const ids = [];
+  snap.forEach(d=>ids.push(d.id));
+  ids.sort((a,b)=>Number(a)-Number(b));
+  sel.innerHTML = ids.map(id=>`<option value="${id}">Cycle ${id}</option>`).join('');
+  if(isAdmin){
+    sel.innerHTML += `<option value="__new__">+ New Cycle…</option>`;
+  }
+  let target = preferId && ids.includes(String(preferId)) ? String(preferId) : ids[0];
+  if(target){
+    sel.value = target;
+    subscribeToCycle(target);
+  } else {
+    currentCycleId = null;
+    currentGoals = [];
+    renderAll();
+  }
+}
+
+function subscribeToCycle(cycleId){
+  if(unsubscribeCycle) unsubscribeCycle();
+  currentCycleId = cycleId;
+  editingGoalNo = null;
+  addingGoal = false;
+  const ref = doc(db,'cycles',cycleId);
+  unsubscribeCycle = onSnapshot(ref, (snap)=>{
+    currentGoals = snap.exists() ? (snap.data().goals || []) : [];
+    renderAll();
+  }, (err)=>{
+    console.error('Firestore listen error', err);
+  });
+}
+
+async function saveCurrentCycle(){
+  if(!currentCycleId) return;
+  await setDoc(doc(db,'cycles',currentCycleId), { goals: currentGoals });
+}
+
+document.getElementById('cycleSelect').addEventListener('change', async (e)=>{
+  const v = e.target.value;
+  if(v === '__new__'){
+    const n = prompt('New cycle number (e.g. 9):');
+    if(!n || isNaN(parseInt(n,10))){ await loadCycleList(currentCycleId); return; }
+    const id = String(parseInt(n,10));
+    await setDoc(doc(db,'cycles',id), { goals: [] });
+    await loadCycleList(id);
+    return;
+  }
+  subscribeToCycle(v);
+});
+
 document.getElementById('sprintInput').addEventListener('input', ()=>{
   renderSprintLabel();
-  renderGoals();
+  renderAll();
 });
 
-// ---------- cycle number (admin controlled) ----------
-function getCycleNumber(){
-  const n = parseInt(document.getElementById('cycleInput').value, 10);
-  return isNaN(n) ? null : n;
-}
-function getCurrentCycleData(){
-  const c = getCycleNumber();
-  return CYCLES[c] || [];
-}
-document.getElementById('cycleInput').addEventListener('input', ()=>{
-  renderStats();
-  renderGoals();
+// ---------------- Auth ----------------
+const loginToggleBtn = document.getElementById('loginToggleBtn');
+const loginForm = document.getElementById('loginForm');
+loginToggleBtn.addEventListener('click', ()=>{
+  loginForm.classList.toggle('open');
+});
+document.addEventListener('click',(e)=>{
+  if(!e.target.closest('.loginbox')) loginForm.classList.remove('open');
 });
 
-// ---------- render stats ----------
+document.getElementById('loginSubmitBtn').addEventListener('click', async ()=>{
+  const email = document.getElementById('loginEmail').value.trim();
+  const pw = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginErr');
+  errEl.style.display='none';
+  try{
+    await signInWithEmailAndPassword(auth, email, pw);
+    loginForm.classList.remove('open');
+    document.getElementById('loginEmail').value='';
+    document.getElementById('loginPassword').value='';
+  }catch(err){
+    errEl.textContent = 'Sign-in failed — check email/password.';
+    errEl.style.display='block';
+  }
+});
+
+document.getElementById('logoutBtn').addEventListener('click', ()=>{
+  signOut(auth);
+});
+
+onAuthStateChanged(auth, (user)=>{
+  isAdmin = !!user;
+  document.getElementById('adminPill').style.display = isAdmin ? 'inline-block' : 'none';
+  document.getElementById('logoutBtn').style.display = isAdmin ? 'inline-block' : 'none';
+  loginToggleBtn.style.display = isAdmin ? 'none' : 'inline-block';
+  document.getElementById('addGoalWrap').style.display = isAdmin ? 'block' : 'none';
+  editingGoalNo = null;
+  addingGoal = false;
+  loadCycleList(currentCycleId);
+});
+
+// ---------------- Add Goal ----------------
+document.getElementById('addGoalBtn').addEventListener('click', ()=>{
+  addingGoal = true;
+  editingGoalNo = null;
+  renderAll();
+  const el = document.getElementById('newGoalForm');
+  if(el) el.scrollIntoView({behavior:'smooth', block:'center'});
+});
+
+// ---------------- Stats ----------------
 function renderStats(){
-  const data = getCurrentCycleData();
-  const total = data.length;
-  const completeGoals = data.filter(g=>g.avg>=100).length;
-  const delayedGoals = total - completeGoals;
-  const overallAvg = total ? (data.reduce((s,g)=>s+g.avg,0)/total).toFixed(1) : '—';
+  const sprintN = getSprintNumber();
+  const total = currentGoals.length;
+  const avgs = currentGoals.map(g=>goalDynamicAvg(g, sprintN));
+  const completeGoals = avgs.filter(a=>a!==null && a>=100).length;
+  const delayedGoals = avgs.filter(a=>a!==null && a<100).length;
+  const validAvgs = avgs.filter(a=>a!==null);
+  const overallAvg = validAvgs.length ? (validAvgs.reduce((s,a)=>s+a,0)/validAvgs.length).toFixed(1) : '—';
   const el = document.getElementById('statStrip');
   el.innerHTML = `
     <div class="stat"><div class="num">${total}</div><div class="lbl">Total Goals</div></div>
     <div class="stat complete"><div class="num">${completeGoals}</div><div class="lbl">Goals at 100%</div></div>
     <div class="stat delayed"><div class="num">${delayedGoals}</div><div class="lbl">Goals with Delays</div></div>
-    <div class="stat avg"><div class="num">${overallAvg}${total? '%':''}</div><div class="lbl">Overall Average</div></div>
+    <div class="stat avg"><div class="num">${overallAvg}${validAvgs.length? '%':''}</div><div class="lbl">Overall Average (Sprint 1–${sprintN})</div></div>
   `;
 }
 
-// ---------- render goals ----------
-let currentFilter = 'all';
-let currentSearch = '';
+// ---------------- Goal card (read-only) ----------------
+function goalCardHTML(g, sprintN){
+  const visible = visibleTasks(g, sprintN);
+  const latest = visible[visible.length-1];
+  const tStatus = latest ? taskStatus(latest) : 'transferred';
+  const dotColor = tStatus==='complete' ? 'var(--green)' : tStatus==='delayed' ? 'var(--amber)' : 'var(--text-dim)';
+  const avg = goalDynamicAvg(g, sprintN);
+  const avgColor = avg===null ? 'var(--text-dim)' : (avg>=100 ? 'var(--green)' : 'var(--amber)');
+  const avgLabel = avg===null ? '—' : avg.toFixed(1)+'%';
+
+  const adminBtns = isAdmin ? `
+    <div class="goal-actions">
+      <button class="btn small" data-action="edit" data-goal="${g.no}">Edit</button>
+      <button class="btn small danger" data-action="delete" data-goal="${g.no}">Delete</button>
+    </div>` : '';
+
+  const tasksHTML = visible.length === 0
+    ? `<div class="no-task">No task recorded yet for this range.</div>`
+    : visible.map(t=>{
+        const st = taskStatus(t);
+        const stLabel = st==='complete' ? 'Complete' : st==='delayed' ? 'Delayed' : 'No data';
+        const barColor = statusColor(t.progress);
+        const pctLabel = (t.progress===null || t.progress===undefined) ? '—' : t.progress+'%';
+        return `
+        <div class="task-row">
+          <div class="t-id">${t.id||''}</div>
+          <div class="t-name">${t.name||'<span style="color:var(--text-dim)">(untitled task)</span>'}</div>
+          <div class="t-dep">${g.dependency||''}</div>
+          <div class="t-progress">
+            <div class="bar"><div class="bar-fill" style="width:${t.progress||0}%;background:${barColor}"></div></div>
+            <div class="t-pct" style="color:${barColor}">${pctLabel}</div>
+          </div>
+          <div class="t-status ${st}">${stLabel}</div>
+          ${t.note ? `<div class="justif"><b>Justification of Delay</b>${t.note}</div>` : ''}
+        </div>`;
+      }).join('');
+
+  return `
+    <div class="goal-head">
+      <div class="gauge"><div class="gauge-fill" style="height:${avg||0}%;background:${avgColor}"></div></div>
+      <div class="goal-num">${String(g.no).padStart(2,'0')}</div>
+      <div class="status-dot" style="background:${dotColor}"></div>
+      <div class="goal-title-wrap">
+        <div class="goal-title">${g.name}</div>
+        <div class="goal-tags">
+          <span class="tag dep">${g.dependency||'—'}</span>
+          <span class="tag taskcount">${visible.length} of ${(g.tasks||[]).length||6} tasks shown</span>
+        </div>
+      </div>
+      <div class="goal-avg">
+        <div class="pct" style="color:${avgColor}">${avgLabel}</div>
+        <div class="pctlbl">Average %</div>
+      </div>
+      ${adminBtns}
+    </div>
+    <div class="tasks">
+      <div class="task-head-row">
+        <span>#</span><span>Task</span><span>Dependencies</span><span>Progress (%)</span><span>Status</span>
+      </div>
+      ${tasksHTML}
+    </div>
+  `;
+}
+
+// ---------------- Goal card (edit mode) ----------------
+function goalEditHTML(g, sprintN){
+  const idx = sprintN - 1;
+  const t = (g.tasks && g.tasks[idx]) ? g.tasks[idx] : {id:`${g.no}.${sprintN})`, name:'', progress:null, note:''};
+  const progVal = (t.progress===null || t.progress===undefined) ? '' : t.progress;
+  return `
+    <div class="edit-goal-meta">
+      <div class="field">
+        <label>Goal name</label>
+        <input type="text" id="edit-goal-name" value="${(g.name||'').replace(/"/g,'&quot;')}">
+      </div>
+      <div class="field">
+        <label>Dependency</label>
+        <input type="text" id="edit-goal-dep" value="${(g.dependency||'').replace(/"/g,'&quot;')}" placeholder="Internal / SCM / External">
+      </div>
+    </div>
+    <div class="editrow">
+      <div class="field">
+        <label>Task name — Sprint ${sprintN}</label>
+        <input type="text" id="edit-task-name" value="${(t.name||'').replace(/"/g,'&quot;')}">
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Justification of delay (optional)</label>
+          <textarea id="edit-task-note">${t.note||''}</textarea>
+        </div>
+        <div class="field">
+          <label>Progress % (leave blank = no data)</label>
+          <input type="number" id="edit-task-progress" min="0" max="100" value="${progVal}">
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn" data-action="cancel-edit">Cancel</button>
+        <button class="btn primary" data-action="save-edit" data-goal="${g.no}">Save Changes</button>
+      </div>
+    </div>
+  `;
+}
+
+function newGoalFormHTML(){
+  return `
+    <div class="goal" id="newGoalForm">
+      <div class="edit-goal-meta" style="padding-top:16px;">
+        <div class="field">
+          <label>Goal name</label>
+          <input type="text" id="new-goal-name" placeholder="e.g. Consultancy Services for ...">
+        </div>
+        <div class="field">
+          <label>Dependency</label>
+          <input type="text" id="new-goal-dep" placeholder="Internal / SCM / External">
+        </div>
+      </div>
+      <div class="editrow">
+        <div class="actions">
+          <button class="btn" data-action="cancel-add">Cancel</button>
+          <button class="btn primary" data-action="save-add">Add Goal</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ---------------- Main render ----------------
+function renderAll(){
+  renderSprintLabel();
+  renderStats();
+  renderGoals();
+}
 
 function renderGoals(){
   const list = document.getElementById('goalsList');
   const empty = document.getElementById('emptyState');
+  const noCycleMsg = document.getElementById('noCycleMsg');
   list.innerHTML='';
 
-  const DATA = getCurrentCycleData();
-
-  if(DATA.length === 0){
-    empty.style.display = 'block';
-    empty.textContent = `No data uploaded yet for Cycle ${getCycleNumber() ?? '—'}. Send me the updated file (or type out the changes) and I'll add it.`;
+  if(!currentCycleId){
+    noCycleMsg.style.display='block';
+    noCycleMsg.textContent = 'No cycle available yet.' + (isAdmin ? ' Use the Cycle selector to create one.' : ' Ask the admin to publish one.');
+    empty.style.display='none';
     return;
   }
-  empty.textContent = 'No results match the current filter or search.';
+  noCycleMsg.style.display='none';
 
   const sprintN = getSprintNumber();
-  const upTo = g => g.tasks.slice(0, sprintN); // tasks 1..N for this goal
 
-  const filtered = DATA.filter(g=>{
-    const visible = upTo(g);
-    const latest = visible[visible.length-1];
-    if(currentFilter==='complete' && (!latest || taskStatus(latest)!=='complete')) return false;
-    if(currentFilter==='delayed' && (!latest || taskStatus(latest)!=='delayed')) return false;
+  if(addingGoal){
+    list.insertAdjacentHTML('beforeend', newGoalFormHTML());
+  }
+
+  if(currentGoals.length === 0 && !addingGoal){
+    empty.style.display = 'block';
+    empty.textContent = `No goals yet in Cycle ${currentCycleId}.` + (isAdmin ? ' Click “+ Add Goal” to start.' : '');
+    return;
+  }
+
+  const filtered = currentGoals.filter(g=>{
+    const avg = goalDynamicAvg(g, sprintN);
+    if(currentFilter==='complete' && (avg===null || avg<100)) return false;
+    if(currentFilter==='delayed' && (avg===null || avg>=100)) return false;
     if(currentSearch){
       const q = currentSearch.toLowerCase();
-      const inTitle = g.name.toLowerCase().includes(q);
-      const inTask = visible.some(t=>t.name.toLowerCase().includes(q));
+      const inTitle = (g.name||'').toLowerCase().includes(q);
+      const inTask = visibleTasks(g, sprintN).some(t=>(t.name||'').toLowerCase().includes(q));
       if(!inTitle && !inTask) return false;
     }
     return true;
   });
 
-  empty.style.display = filtered.length ? 'none':'block';
+  empty.style.display = (filtered.length===0 && !addingGoal) ? 'block' : 'none';
+  if(filtered.length===0 && !addingGoal) empty.textContent = 'No results match the current filter or search.';
 
   filtered.forEach(g=>{
-    const visible = upTo(g);
-    const latest = visible[visible.length-1];
-    const tStatus = latest ? taskStatus(latest) : 'transferred';
-    const dotColor = tStatus==='complete' ? 'var(--green)' : tStatus==='delayed' ? 'var(--amber)' : 'var(--text-dim)';
-    const avgColor = goalStatus(g)==='complete' ? 'var(--green)' : 'var(--amber)';
-
     const card = document.createElement('div');
     card.className = 'goal';
-    card.innerHTML = `
-      <div class="goal-head" data-goal="${g.no}">
-        <div class="gauge"><div class="gauge-fill" style="height:${g.avg}%;background:${avgColor}"></div></div>
-        <div class="goal-num">${String(g.no).padStart(2,'0')}</div>
-        <div class="status-dot" style="background:${dotColor}"></div>
-        <div class="goal-title-wrap">
-          <div class="goal-title">${g.name}</div>
-          <div class="goal-tags">
-            <span class="tag dep">${g.dependency}</span>
-            <span class="tag taskcount">${visible.length} of ${g.tasks.length} tasks shown</span>
-          </div>
-        </div>
-        <div class="goal-avg">
-          <div class="pct" style="color:${avgColor}">${g.avg}%</div>
-          <div class="pctlbl">Average %</div>
-        </div>
-      </div>
-      <div class="tasks">
-        <div class="task-head-row">
-          <span>#</span><span>Task</span><span>Dependencies</span><span>Progress (%)</span><span>Status</span>
-        </div>
-        ${ visible.length === 0
-          ? `<div class="no-task">No task at this position for this Goal.</div>`
-          : visible.map(t=>{
-              const st = taskStatus(t);
-              const stLabel = st==='complete' ? 'Complete' : st==='delayed' ? 'Delayed' : 'Moved to O&M';
-              const barColor = statusColor(t.progress);
-              const pctLabel = t.progress===null ? '—' : t.progress+'%';
-              return `
-              <div class="task-row">
-                <div class="t-id">${t.id}</div>
-                <div class="t-name">${t.name}</div>
-                <div class="t-dep">${g.dependency}</div>
-                <div class="t-progress">
-                  <div class="bar"><div class="bar-fill" style="width:${t.progress||0}%;background:${barColor}"></div></div>
-                  <div class="t-pct" style="color:${barColor}">${pctLabel}</div>
-                </div>
-                <div class="t-status ${st}">${stLabel}</div>
-                ${t.note ? `<div class="justif"><b>Justification of Delay</b>${t.note}</div>` : ''}
-              </div>`;
-            }).join('')
-        }
-      </div>
-    `;
+    card.innerHTML = (editingGoalNo === g.no) ? goalEditHTML(g, sprintN) : goalCardHTML(g, sprintN);
     list.appendChild(card);
+  });
+
+  // wire action buttons
+  list.querySelectorAll('[data-action="edit"]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      editingGoalNo = Number(btn.getAttribute('data-goal'));
+      addingGoal = false;
+      renderGoals();
+    });
+  });
+  list.querySelectorAll('[data-action="delete"]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const no = Number(btn.getAttribute('data-goal'));
+      if(!confirm('Delete this goal? This cannot be undone.')) return;
+      currentGoals = currentGoals.filter(g=>g.no!==no);
+      await saveCurrentCycle();
+    });
+  });
+  list.querySelectorAll('[data-action="cancel-edit"]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ editingGoalNo=null; renderGoals(); });
+  });
+  list.querySelectorAll('[data-action="save-edit"]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const no = Number(btn.getAttribute('data-goal'));
+      const g = currentGoals.find(x=>x.no===no);
+      if(!g) return;
+      g.name = document.getElementById('edit-goal-name').value.trim();
+      g.dependency = document.getElementById('edit-goal-dep').value.trim();
+      if(!g.tasks) g.tasks = [];
+      while(g.tasks.length < sprintN) g.tasks.push({id:`${g.no}.${g.tasks.length+1})`, name:'', progress:null, note:''});
+      const idx = sprintN - 1;
+      const progRaw = document.getElementById('edit-task-progress').value;
+      g.tasks[idx] = {
+        id: `${g.no}.${sprintN})`,
+        name: document.getElementById('edit-task-name').value.trim(),
+        progress: progRaw === '' ? null : Math.max(0, Math.min(100, parseInt(progRaw,10))),
+        note: document.getElementById('edit-task-note').value.trim()
+      };
+      editingGoalNo = null;
+      await saveCurrentCycle();
+    });
+  });
+  const cancelAdd = document.querySelector('[data-action="cancel-add"]');
+  if(cancelAdd) cancelAdd.addEventListener('click', ()=>{ addingGoal=false; renderGoals(); });
+  const saveAdd = document.querySelector('[data-action="save-add"]');
+  if(saveAdd) saveAdd.addEventListener('click', async ()=>{
+    const name = document.getElementById('new-goal-name').value.trim();
+    const dep = document.getElementById('new-goal-dep').value.trim();
+    if(!name) return;
+    const maxNo = currentGoals.reduce((m,g)=>Math.max(m,g.no||0),0);
+    currentGoals.push({ no: maxNo+1, name, dependency: dep, tasks: [] });
+    addingGoal = false;
+    await saveCurrentCycle();
   });
 }
 
+// ---------------- Filter / search ----------------
 document.getElementById('filterSeg').addEventListener('click', (e)=>{
   const btn = e.target.closest('button');
   if(!btn) return;
@@ -691,15 +965,13 @@ document.getElementById('filterSeg').addEventListener('click', (e)=>{
   currentFilter = btn.getAttribute('data-f');
   renderGoals();
 });
-
 document.getElementById('search').addEventListener('input', (e)=>{
   currentSearch = e.target.value.trim();
   renderGoals();
 });
 
-renderSprintLabel();
-renderStats();
-renderGoals();
+// ---------------- init ----------------
+loadCycleList();
 </script>
 </body>
 </html>
