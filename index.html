@@ -521,7 +521,17 @@ h1 .sprint-num{color:var(--cyan);}
   </div>
 
   <div class="addgoal" id="addGoalWrap" style="display:none;">
-    <button class="btn" id="addGoalBtn">+ Add Goal</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn" id="addGoalBtn" style="flex:1;min-width:140px;border-style:dashed;padding:12px;">+ Add Goal</button>
+      <button class="btn" id="importDocxBtn" style="flex:1;min-width:170px;padding:12px;">⇪ Import from Word (.docx)</button>
+      <button class="btn" id="importCsvBtn" style="flex:1;min-width:140px;padding:12px;">⇪ Import from CSV</button>
+      <button class="btn" id="downloadTemplateBtn" style="padding:12px;">Download CSV Template</button>
+    </div>
+    <input type="file" id="csvFileInput" accept=".csv" style="display:none;">
+    <input type="file" id="docxFileInput" accept=".docx" style="display:none;">
+    <div style="font-size:11.5px;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;margin-top:8px;">
+      Word import: upload the same report file you use today — it reads the last progress table in the document and overwrites the matching goals with its full Sprint 1–6 task history. CSV columns: GoalNo, GoalName, Dependency, Sprint, TaskName, Progress, Justification — one row per task per sprint, merges with existing data.
+    </div>
   </div>
 
   <div id="goalsList"></div>
@@ -529,6 +539,7 @@ h1 .sprint-num{color:var(--cyan);}
 
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import {
@@ -725,6 +736,241 @@ document.getElementById('addGoalBtn').addEventListener('click', ()=>{
   renderAll();
   const el = document.getElementById('newGoalForm');
   if(el) el.scrollIntoView({behavior:'smooth', block:'center'});
+});
+
+// ---------------- CSV import ----------------
+document.getElementById('downloadTemplateBtn').addEventListener('click', ()=>{
+  const header = 'GoalNo,GoalName,Dependency,Sprint,TaskName,Progress,Justification';
+  const example = '1,"Consultancy Services for Wastewater Network Infiltration Reduction Study","Internal + SCM",1,"Tender Preparation with Consultation with NWS departments",100,';
+  const example2 = '1,"Consultancy Services for Wastewater Network Infiltration Reduction Study","Internal + SCM",5,"Tender Evaluation",50,"3 out of 5 consultants requested an extension."';
+  const csv = header + '\n' + example + '\n' + example2 + '\n';
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'goals_template.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+// Minimal RFC4180-ish CSV parser (handles quoted fields with commas/newlines)
+function parseCSV(text){
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for(let i=0;i<text.length;i++){
+    const c = text[i], next = text[i+1];
+    if(inQuotes){
+      if(c === '"' && next === '"'){ field+='"'; i++; }
+      else if(c === '"'){ inQuotes = false; }
+      else { field += c; }
+    } else {
+      if(c === '"'){ inQuotes = true; }
+      else if(c === ','){ row.push(field); field=''; }
+      else if(c === '\n' || c === '\r'){
+        if(c === '\r' && next === '\n') i++;
+        row.push(field); field='';
+        if(row.some(v=>v.trim()!=='')) rows.push(row);
+        row = [];
+      } else { field += c; }
+    }
+  }
+  if(field!=='' || row.length){ row.push(field); if(row.some(v=>v.trim()!=='')) rows.push(row); }
+  return rows;
+}
+
+document.getElementById('importCsvBtn').addEventListener('click', ()=>{
+  if(!currentCycleId){
+    alert('Select or create a Cycle first (top-left Cycle selector), then import goals into it.');
+    return;
+  }
+  document.getElementById('csvFileInput').click();
+});
+
+document.getElementById('csvFileInput').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const text = await file.text();
+  const rows = parseCSV(text);
+  if(rows.length < 2){ alert('CSV looks empty.'); e.target.value=''; return; }
+
+  const header = rows[0].map(h=>h.trim().toLowerCase());
+  const idx = {
+    goalNo: header.indexOf('goalno'),
+    goalName: header.indexOf('goalname'),
+    dependency: header.indexOf('dependency'),
+    sprint: header.indexOf('sprint'),
+    taskName: header.indexOf('taskname'),
+    progress: header.indexOf('progress'),
+    justification: header.indexOf('justification')
+  };
+  if(idx.goalNo===-1 || idx.goalName===-1 || idx.sprint===-1 || idx.taskName===-1){
+    alert('CSV is missing required columns. Expected: GoalNo, GoalName, Dependency, Sprint, TaskName, Progress, Justification');
+    e.target.value=''; return;
+  }
+
+  let addedGoals = 0, updatedTasks = 0, skipped = 0;
+
+  for(let r=1; r<rows.length; r++){
+    const row = rows[r];
+    const goalNo = parseInt(row[idx.goalNo], 10);
+    const sprint = parseInt(row[idx.sprint], 10);
+    if(isNaN(goalNo) || isNaN(sprint) || sprint<1 || sprint>6){ skipped++; continue; }
+
+    let g = currentGoals.find(x=>x.no===goalNo);
+    if(!g){
+      g = { no: goalNo, name: (row[idx.goalName]||'').trim(), dependency: (row[idx.dependency]||'').trim(), tasks: [] };
+      currentGoals.push(g);
+      addedGoals++;
+    } else {
+      if(row[idx.goalName]) g.name = row[idx.goalName].trim();
+      if(row[idx.dependency]) g.dependency = row[idx.dependency].trim();
+    }
+    if(!g.tasks) g.tasks = [];
+    while(g.tasks.length < sprint) g.tasks.push({id:`${g.no}.${g.tasks.length+1})`, name:'', progress:null, note:''});
+
+    const progRaw = (row[idx.progress]||'').trim();
+    g.tasks[sprint-1] = {
+      id: `${g.no}.${sprint})`,
+      name: (row[idx.taskName]||'').trim(),
+      progress: progRaw==='' ? null : Math.max(0, Math.min(100, parseInt(progRaw,10))),
+      note: (idx.justification>-1 ? (row[idx.justification]||'') : '').trim()
+    };
+    updatedTasks++;
+  }
+
+  currentGoals.sort((a,b)=>a.no-b.no);
+  await saveCurrentCycle();
+  alert(`Import complete.\nNew goals added: ${addedGoals}\nTasks updated: ${updatedTasks}${skipped? '\nRows skipped (bad Goal No/Sprint): '+skipped : ''}`);
+  e.target.value = '';
+});
+
+// ---------------- Word (.docx) import ----------------
+const W_NS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+
+function docxGetCellText(tc){
+  const paras = [];
+  const ps = tc.getElementsByTagNameNS(W_NS,'p');
+  for(let i=0;i<ps.length;i++){
+    if(ps[i].parentNode !== tc) continue; // direct-child paragraphs only, skip nested tables
+    const ts = ps[i].getElementsByTagNameNS(W_NS,'t');
+    let s = '';
+    for(let j=0;j<ts.length;j++) s += ts[j].textContent;
+    paras.push(s);
+  }
+  return paras.join('\n').replace(/\n{2,}/g,'\n').trim();
+}
+function docxIsVMergeContinue(tc){
+  const tcPr = tc.getElementsByTagNameNS(W_NS,'tcPr')[0];
+  if(!tcPr) return false;
+  const vm = tcPr.getElementsByTagNameNS(W_NS,'vMerge')[0];
+  if(!vm) return false;
+  const val = vm.getAttributeNS ? (vm.getAttributeNS(W_NS,'val') || vm.getAttribute('w:val')) : vm.getAttribute('w:val');
+  return !val || val === 'continue';
+}
+function docxCleanGoalName(raw){
+  return raw.split('\n')[0]
+    .replace(/\)\s*New\s*&\s*CFWD\)?\s*$/i,'')
+    .replace(/\)\s*New\)?\s*$/i,'')
+    .replace(/New\s*&\s*CFWD\)?\s*$/i,'')
+    .replace(/New\)?\s*$/i,'')
+    .trim();
+}
+function docxCleanTaskName(raw){
+  return raw.replace(/^\d+(\.\d+)?\)\s*/, '').trim();
+}
+
+function parseDocxTable(tbl){
+  const trs = tbl.getElementsByTagNameNS(W_NS,'tr');
+  let grid = [];
+  for(let r=0;r<trs.length;r++){
+    const tcs = [];
+    const allTcs = trs[r].getElementsByTagNameNS(W_NS,'tc');
+    for(let c=0;c<allTcs.length;c++) if(allTcs[c].parentNode === trs[r]) tcs.push(allTcs[c]);
+    const rowData = tcs.map((tc,ci)=> docxIsVMergeContinue(tc) ? ((grid[r-1]&&grid[r-1][ci])||'') : docxGetCellText(tc));
+    grid.push(rowData);
+  }
+  const headerIdx = grid.findIndex(r => r.some(c=>/^no\.?$/i.test((c||'').trim())) && r.some(c=>/goals/i.test(c||'')));
+  if(headerIdx === -1) return null;
+
+  const goals = [];
+  let curGoal = null;
+  for(let r=headerIdx+1; r<grid.length; r++){
+    const row = grid[r];
+    if(!row || row.length < 5) continue;
+    const noRaw = (row[0]||'').trim();
+    if(!noRaw) continue;
+    const no = parseInt(noRaw,10);
+    if(isNaN(no)) continue;
+
+    const goalNameRaw = row[1]||'';
+    const taskName = docxCleanTaskName(row[2]||'');
+    const dep = (row[3]||'').trim();
+    const progRaw = (row[4]||'').trim();
+    const justif = (row[6]||'').trim();
+
+    if(!curGoal || curGoal.no !== no){
+      curGoal = { no, name: docxCleanGoalName(goalNameRaw), dependency: dep, tasks: [] };
+      goals.push(curGoal);
+    }
+    let progress = null;
+    if(progRaw && progRaw !== '-'){
+      progress = parseInt(progRaw.replace('%',''),10);
+      if(isNaN(progress)) progress = null;
+    }
+    curGoal.tasks.push({ id:`${no}.${curGoal.tasks.length+1})`, name: taskName, progress, note: justif });
+  }
+  return goals.length ? goals : null;
+}
+
+document.getElementById('importDocxBtn').addEventListener('click', ()=>{
+  if(!currentCycleId){
+    alert('Select or create a Cycle first (top-left Cycle selector), then import into it.');
+    return;
+  }
+  document.getElementById('docxFileInput').click();
+});
+
+document.getElementById('docxFileInput').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  try{
+    const buf = await file.arrayBuffer();
+    const zip = await JSZip.loadAsync(buf);
+    const xmlFile = zip.file('word/document.xml');
+    if(!xmlFile){ alert('This doesn\'t look like a valid .docx file.'); e.target.value=''; return; }
+    const xmlText = await xmlFile.async('string');
+    const xdoc = new DOMParser().parseFromString(xmlText, 'application/xml');
+    const tables = xdoc.getElementsByTagNameNS(W_NS,'tbl');
+    if(tables.length === 0){ alert('No tables found in this document.'); e.target.value=''; return; }
+
+    // Use the last table in the document — in this report template that's the
+    // most recent / most complete progress table (Task position = Sprint number).
+    const parsed = parseDocxTable(tables[tables.length-1]);
+    if(!parsed){
+      alert('Could not find a recognizable "No. / Goals / Tasks / Dependencies" table in this file. Falling back is to use the CSV import instead.');
+      e.target.value=''; return;
+    }
+
+    let added=0, updated=0;
+    parsed.forEach(pg=>{
+      const existing = currentGoals.find(g=>g.no===pg.no);
+      if(existing){
+        existing.name = pg.name;
+        existing.dependency = pg.dependency;
+        existing.tasks = pg.tasks;
+        updated++;
+      } else {
+        currentGoals.push(pg);
+        added++;
+      }
+    });
+    currentGoals.sort((a,b)=>a.no-b.no);
+    await saveCurrentCycle();
+    alert(`Word import complete (from ${tables.length} table${tables.length>1?'s':''} found — used the last one).\nGoals added: ${added}\nGoals updated (full task history replaced): ${updated}`);
+  }catch(err){
+    console.error('DOCX import failed', err);
+    alert('Could not read this Word file:\n' + err.message + '\n\nTry the CSV import instead.');
+  }
+  e.target.value = '';
 });
 
 // ---------------- Stats ----------------
