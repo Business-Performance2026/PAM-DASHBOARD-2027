@@ -612,6 +612,45 @@ table.doctable input:focus{border-color:var(--cyan-dim);}
 .dash-card.full{grid-column:1 / -1;}
 .chart-wrap{position:relative;height:260px;width:100%;}
 .chart-wrap.tall{height:320px;}
+
+/* ---------- Unified dashboard halves ---------- */
+.dash-halves{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:0;
+  border:1px solid var(--line);
+  border-radius:16px;
+  overflow:hidden;
+  background:var(--surface);
+}
+.dash-half{
+  padding:22px;
+  border-left:1px solid var(--line);
+}
+.dash-half:first-child{border-left:none;}
+.half-title{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:18px;
+  font-weight:700;
+  color:#fff;
+  margin:0 0 16px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  letter-spacing:.01em;
+}
+.half-dot{
+  width:10px;height:10px;border-radius:50%;flex-shrink:0;
+  box-shadow:0 0 10px currentColor;
+}
+.dash-half .dash-grid{margin-bottom:0;}
+.dash-half .stats{grid-template-columns:repeat(4,1fr);margin-bottom:16px;}
+@media (max-width:900px){
+  .dash-halves{grid-template-columns:1fr;}
+  .dash-half{border-left:none;border-top:1px solid var(--line);}
+  .dash-half:first-child{border-top:none;}
+  .dash-half .stats{grid-template-columns:repeat(2,1fr);}
+}
 @media (max-width:820px){
   .dash-grid{grid-template-columns:1fr;}
   .chart-wrap{height:230px;}
@@ -656,13 +695,59 @@ table.doctable input:focus{border-color:var(--cyan-dim);}
   </div>
 
   <div class="tabsbar" id="tabsbar">
-    <button class="tab active" data-tab="goals">Goals</button>
+    <button class="tab active" data-tab="dashboard">Dashboard</button>
+    <button class="tab" data-tab="goals">Goals</button>
     <button class="tab" data-tab="documents">Documents</button>
-    <button class="tab" data-tab="goals-dash">Goals Dashboard</button>
-    <button class="tab" data-tab="documents-dash">Documents Dashboard</button>
   </div>
 
-  <div class="view active" id="view-goals">
+  <div class="view active" id="view-dashboard">
+    <h2 class="section-title">Overview <span class="section-sub">— Cycle <span id="gdCycleLabel">—</span>, Sprint 1–<span id="gdSprintLabel">1</span></span></h2>
+    <div class="dash-halves">
+      <div class="dash-half">
+        <h3 class="half-title"><span class="half-dot" style="background:var(--cyan)"></span>Goals</h3>
+        <div class="stats" id="gdStatStrip"></div>
+        <div class="dash-grid">
+          <div class="dash-card">
+            <h3><span class="dot" style="background:var(--cyan)"></span>Average % by Goal</h3>
+            <div class="chart-wrap"><canvas id="chartGoalAvg"></canvas></div>
+          </div>
+          <div class="dash-card">
+            <h3><span class="dot" style="background:var(--green)"></span>Complete vs Delayed</h3>
+            <div class="chart-wrap"><canvas id="chartGoalStatus"></canvas></div>
+          </div>
+          <div class="dash-card">
+            <h3><span class="dot" style="background:var(--amber)"></span>Goals by Dependency Type</h3>
+            <div class="chart-wrap"><canvas id="chartGoalDep"></canvas></div>
+          </div>
+          <div class="dash-card">
+            <h3><span class="dot" style="background:var(--cyan)"></span>Overall Average Trend (Sprint 1→6)</h3>
+            <div class="chart-wrap"><canvas id="chartGoalTrend"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dash-half">
+        <h3 class="half-title"><span class="half-dot" style="background:var(--amber)"></span>Documents</h3>
+        <div class="stats" id="docStatStrip"></div>
+        <div class="dash-grid">
+          <div class="dash-card">
+            <h3><span class="dot" style="background:var(--cyan)"></span>Total Documents by Department</h3>
+            <div class="chart-wrap"><canvas id="chartDocDept"></canvas></div>
+          </div>
+          <div class="dash-card">
+            <h3><span class="dot" style="background:var(--green)"></span>Total Documents by Type</h3>
+            <div class="chart-wrap"><canvas id="chartDocType"></canvas></div>
+          </div>
+          <div class="dash-card full">
+            <h3><span class="dot" style="background:var(--amber)"></span>Type Breakdown by Department</h3>
+            <div class="chart-wrap tall"><canvas id="chartDocStacked"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="view" id="view-goals">
   <header>
     <h1><span class="sprint-num" id="sprintTitleNum">Sprint 1</span></h1>
     <div class="no-cycle-msg" id="noCycleMsg" style="display:none;"></div>
@@ -717,48 +802,6 @@ table.doctable input:focus{border-color:var(--cyan-dim);}
     </div>
   </div>
 
-  <div class="view" id="view-goals-dash">
-    <h2 class="section-title">Goals Dashboard <span class="section-sub">— Cycle <span id="gdCycleLabel">—</span>, Sprint 1–<span id="gdSprintLabel">1</span></span></h2>
-    <div class="stats" id="gdStatStrip"></div>
-    <div class="dash-grid">
-      <div class="dash-card">
-        <h3><span class="dot" style="background:var(--cyan)"></span>Average % by Goal</h3>
-        <div class="chart-wrap"><canvas id="chartGoalAvg"></canvas></div>
-      </div>
-      <div class="dash-card">
-        <h3><span class="dot" style="background:var(--green)"></span>Complete vs Delayed</h3>
-        <div class="chart-wrap"><canvas id="chartGoalStatus"></canvas></div>
-      </div>
-      <div class="dash-card">
-        <h3><span class="dot" style="background:var(--amber)"></span>Goals by Dependency Type</h3>
-        <div class="chart-wrap"><canvas id="chartGoalDep"></canvas></div>
-      </div>
-      <div class="dash-card">
-        <h3><span class="dot" style="background:var(--cyan)"></span>Overall Average Trend (Sprint 1→6)</h3>
-        <div class="chart-wrap"><canvas id="chartGoalTrend"></canvas></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="view" id="view-documents-dash">
-    <h2 class="section-title">Documents Dashboard</h2>
-    <div class="stats" id="docStatStrip"></div>
-    <div class="dash-grid">
-      <div class="dash-card">
-        <h3><span class="dot" style="background:var(--cyan)"></span>Total Documents by Department</h3>
-        <div class="chart-wrap"><canvas id="chartDocDept"></canvas></div>
-      </div>
-      <div class="dash-card">
-        <h3><span class="dot" style="background:var(--green)"></span>Total Documents by Type</h3>
-        <div class="chart-wrap"><canvas id="chartDocType"></canvas></div>
-      </div>
-      <div class="dash-card full">
-        <h3><span class="dot" style="background:var(--amber)"></span>Type Breakdown by Department</h3>
-        <div class="chart-wrap tall"><canvas id="chartDocStacked"></canvas></div>
-      </div>
-    </div>
-  </div>
-
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -797,7 +840,7 @@ let addingGoal = false;
 let currentFilter = 'all';
 let currentSearch = '';
 
-let currentTab = 'goals';
+let currentTab = 'dashboard';
 
 const DOC_DEPARTMENTS = ["A. Planning","A. Engineering","A. Performance","RDI"];
 const DOC_TYPES = ["Policy","Manual","Guidelines","Procedure","Format","Work Instruction"];
@@ -1375,7 +1418,7 @@ function renderAll(){
   renderSprintLabel();
   renderStats();
   renderGoals();
-  if(currentTab === 'goals-dash') renderGoalsDashboard();
+  if(currentTab === 'dashboard') renderDashboard();
 }
 
 function renderGoals(){
@@ -1511,10 +1554,14 @@ function switchTab(tab){
   document.querySelectorAll('.tabsbar .tab').forEach(b=>b.classList.toggle('active', b.getAttribute('data-tab')===tab));
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+tab).classList.add('active');
-  document.getElementById('cycleSprintGroup').style.display = (tab==='goals' || tab==='goals-dash') ? 'flex' : 'none';
-  if(tab === 'goals-dash') renderGoalsDashboard();
-  if(tab === 'documents-dash') renderDocumentsDashboard();
+  document.getElementById('cycleSprintGroup').style.display = (tab==='goals' || tab==='dashboard') ? 'flex' : 'none';
+  if(tab === 'dashboard') renderDashboard();
   if(tab === 'documents') renderDocTable();
+}
+
+function renderDashboard(){
+  renderGoalsDashboard();
+  renderDocumentsDashboard();
 }
 
 // ---------------- Documents table (Firestore: docStats/summary) ----------------
@@ -1566,7 +1613,7 @@ function subscribeDocStats(){
     docCounts = data;
     DOC_TYPES.forEach(t=>{ if(!docCounts[t]) docCounts[t]={}; });
     renderDocTable();
-    if(currentTab === 'documents-dash') renderDocumentsDashboard();
+    if(currentTab === 'dashboard') renderDocumentsDashboard();
   }, (err)=>{
     console.error('docStats listen error', err);
   });
@@ -1699,7 +1746,7 @@ document.getElementById('docXlsxFileInput').addEventListener('change', async (e)
 // ---------------- Goals Dashboard ----------------
 function renderGoalsDashboard(){
   if(typeof Chart === 'undefined'){
-    document.getElementById('view-goals-dash').insertAdjacentHTML('beforeend', '<p style="color:var(--red);font-family:monospace;">Chart.js failed to load — check your internet connection and refresh.</p>');
+    document.getElementById('view-dashboard').insertAdjacentHTML('beforeend', '<p style="color:var(--red);font-family:monospace;">Chart.js failed to load — check your internet connection and refresh.</p>');
     return;
   }
   document.getElementById('gdCycleLabel').textContent = currentCycleId || '—';
@@ -1767,7 +1814,7 @@ function renderGoalsDashboard(){
 // ---------------- Documents Dashboard ----------------
 function renderDocumentsDashboard(){
   if(typeof Chart === 'undefined'){
-    document.getElementById('view-documents-dash').insertAdjacentHTML('beforeend', '<p style="color:var(--red);font-family:monospace;">Chart.js failed to load — check your internet connection and refresh.</p>');
+    document.getElementById('view-dashboard').insertAdjacentHTML('beforeend', '<p style="color:var(--red);font-family:monospace;">Chart.js failed to load — check your internet connection and refresh.</p>');
     return;
   }
   const deptTotals = DOC_DEPARTMENTS.map(d=>docDeptTotal(d));
