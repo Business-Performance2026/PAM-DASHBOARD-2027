@@ -610,17 +610,19 @@ table.doctable input:focus{border-color:var(--cyan-dim);}
 <div class="wrap">
 
   <div class="adminbar">
-    <span class="adm-label">Cycle #</span>
-    <select id="cycleSelect"><option value="">—</option></select>
-    <span class="adm-label">Sprint #</span>
-    <select id="sprintInput">
-      <option value="1">1</option>
-      <option value="2">2</option>
-      <option value="3">3</option>
-      <option value="4">4</option>
-      <option value="5">5</option>
-      <option value="6">6</option>
-    </select>
+    <div id="cycleSprintGroup" style="display:flex;align-items:center;gap:10px;">
+      <span class="adm-label">Cycle #</span>
+      <select id="cycleSelect"><option value="">—</option></select>
+      <span class="adm-label">Sprint #</span>
+      <select id="sprintInput">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+      </select>
+    </div>
 
     <div class="spacer"></div>
 
@@ -1497,6 +1499,7 @@ function switchTab(tab){
   document.querySelectorAll('.tabsbar .tab').forEach(b=>b.classList.toggle('active', b.getAttribute('data-tab')===tab));
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+tab).classList.add('active');
+  document.getElementById('cycleSprintGroup').style.display = (tab==='goals' || tab==='goals-dash') ? 'flex' : 'none';
   if(tab === 'goals-dash') renderGoalsDashboard();
   if(tab === 'documents-dash') renderDocumentsDashboard();
   if(tab === 'documents') renderDocTable();
