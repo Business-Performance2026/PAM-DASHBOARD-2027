@@ -562,6 +562,12 @@ table.doctable input{
 table.doctable input:focus{border-color:var(--cyan-dim);}
 
 /* ---------- Dashboards ---------- */
+.section-sub{
+  font-size:13px;
+  color:var(--text-dim);
+  font-family:'IBM Plex Mono',monospace;
+  font-weight:400;
+}
 .dash-grid{
   display:grid;
   grid-template-columns:1fr 1fr;
@@ -569,22 +575,34 @@ table.doctable input:focus{border-color:var(--cyan-dim);}
   margin-bottom:16px;
 }
 .dash-card{
-  background:var(--surface);
+  background:linear-gradient(180deg, var(--surface-hi) 0%, var(--surface) 140px);
   border:1px solid var(--line);
   border-radius:14px;
-  padding:18px;
+  padding:20px 20px 16px;
+  transition:border-color .15s, transform .15s;
 }
+.dash-card:hover{border-color:var(--cyan-dim);}
 .dash-card h3{
   font-family:'Space Grotesk',sans-serif;
-  font-size:15px;
+  font-size:14.5px;
   font-weight:600;
   color:var(--text);
-  margin:0 0 14px;
+  margin:0 0 16px;
+  display:flex;
+  align-items:center;
+  gap:9px;
+  letter-spacing:.01em;
+}
+.dash-card h3 .dot{
+  width:8px;height:8px;border-radius:50%;flex-shrink:0;
+  box-shadow:0 0 8px currentColor;
 }
 .dash-card.full{grid-column:1 / -1;}
-.dash-card canvas{max-height:280px;}
+.chart-wrap{position:relative;height:260px;width:100%;}
+.chart-wrap.tall{height:320px;}
 @media (max-width:820px){
   .dash-grid{grid-template-columns:1fr;}
+  .chart-wrap{height:230px;}
 }
 </style>
 </head>
@@ -678,21 +696,44 @@ table.doctable input:focus{border-color:var(--cyan-dim);}
   </div>
 
   <div class="view" id="view-goals-dash">
-    <h2 class="section-title">Goals Dashboard <span style="font-size:13px;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;font-weight:400;">— Cycle <span id="gdCycleLabel">—</span>, Sprint 1–<span id="gdSprintLabel">1</span></span></h2>
+    <h2 class="section-title">Goals Dashboard <span class="section-sub">— Cycle <span id="gdCycleLabel">—</span>, Sprint 1–<span id="gdSprintLabel">1</span></span></h2>
+    <div class="stats" id="gdStatStrip"></div>
     <div class="dash-grid">
-      <div class="dash-card"><h3>Average % by Goal</h3><canvas id="chartGoalAvg"></canvas></div>
-      <div class="dash-card"><h3>Complete vs Delayed</h3><canvas id="chartGoalStatus"></canvas></div>
-      <div class="dash-card"><h3>Goals by Dependency Type</h3><canvas id="chartGoalDep"></canvas></div>
-      <div class="dash-card"><h3>Overall Average Trend (Sprint 1→6)</h3><canvas id="chartGoalTrend"></canvas></div>
+      <div class="dash-card">
+        <h3><span class="dot" style="background:var(--cyan)"></span>Average % by Goal</h3>
+        <div class="chart-wrap"><canvas id="chartGoalAvg"></canvas></div>
+      </div>
+      <div class="dash-card">
+        <h3><span class="dot" style="background:var(--green)"></span>Complete vs Delayed</h3>
+        <div class="chart-wrap"><canvas id="chartGoalStatus"></canvas></div>
+      </div>
+      <div class="dash-card">
+        <h3><span class="dot" style="background:var(--amber)"></span>Goals by Dependency Type</h3>
+        <div class="chart-wrap"><canvas id="chartGoalDep"></canvas></div>
+      </div>
+      <div class="dash-card">
+        <h3><span class="dot" style="background:var(--cyan)"></span>Overall Average Trend (Sprint 1→6)</h3>
+        <div class="chart-wrap"><canvas id="chartGoalTrend"></canvas></div>
+      </div>
     </div>
   </div>
 
   <div class="view" id="view-documents-dash">
     <h2 class="section-title">Documents Dashboard</h2>
+    <div class="stats" id="docStatStrip"></div>
     <div class="dash-grid">
-      <div class="dash-card"><h3>Total Documents by Department</h3><canvas id="chartDocDept"></canvas></div>
-      <div class="dash-card"><h3>Total Documents by Type</h3><canvas id="chartDocType"></canvas></div>
-      <div class="dash-card full"><h3>Type Breakdown by Department</h3><canvas id="chartDocStacked"></canvas></div>
+      <div class="dash-card">
+        <h3><span class="dot" style="background:var(--cyan)"></span>Total Documents by Department</h3>
+        <div class="chart-wrap"><canvas id="chartDocDept"></canvas></div>
+      </div>
+      <div class="dash-card">
+        <h3><span class="dot" style="background:var(--green)"></span>Total Documents by Type</h3>
+        <div class="chart-wrap"><canvas id="chartDocType"></canvas></div>
+      </div>
+      <div class="dash-card full">
+        <h3><span class="dot" style="background:var(--amber)"></span>Type Breakdown by Department</h3>
+        <div class="chart-wrap tall"><canvas id="chartDocStacked"></canvas></div>
+      </div>
     </div>
   </div>
 
@@ -1523,6 +1564,18 @@ function renderGoalsDashboard(){
   const sprintN = getSprintNumber();
   document.getElementById('gdSprintLabel').textContent = sprintN;
 
+  const gdAvgs = currentGoals.map(g=>goalDynamicAvg(g, sprintN));
+  const gdComplete = gdAvgs.filter(a=>a!==null && a>=100).length;
+  const gdDelayed = gdAvgs.filter(a=>a!==null && a<100).length;
+  const gdValid = gdAvgs.filter(a=>a!==null);
+  const gdOverall = gdValid.length ? (gdValid.reduce((s,a)=>s+a,0)/gdValid.length).toFixed(1) : '—';
+  document.getElementById('gdStatStrip').innerHTML = `
+    <div class="stat"><div class="num">${currentGoals.length}</div><div class="lbl">Total Goals</div></div>
+    <div class="stat complete"><div class="num">${gdComplete}</div><div class="lbl">Complete</div></div>
+    <div class="stat delayed"><div class="num">${gdDelayed}</div><div class="lbl">Delayed</div></div>
+    <div class="stat avg"><div class="num">${gdOverall}${gdValid.length?'%':''}</div><div class="lbl">Overall Average</div></div>
+  `;
+
   const labels = currentGoals.map(g=>'#'+g.no);
   const avgs = currentGoals.map(g=> goalDynamicAvg(g, sprintN) ?? 0);
   const barColors = currentGoals.map(g=>{
@@ -1572,6 +1625,17 @@ function renderGoalsDashboard(){
 // ---------------- Documents Dashboard ----------------
 function renderDocumentsDashboard(){
   const deptTotals = DOC_DEPARTMENTS.map(d=>docDeptTotal(d));
+  const typeTotalsForStats = DOC_TYPES.map(t=>({ name:t, total: docTypeTotal(t) }));
+  const grand = docGrandTotal();
+  const topType = typeTotalsForStats.reduce((best,cur)=> cur.total>best.total ? cur : best, {name:'—',total:0});
+  const topDeptIdx = deptTotals.reduce((bi,v,i,arr)=> v>arr[bi] ? i : bi, 0);
+  document.getElementById('docStatStrip').innerHTML = `
+    <div class="stat avg"><div class="num">${grand}</div><div class="lbl">Total Documents</div></div>
+    <div class="stat"><div class="num">${DOC_DEPARTMENTS.length}</div><div class="lbl">Departments</div></div>
+    <div class="stat complete"><div class="num">${topType.total ? topType.name : '—'}</div><div class="lbl">Most Common Type</div></div>
+    <div class="stat"><div class="num" style="font-size:19px;">${grand? DOC_DEPARTMENTS[topDeptIdx] : '—'}</div><div class="lbl">Leading Department</div></div>
+  `;
+
   destroyChart('docDept');
   chartInstances['docDept'] = new Chart(document.getElementById('chartDocDept'), {
     type:'bar',
