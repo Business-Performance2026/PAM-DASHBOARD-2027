@@ -687,8 +687,16 @@ table.doctable input:focus{border-color:var(--cyan-dim);}
   <div class="view" id="view-documents">
     <h2 class="section-title">Documentation Status</h2>
     <div id="docAdminBar" style="display:none;margin-bottom:14px;">
-      <button class="btn primary" id="docSaveBtn">Save Changes</button>
-      <span style="font-size:11.5px;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;margin-left:8px;">Edit the numbers directly in the table, then Save.</span>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn primary" id="docSaveBtn" style="flex:1;min-width:140px;padding:12px;">Save Changes</button>
+        <button class="btn" id="importDocDocxBtn" style="flex:1;min-width:170px;padding:12px;">⇪ Import from Word (.docx)</button>
+        <button class="btn" id="importDocXlsxBtn" style="flex:1;min-width:170px;padding:12px;">⇪ Import from Excel (.xlsx)</button>
+      </div>
+      <input type="file" id="docDocxFileInput" accept=".docx" style="display:none;">
+      <input type="file" id="docXlsxFileInput" accept=".xlsx,.xls" style="display:none;">
+      <div style="font-size:11.5px;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;margin-top:8px;">
+        Upload the same documentation summary table you use today (rows = document types, columns = departments). It's matched by row/column names automatically, so extra columns like "Total" are ignored — edit any number below by hand, then Save.
+      </div>
     </div>
     <div class="doctable-wrap">
       <table class="doctable" id="docTable"></table>
@@ -741,6 +749,7 @@ table.doctable input:focus{border-color:var(--cyan-dim);}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js" onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js';document.head.appendChild(s);"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import {
@@ -1556,6 +1565,120 @@ document.getElementById('docSaveBtn').addEventListener('click', async ()=>{
     console.error('Save failed', err);
     alert('Save failed:\n' + err.message + '\n\nMake sure Firestore Rules also cover the "docStats" collection (see setup notes).');
   }
+});
+
+// ---------------- Documents matrix import (Word / Excel) ----------------
+function normalizeLabel(s){ return (s||'').toString().trim().toLowerCase().replace(/[^a-z]/g,''); }
+function matchDocType(label){
+  const norm = normalizeLabel(label);
+  if(!norm) return null;
+  return DOC_TYPES.find(t => normalizeLabel(t)===norm) ||
+         DOC_TYPES.find(t => norm.includes(normalizeLabel(t)) || normalizeLabel(t).includes(norm));
+}
+function matchDocDept(label){
+  const norm = normalizeLabel(label);
+  if(!norm) return null;
+  return DOC_DEPARTMENTS.find(d => normalizeLabel(d)===norm) ||
+         DOC_DEPARTMENTS.find(d => norm.includes(normalizeLabel(d)) || normalizeLabel(d).includes(norm));
+}
+// Turns any raw 2D grid of cell text into { type: { dept: count } } by matching
+// row labels against DOC_TYPES and header-row labels against DOC_DEPARTMENTS —
+// column order, extra "Total" rows/columns, and header wording don't matter.
+function gridToDocCounts(grid){
+  let headerRowIdx=-1, headerMap={}, bestMatches=0;
+  for(let r=0;r<grid.length;r++){
+    const row = grid[r] || [];
+    const map={}; let matches=0;
+    row.forEach((cell,ci)=>{ const d=matchDocDept(cell); if(d){ map[ci]=d; matches++; } });
+    if(matches>bestMatches){ bestMatches=matches; headerRowIdx=r; headerMap=map; }
+  }
+  if(headerRowIdx===-1 || bestMatches===0) return null;
+  const result = {};
+  for(let r=headerRowIdx+1; r<grid.length; r++){
+    const row = grid[r];
+    if(!row || !row.length) continue;
+    const type = matchDocType(row[0]);
+    if(!type) continue;
+    result[type] = result[type] || {};
+    Object.entries(headerMap).forEach(([ci,dept])=>{
+      const raw = (row[ci]||'').toString().trim();
+      const num = parseInt(raw,10);
+      result[type][dept] = isNaN(num) ? 0 : num;
+    });
+  }
+  return Object.keys(result).length ? result : null;
+}
+
+function docxTableToGrid(tbl){
+  const trs = tbl.getElementsByTagNameNS(W_NS,'tr');
+  let grid = [];
+  for(let r=0;r<trs.length;r++){
+    const tcs = [];
+    const allTcs = trs[r].getElementsByTagNameNS(W_NS,'tc');
+    for(let c=0;c<allTcs.length;c++) if(allTcs[c].parentNode===trs[r]) tcs.push(allTcs[c]);
+    const rowData = tcs.map((tc,ci)=> docxIsVMergeContinue(tc) ? ((grid[r-1]&&grid[r-1][ci])||'') : docxGetCellText(tc).replace(/\n/g,' '));
+    grid.push(rowData);
+  }
+  return grid;
+}
+
+document.getElementById('importDocDocxBtn').addEventListener('click', ()=> document.getElementById('docDocxFileInput').click());
+
+document.getElementById('docDocxFileInput').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  try{
+    const buf = await file.arrayBuffer();
+    const zip = await JSZip.loadAsync(buf);
+    const xmlFile = zip.file('word/document.xml');
+    if(!xmlFile){ alert("This doesn't look like a valid .docx file."); e.target.value=''; return; }
+    const xmlText = await xmlFile.async('string');
+    const xdoc = new DOMParser().parseFromString(xmlText, 'application/xml');
+    const tables = xdoc.getElementsByTagNameNS(W_NS,'tbl');
+    let parsed = null;
+    for(let i=0;i<tables.length && !parsed;i++){
+      parsed = gridToDocCounts(docxTableToGrid(tables[i]));
+    }
+    if(!parsed){
+      alert('Could not find a matching Documentation Status table (rows = Policy/Manual/Guidelines/... , columns = departments) in this file.');
+      e.target.value=''; return;
+    }
+    DOC_TYPES.forEach(t=>{ docCounts[t] = { ...(docCounts[t]||{}), ...(parsed[t]||{}) }; });
+    await setDoc(doc(db,'docStats','summary'), { counts: docCounts });
+    alert('Word import complete — Documentation Status updated and saved.');
+  }catch(err){
+    console.error('Doc docx import failed', err);
+    alert('Could not read this Word file:\n' + err.message + '\n\nTry the Excel import instead.');
+  }
+  e.target.value = '';
+});
+
+document.getElementById('importDocXlsxBtn').addEventListener('click', ()=> document.getElementById('docXlsxFileInput').click());
+
+document.getElementById('docXlsxFileInput').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  try{
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type:'array' });
+    let parsed = null;
+    for(let i=0;i<wb.SheetNames.length && !parsed;i++){
+      const sheet = wb.Sheets[wb.SheetNames[i]];
+      const grid = XLSX.utils.sheet_to_json(sheet, { header:1, defval:'' }).map(row=>row.map(c=>String(c)));
+      parsed = gridToDocCounts(grid);
+    }
+    if(!parsed){
+      alert('Could not find a matching Documentation Status table (rows = Policy/Manual/Guidelines/... , columns = departments) in this file.');
+      e.target.value=''; return;
+    }
+    DOC_TYPES.forEach(t=>{ docCounts[t] = { ...(docCounts[t]||{}), ...(parsed[t]||{}) }; });
+    await setDoc(doc(db,'docStats','summary'), { counts: docCounts });
+    alert('Excel import complete — Documentation Status updated and saved.');
+  }catch(err){
+    console.error('Doc xlsx import failed', err);
+    alert('Could not read this Excel file:\n' + err.message + '\n\nTry the Word import instead.');
+  }
+  e.target.value = '';
 });
 
 // ---------------- Goals Dashboard ----------------
