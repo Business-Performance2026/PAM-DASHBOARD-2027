@@ -207,10 +207,19 @@ h1 .sprint-num{color:var(--cyan);}
   color:#fff;
   line-height:1;
 }
+.stat{transition:border-color .15s, transform .15s;}
+.stat:hover{border-color:var(--cyan-dim);}
 .stat .lbl{
   font-size:12.5px;
   color:var(--text-mid);
   margin-top:8px;
+  font-weight:600;
+}
+.stat .cap{
+  font-size:10.5px;
+  color:var(--text-dim);
+  margin-top:5px;
+  line-height:1.45;
 }
 .stat.complete .num{color:var(--green);}
 .stat.delayed .num{color:var(--amber);}
@@ -534,10 +543,11 @@ table.doctable{
   min-width:560px;
 }
 table.doctable th, table.doctable td{
-  padding:12px 14px;
+  padding:13px 14px;
   text-align:center;
   border-bottom:1px solid var(--line);
   border-right:1px solid var(--line);
+  transition:background .12s;
 }
 table.doctable th:first-child, table.doctable td:first-child{
   text-align:left;
@@ -549,15 +559,18 @@ table.doctable th{
   font-size:10.5px;
   text-transform:uppercase;
   letter-spacing:.05em;
-  color:var(--text-dim);
-  background:var(--surface-hi);
+  color:var(--cyan);
+  background:linear-gradient(180deg, var(--surface-hi), rgba(23,50,74,.6));
+  border-bottom:2px solid var(--cyan-dim);
 }
-table.doctable td{color:var(--text-mid);font-family:'IBM Plex Mono',monospace;}
+table.doctable td{color:var(--text-mid);font-family:'IBM Plex Mono',monospace;font-weight:600;}
+table.doctable tbody tr:hover td{background:rgba(77,216,230,.09) !important;}
 table.doctable tr:last-child td, table.doctable .totalrow td{
-  font-weight:700;color:var(--cyan);background:rgba(77,216,230,.05);
+  font-weight:700;color:var(--cyan);background:rgba(77,216,230,.1) !important;
+  border-top:2px solid var(--cyan-dim);
 }
 table.doctable td:last-child, table.doctable th:last-child{
-  font-weight:700;color:var(--cyan);border-right:none;
+  font-weight:700;color:var(--cyan);border-right:none;background:rgba(77,216,230,.06);
 }
 table.doctable input{
   width:52px;
@@ -588,31 +601,42 @@ table.mini-goaltable{
 }
 table.mini-goaltable th{
   text-align:left;
-  padding:10px 14px;
+  padding:11px 14px;
   font-family:'IBM Plex Mono',monospace;
   font-size:10px;
   text-transform:uppercase;
   letter-spacing:.05em;
-  color:var(--text-dim);
-  border-bottom:1px solid var(--line);
+  color:var(--cyan);
+  background:linear-gradient(180deg, rgba(23,50,74,.9), rgba(23,50,74,.5));
+  border-bottom:2px solid var(--cyan-dim);
   white-space:nowrap;
 }
 table.mini-goaltable td{
-  padding:10px 14px;
+  padding:11px 14px;
   border-bottom:1px solid rgba(255,255,255,.04);
   color:var(--text-mid);
   vertical-align:top;
 }
+table.mini-goaltable tbody tr:hover td{background:rgba(77,216,230,.06);}
 table.mini-goaltable tr:last-child td{border-bottom:none;}
-table.mini-goaltable td.mt-pct{
+table.mini-goaltable td.mt-pct{white-space:nowrap;}
+table.mini-goaltable td.mt-pct .pill{
+  display:inline-block;
   font-family:'IBM Plex Mono',monospace;
   font-weight:700;
-  white-space:nowrap;
+  font-size:11.5px;
+  padding:4px 10px;
+  border-radius:20px;
 }
-table.mini-goaltable td.mt-goal{color:var(--text);font-weight:600;min-width:180px;}
-table.mini-goaltable td.mt-task{min-width:200px;}
+table.mini-goaltable td.mt-goal{color:#fff;font-weight:700;min-width:190px;}
+table.mini-goaltable td.mt-task{min-width:210px;}
 table.mini-goaltable td.mt-comment{color:var(--text-dim);font-style:italic;min-width:220px;}
-table.mini-goaltable tr.mt-newgoal td{border-top:1px solid var(--line);}
+table.mini-goaltable td.mt-comment.has-note{
+  color:#EFC79A;
+  border-left:2px solid var(--amber);
+  padding-left:12px;
+}
+table.mini-goaltable tr.mt-newgoal td{border-top:1px solid var(--cyan-dim);}
 table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
 
 /* ---------- Dashboards ---------- */
@@ -1617,16 +1641,29 @@ function docTypeTotal(type){ return DOC_DEPARTMENTS.reduce((s,d)=> s + ((docCoun
 function docGrandTotal(){ return DOC_TYPES.reduce((s,t)=>s+docTypeTotal(t),0); }
 function safeId(s){ return s.replace(/[^a-zA-Z0-9]+/g,'_'); }
 
+function docHeatColor(val, max){
+  if(!max || val<=0) return 'transparent';
+  const intensity = Math.min(1, val/max);
+  return `rgba(77,216,230,${(0.07 + intensity*0.33).toFixed(3)})`;
+}
+function docMaxCellValue(){
+  let max = 0;
+  DOC_TYPES.forEach(t=> DOC_DEPARTMENTS.forEach(d=>{ max = Math.max(max, (docCounts[t] && docCounts[t][d]) || 0); }));
+  return max;
+}
+
 function renderDocTable(){
   const table = document.getElementById('docTable');
+  const maxVal = docMaxCellValue();
   let html = '<tr><th></th>' + DOC_DEPARTMENTS.map(d=>`<th>${d}</th>`).join('') + '<th>Total</th></tr>';
   DOC_TYPES.forEach(t=>{
     html += `<tr><td>${t}</td>`;
     DOC_DEPARTMENTS.forEach(d=>{
       const val = (docCounts[t] && docCounts[t][d]) || 0;
+      const bg = docHeatColor(val, maxVal);
       html += isAdmin
-        ? `<td><input type="number" min="0" data-type="${t}" data-dept="${d}" value="${val}"></td>`
-        : `<td>${val}</td>`;
+        ? `<td style="background:${bg}"><input type="number" min="0" data-type="${t}" data-dept="${d}" value="${val}"></td>`
+        : `<td style="background:${bg}">${val}</td>`;
     });
     html += `<td id="total-type-${safeId(t)}">${docTypeTotal(t)}</td></tr>`;
   });
@@ -1806,10 +1843,22 @@ function renderGoalsDashboard(){
   const gdValid = gdAvgs.filter(a=>a!==null);
   const gdOverall = gdValid.length ? (gdValid.reduce((s,a)=>s+a,0)/gdValid.length).toFixed(1) : '—';
   document.getElementById('gdStatStrip').innerHTML = `
-    <div class="stat"><div class="num">${currentGoals.length}</div><div class="lbl">Total Goals</div></div>
-    <div class="stat complete"><div class="num">${gdComplete}</div><div class="lbl">Complete</div></div>
-    <div class="stat delayed"><div class="num">${gdDelayed}</div><div class="lbl">Delayed</div></div>
-    <div class="stat avg"><div class="num">${gdOverall}${gdValid.length?'%':''}</div><div class="lbl">Overall Average</div></div>
+    <div class="stat">
+      <div class="num">${currentGoals.length}</div><div class="lbl">Total Goals</div>
+      <div class="cap">Goals tracked for this Cycle</div>
+    </div>
+    <div class="stat complete">
+      <div class="num">${gdComplete}</div><div class="lbl">Complete</div>
+      <div class="cap">At 100% across Sprint 1–${sprintN}</div>
+    </div>
+    <div class="stat delayed">
+      <div class="num">${gdDelayed}</div><div class="lbl">Delayed</div>
+      <div class="cap">Below 100% across Sprint 1–${sprintN}</div>
+    </div>
+    <div class="stat avg">
+      <div class="num">${gdOverall}${gdValid.length?'%':''}</div><div class="lbl">Overall Average</div>
+      <div class="cap">Average progress across all goals</div>
+    </div>
   `;
 
   const labels = currentGoals.map(g=>'#'+g.no);
@@ -1865,7 +1914,7 @@ function renderDashboardGoalsTable(sprintN){
     const visible = (g.tasks || []).slice(0, sprintN);
     if(visible.length === 0){
       return [`<tr>
-        <td class="mt-pct" style="color:var(--text-dim)">—</td>
+        <td class="mt-pct">—</td>
         <td class="mt-goal">${g.name}</td>
         <td class="mt-task">—</td>
         <td class="mt-comment">—</td>
@@ -1875,13 +1924,15 @@ function renderDashboardGoalsTable(sprintN){
       const hasPct = t && t.progress!==null && t.progress!==undefined;
       const pct = hasPct ? t.progress+'%' : '—';
       const pctColor = hasPct ? statusColor(t.progress) : 'var(--text-dim)';
+      const pctBg = hasPct ? (t.progress===100 ? 'rgba(78,205,160,.15)' : t.progress>=70 ? 'rgba(240,168,104,.15)' : 'rgba(232,105,122,.15)') : 'rgba(255,255,255,.06)';
       const taskName = (t && t.name) ? t.name : '—';
-      const comment = (t && t.note) ? t.note : '—';
+      const hasNote = !!(t && t.note);
+      const comment = hasNote ? t.note : '—';
       return `<tr${i===0 ? ' class="mt-newgoal"' : ''}>
-        <td class="mt-pct" style="color:${pctColor}">${pct}</td>
+        <td class="mt-pct"><span class="pill" style="color:${pctColor};background:${pctBg}">${pct}</span></td>
         <td class="mt-goal">${i===0 ? g.name : ''}</td>
         <td class="mt-task">${taskName}</td>
-        <td class="mt-comment">${comment}</td>
+        <td class="mt-comment${hasNote ? ' has-note' : ''}">${comment}</td>
       </tr>`;
     });
   }).join('');
@@ -1896,15 +1947,26 @@ function renderDocumentsDashboard(){
     return;
   }
   const deptTotals = DOC_DEPARTMENTS.map(d=>docDeptTotal(d));
-  const typeTotalsForStats = DOC_TYPES.map(t=>({ name:t, total: docTypeTotal(t) }));
   const grand = docGrandTotal();
-  const topType = typeTotalsForStats.reduce((best,cur)=> cur.total>best.total ? cur : best, {name:'—',total:0});
   const topDeptIdx = deptTotals.reduce((bi,v,i,arr)=> v>arr[bi] ? i : bi, 0);
+  const minDeptIdx = deptTotals.reduce((bi,v,i,arr)=> v<arr[bi] ? i : bi, 0);
   document.getElementById('docStatStrip').innerHTML = `
-    <div class="stat avg"><div class="num">${grand}</div><div class="lbl">Total Documents</div></div>
-    <div class="stat"><div class="num">${DOC_DEPARTMENTS.length}</div><div class="lbl">Departments</div></div>
-    <div class="stat complete"><div class="num">${topType.total ? topType.name : '—'}</div><div class="lbl">Most Common Type</div></div>
-    <div class="stat"><div class="num" style="font-size:17px;">${grand? `${DOC_DEPARTMENTS[topDeptIdx]} (${deptTotals[topDeptIdx]})` : '—'}</div><div class="lbl">Leading Department</div></div>
+    <div class="stat avg">
+      <div class="num">${grand}</div><div class="lbl">Total Documents</div>
+      <div class="cap">All types combined, across every department</div>
+    </div>
+    <div class="stat">
+      <div class="num">${DOC_DEPARTMENTS.length}</div><div class="lbl">Departments</div>
+      <div class="cap">Departments currently tracked</div>
+    </div>
+    <div class="stat complete">
+      <div class="num">${grand ? deptTotals[topDeptIdx] : '—'}</div><div class="lbl">${grand ? DOC_DEPARTMENTS[topDeptIdx] : '—'}</div>
+      <div class="cap">Department with the most documents</div>
+    </div>
+    <div class="stat delayed">
+      <div class="num">${grand ? deptTotals[minDeptIdx] : '—'}</div><div class="lbl">${grand ? DOC_DEPARTMENTS[minDeptIdx] : '—'}</div>
+      <div class="cap">Department with the fewest documents</div>
+    </div>
   `;
 
   destroyChart('docDept');
@@ -1943,11 +2005,13 @@ function renderDocumentsDashboard(){
 function renderDashDocTable(){
   const table = document.getElementById('dashDocTable');
   if(!table) return;
+  const maxVal = docMaxCellValue();
   let html = '<tr><th></th>' + DOC_DEPARTMENTS.map(d=>`<th>${d}</th>`).join('') + '<th>Total</th></tr>';
   DOC_TYPES.forEach(t=>{
     html += `<tr><td>${t}</td>`;
     DOC_DEPARTMENTS.forEach(d=>{
-      html += `<td>${(docCounts[t] && docCounts[t][d]) || 0}</td>`;
+      const val = (docCounts[t] && docCounts[t][d]) || 0;
+      html += `<td style="background:${docHeatColor(val, maxVal)}">${val}</td>`;
     });
     html += `<td>${docTypeTotal(t)}</td></tr>`;
   });
