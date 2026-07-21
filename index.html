@@ -612,6 +612,8 @@ table.mini-goaltable td.mt-pct{
 table.mini-goaltable td.mt-goal{color:var(--text);font-weight:600;min-width:180px;}
 table.mini-goaltable td.mt-task{min-width:200px;}
 table.mini-goaltable td.mt-comment{color:var(--text-dim);font-style:italic;min-width:220px;}
+table.mini-goaltable tr.mt-newgoal td{border-top:1px solid var(--line);}
+table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
 
 /* ---------- Dashboards ---------- */
 .section-sub{
@@ -1859,19 +1861,29 @@ function renderGoalsDashboard(){
 }
 
 function renderDashboardGoalsTable(sprintN){
-  const rows = currentGoals.map(g=>{
-    const t = (g.tasks && g.tasks[sprintN-1]) ? g.tasks[sprintN-1] : null;
-    const hasPct = t && t.progress!==null && t.progress!==undefined;
-    const pct = hasPct ? t.progress+'%' : '—';
-    const pctColor = hasPct ? statusColor(t.progress) : 'var(--text-dim)';
-    const taskName = (t && t.name) ? t.name : '—';
-    const comment = (t && t.note) ? t.note : '—';
-    return `<tr>
-      <td class="mt-pct" style="color:${pctColor}">${pct}</td>
-      <td class="mt-goal">${g.name}</td>
-      <td class="mt-task">${taskName}</td>
-      <td class="mt-comment">${comment}</td>
-    </tr>`;
+  const rows = currentGoals.flatMap(g=>{
+    const visible = (g.tasks || []).slice(0, sprintN);
+    if(visible.length === 0){
+      return [`<tr>
+        <td class="mt-pct" style="color:var(--text-dim)">—</td>
+        <td class="mt-goal">${g.name}</td>
+        <td class="mt-task">—</td>
+        <td class="mt-comment">—</td>
+      </tr>`];
+    }
+    return visible.map((t,i)=>{
+      const hasPct = t && t.progress!==null && t.progress!==undefined;
+      const pct = hasPct ? t.progress+'%' : '—';
+      const pctColor = hasPct ? statusColor(t.progress) : 'var(--text-dim)';
+      const taskName = (t && t.name) ? t.name : '—';
+      const comment = (t && t.note) ? t.note : '—';
+      return `<tr${i===0 ? ' class="mt-newgoal"' : ''}>
+        <td class="mt-pct" style="color:${pctColor}">${pct}</td>
+        <td class="mt-goal">${i===0 ? g.name : ''}</td>
+        <td class="mt-task">${taskName}</td>
+        <td class="mt-comment">${comment}</td>
+      </tr>`;
+    });
   }).join('');
   document.getElementById('dashGoalsTable').innerHTML = `
     <tr><th>Progress</th><th>Goal</th><th>Task</th><th>Comment</th></tr>
@@ -1892,7 +1904,7 @@ function renderDocumentsDashboard(){
     <div class="stat avg"><div class="num">${grand}</div><div class="lbl">Total Documents</div></div>
     <div class="stat"><div class="num">${DOC_DEPARTMENTS.length}</div><div class="lbl">Departments</div></div>
     <div class="stat complete"><div class="num">${topType.total ? topType.name : '—'}</div><div class="lbl">Most Common Type</div></div>
-    <div class="stat"><div class="num" style="font-size:19px;">${grand? DOC_DEPARTMENTS[topDeptIdx] : '—'}</div><div class="lbl">Leading Department</div></div>
+    <div class="stat"><div class="num" style="font-size:17px;">${grand? `${DOC_DEPARTMENTS[topDeptIdx]} (${deptTotals[topDeptIdx]})` : '—'}</div><div class="lbl">Leading Department</div></div>
   `;
 
   destroyChart('docDept');
