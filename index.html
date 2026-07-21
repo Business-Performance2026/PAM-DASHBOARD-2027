@@ -473,6 +473,119 @@ h1 .sprint-num{color:var(--cyan);}
   .task-head-row span:nth-child(4){display:none;}
   .edit-goal-meta,.editrow .row2{grid-template-columns:1fr;}
 }
+
+/* ---------- Tabs ---------- */
+.tabsbar{
+  display:flex;
+  gap:4px;
+  margin-bottom:22px;
+  border-bottom:1px solid var(--line);
+  overflow-x:auto;
+}
+.tabsbar button{
+  border:none;
+  background:transparent;
+  color:var(--text-dim);
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12.5px;
+  font-weight:600;
+  padding:11px 16px;
+  cursor:pointer;
+  white-space:nowrap;
+  border-bottom:2px solid transparent;
+  transition:.15s;
+}
+.tabsbar button:hover{color:var(--text-mid);}
+.tabsbar button.active{color:var(--cyan);border-bottom-color:var(--cyan);}
+.view{display:none;}
+.view.active{display:block;}
+h2.section-title{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:24px;
+  font-weight:700;
+  color:#fff;
+  margin:0 0 18px;
+}
+
+/* ---------- Documents matrix table ---------- */
+.doctable-wrap{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:14px;
+  overflow-x:auto;
+  margin-bottom:20px;
+}
+table.doctable{
+  width:100%;
+  border-collapse:collapse;
+  font-size:13px;
+  min-width:560px;
+}
+table.doctable th, table.doctable td{
+  padding:12px 14px;
+  text-align:center;
+  border-bottom:1px solid var(--line);
+  border-right:1px solid var(--line);
+}
+table.doctable th:first-child, table.doctable td:first-child{
+  text-align:left;
+  font-weight:600;
+  color:var(--text);
+}
+table.doctable th{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10.5px;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+  color:var(--text-dim);
+  background:var(--surface-hi);
+}
+table.doctable td{color:var(--text-mid);font-family:'IBM Plex Mono',monospace;}
+table.doctable tr:last-child td, table.doctable .totalrow td{
+  font-weight:700;color:var(--cyan);background:rgba(77,216,230,.05);
+}
+table.doctable td:last-child, table.doctable th:last-child{
+  font-weight:700;color:var(--cyan);border-right:none;
+}
+table.doctable input{
+  width:52px;
+  background:var(--bg);
+  border:1px solid var(--line);
+  border-radius:6px;
+  color:var(--text);
+  font-family:'IBM Plex Mono',monospace;
+  font-size:13px;
+  text-align:center;
+  padding:5px;
+  outline:none;
+}
+table.doctable input:focus{border-color:var(--cyan-dim);}
+
+/* ---------- Dashboards ---------- */
+.dash-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+  margin-bottom:16px;
+}
+.dash-card{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:18px;
+}
+.dash-card h3{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:15px;
+  font-weight:600;
+  color:var(--text);
+  margin:0 0 14px;
+}
+.dash-card.full{grid-column:1 / -1;}
+.dash-card canvas{max-height:280px;}
+@media (max-width:820px){
+  .dash-grid{grid-template-columns:1fr;}
+}
 </style>
 </head>
 <body>
@@ -510,6 +623,14 @@ h1 .sprint-num{color:var(--cyan);}
     </div>
   </div>
 
+  <div class="tabsbar" id="tabsbar">
+    <button class="tab active" data-tab="goals">Goals</button>
+    <button class="tab" data-tab="documents">Documents</button>
+    <button class="tab" data-tab="goals-dash">Goals Dashboard</button>
+    <button class="tab" data-tab="documents-dash">Documents Dashboard</button>
+  </div>
+
+  <div class="view active" id="view-goals">
   <header>
     <h1><span class="sprint-num" id="sprintTitleNum">Sprint 1</span></h1>
     <div class="no-cycle-msg" id="noCycleMsg" style="display:none;"></div>
@@ -543,10 +664,42 @@ h1 .sprint-num{color:var(--cyan);}
 
   <div id="goalsList"></div>
   <div class="empty" id="emptyState" style="display:none;">No results match the current filter or search.</div>
+  </div>
+
+  <div class="view" id="view-documents">
+    <h2 class="section-title">Documentation Status</h2>
+    <div id="docAdminBar" style="display:none;margin-bottom:14px;">
+      <button class="btn primary" id="docSaveBtn">Save Changes</button>
+      <span style="font-size:11.5px;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;margin-left:8px;">Edit the numbers directly in the table, then Save.</span>
+    </div>
+    <div class="doctable-wrap">
+      <table class="doctable" id="docTable"></table>
+    </div>
+  </div>
+
+  <div class="view" id="view-goals-dash">
+    <h2 class="section-title">Goals Dashboard <span style="font-size:13px;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;font-weight:400;">— Cycle <span id="gdCycleLabel">—</span>, Sprint 1–<span id="gdSprintLabel">1</span></span></h2>
+    <div class="dash-grid">
+      <div class="dash-card"><h3>Average % by Goal</h3><canvas id="chartGoalAvg"></canvas></div>
+      <div class="dash-card"><h3>Complete vs Delayed</h3><canvas id="chartGoalStatus"></canvas></div>
+      <div class="dash-card"><h3>Goals by Dependency Type</h3><canvas id="chartGoalDep"></canvas></div>
+      <div class="dash-card"><h3>Overall Average Trend (Sprint 1→6)</h3><canvas id="chartGoalTrend"></canvas></div>
+    </div>
+  </div>
+
+  <div class="view" id="view-documents-dash">
+    <h2 class="section-title">Documents Dashboard</h2>
+    <div class="dash-grid">
+      <div class="dash-card"><h3>Total Documents by Department</h3><canvas id="chartDocDept"></canvas></div>
+      <div class="dash-card"><h3>Total Documents by Type</h3><canvas id="chartDocType"></canvas></div>
+      <div class="dash-card full"><h3>Type Breakdown by Department</h3><canvas id="chartDocStacked"></canvas></div>
+    </div>
+  </div>
 
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import {
@@ -579,6 +732,33 @@ let addingGoal = false;
 
 let currentFilter = 'all';
 let currentSearch = '';
+
+let currentTab = 'goals';
+
+const DOC_DEPARTMENTS = ["A. Planning","A. Engineering","A. Performance","RDI"];
+const DOC_TYPES = ["Policy","Manual","Guidelines","Procedure","Format","Work Instruction"];
+let docCounts = {}; // docCounts[type][dept] = number
+
+let chartInstances = {};
+function destroyChart(id){ if(chartInstances[id]){ chartInstances[id].destroy(); delete chartInstances[id]; } }
+function chartBaseOptions(opts={}){
+  const base = {
+    responsive:true,
+    maintainAspectRatio:false,
+    plugins:{
+      legend:{ display: !!opts.legend, labels:{ color:'#9CC0D1', font:{family:'IBM Plex Mono'} } },
+      tooltip:{ backgroundColor:'#17324A', titleColor:'#E9F3F6', bodyColor:'#9CC0D1' }
+    }
+  };
+  if(opts.indexAxis) base.indexAxis = opts.indexAxis;
+  if(!opts.noScales){
+    base.scales = {
+      x:{ stacked: !!opts.stacked, ticks:{color:'#9CC0D1'}, grid:{color:'#1F4258'} },
+      y:{ stacked: !!opts.stacked, ticks:{color:'#9CC0D1'}, grid:{color:'#1F4258'}, max: opts.yMax }
+    };
+  }
+  return base;
+}
 
 // ---------------- helpers ----------------
 function statusColor(p){
@@ -727,9 +907,11 @@ onAuthStateChanged(auth, (user)=>{
   document.getElementById('logoutBtn').style.display = isAdmin ? 'inline-block' : 'none';
   loginToggleBtn.style.display = isAdmin ? 'none' : 'inline-block';
   document.getElementById('addGoalWrap').style.display = isAdmin ? 'block' : 'none';
+  document.getElementById('docAdminBar').style.display = isAdmin ? 'block' : 'none';
   editingGoalNo = null;
   addingGoal = false;
   loadCycleList(currentCycleId);
+  renderDocTable();
 });
 
 // ---------------- Add Goal ----------------
@@ -1129,6 +1311,7 @@ function renderAll(){
   renderSprintLabel();
   renderStats();
   renderGoals();
+  if(currentTab === 'goals-dash') renderGoalsDashboard();
 }
 
 function renderGoals(){
@@ -1252,8 +1435,177 @@ document.getElementById('search').addEventListener('input', (e)=>{
   renderGoals();
 });
 
+// ---------------- Tabs ----------------
+document.getElementById('tabsbar').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button.tab');
+  if(!btn) return;
+  switchTab(btn.getAttribute('data-tab'));
+});
+
+function switchTab(tab){
+  currentTab = tab;
+  document.querySelectorAll('.tabsbar .tab').forEach(b=>b.classList.toggle('active', b.getAttribute('data-tab')===tab));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+tab).classList.add('active');
+  if(tab === 'goals-dash') renderGoalsDashboard();
+  if(tab === 'documents-dash') renderDocumentsDashboard();
+  if(tab === 'documents') renderDocTable();
+}
+
+// ---------------- Documents table (Firestore: docStats/summary) ----------------
+function docDeptTotal(dept){ return DOC_TYPES.reduce((s,t)=> s + ((docCounts[t] && docCounts[t][dept]) || 0), 0); }
+function docTypeTotal(type){ return DOC_DEPARTMENTS.reduce((s,d)=> s + ((docCounts[type] && docCounts[type][d]) || 0), 0); }
+function docGrandTotal(){ return DOC_TYPES.reduce((s,t)=>s+docTypeTotal(t),0); }
+function safeId(s){ return s.replace(/[^a-zA-Z0-9]+/g,'_'); }
+
+function renderDocTable(){
+  const table = document.getElementById('docTable');
+  let html = '<tr><th></th>' + DOC_DEPARTMENTS.map(d=>`<th>${d}</th>`).join('') + '<th>Total</th></tr>';
+  DOC_TYPES.forEach(t=>{
+    html += `<tr><td>${t}</td>`;
+    DOC_DEPARTMENTS.forEach(d=>{
+      const val = (docCounts[t] && docCounts[t][d]) || 0;
+      html += isAdmin
+        ? `<td><input type="number" min="0" data-type="${t}" data-dept="${d}" value="${val}"></td>`
+        : `<td>${val}</td>`;
+    });
+    html += `<td id="total-type-${safeId(t)}">${docTypeTotal(t)}</td></tr>`;
+  });
+  html += `<tr class="totalrow"><td>Total</td>`;
+  DOC_DEPARTMENTS.forEach(d=>{ html += `<td id="total-dept-${safeId(d)}">${docDeptTotal(d)}</td>`; });
+  html += `<td id="total-grand">${docGrandTotal()}</td></tr>`;
+  table.innerHTML = html;
+
+  if(isAdmin){
+    table.querySelectorAll('input').forEach(inp=>{
+      inp.addEventListener('input', ()=>{
+        const t = inp.getAttribute('data-type'), d = inp.getAttribute('data-dept');
+        const v = parseInt(inp.value,10);
+        if(!docCounts[t]) docCounts[t]={};
+        docCounts[t][d] = isNaN(v) ? 0 : Math.max(0,v);
+        const typeCell = document.getElementById('total-type-'+safeId(t));
+        if(typeCell) typeCell.textContent = docTypeTotal(t);
+        const deptCell = document.getElementById('total-dept-'+safeId(d));
+        if(deptCell) deptCell.textContent = docDeptTotal(d);
+        const grandCell = document.getElementById('total-grand');
+        if(grandCell) grandCell.textContent = docGrandTotal();
+      });
+    });
+  }
+}
+
+function subscribeDocStats(){
+  const ref = doc(db,'docStats','summary');
+  onSnapshot(ref, (snap)=>{
+    const data = snap.exists() ? (snap.data().counts || {}) : {};
+    docCounts = data;
+    DOC_TYPES.forEach(t=>{ if(!docCounts[t]) docCounts[t]={}; });
+    renderDocTable();
+    if(currentTab === 'documents-dash') renderDocumentsDashboard();
+  }, (err)=>{
+    console.error('docStats listen error', err);
+  });
+}
+
+document.getElementById('docSaveBtn').addEventListener('click', async ()=>{
+  try{
+    await setDoc(doc(db,'docStats','summary'), { counts: docCounts });
+    alert('Documents data saved.');
+  }catch(err){
+    console.error('Save failed', err);
+    alert('Save failed:\n' + err.message + '\n\nMake sure Firestore Rules also cover the "docStats" collection (see setup notes).');
+  }
+});
+
+// ---------------- Goals Dashboard ----------------
+function renderGoalsDashboard(){
+  document.getElementById('gdCycleLabel').textContent = currentCycleId || '—';
+  const sprintN = getSprintNumber();
+  document.getElementById('gdSprintLabel').textContent = sprintN;
+
+  const labels = currentGoals.map(g=>'#'+g.no);
+  const avgs = currentGoals.map(g=> goalDynamicAvg(g, sprintN) ?? 0);
+  const barColors = currentGoals.map(g=>{
+    const a = goalDynamicAvg(g, sprintN);
+    return a===null ? '#5E8296' : (a>=100 ? '#4ECDA0' : '#F0A868');
+  });
+  destroyChart('avg');
+  chartInstances['avg'] = new Chart(document.getElementById('chartGoalAvg'), {
+    type:'bar',
+    data:{ labels, datasets:[{ data:avgs, backgroundColor:barColors, borderRadius:4 }] },
+    options: chartBaseOptions({ yMax:100 })
+  });
+
+  let completeCount=0, delayedCount=0, noDataCount=0;
+  currentGoals.forEach(g=>{
+    const a = goalDynamicAvg(g, sprintN);
+    if(a===null) noDataCount++; else if(a>=100) completeCount++; else delayedCount++;
+  });
+  destroyChart('status');
+  chartInstances['status'] = new Chart(document.getElementById('chartGoalStatus'), {
+    type:'doughnut',
+    data:{ labels:['Complete','Delayed','No data'], datasets:[{ data:[completeCount, delayedCount, noDataCount], backgroundColor:['#4ECDA0','#F0A868','#5E8296'] }] },
+    options: chartBaseOptions({ legend:true, noScales:true })
+  });
+
+  const depCounts = {};
+  currentGoals.forEach(g=>{ const d = g.dependency || 'Unspecified'; depCounts[d]=(depCounts[d]||0)+1; });
+  destroyChart('dep');
+  chartInstances['dep'] = new Chart(document.getElementById('chartGoalDep'), {
+    type:'bar',
+    data:{ labels:Object.keys(depCounts), datasets:[{ data:Object.values(depCounts), backgroundColor:'#4DD8E6', borderRadius:4 }] },
+    options: chartBaseOptions({ indexAxis:'y' })
+  });
+
+  const trend = [1,2,3,4,5,6].map(sn=>{
+    const vals = currentGoals.map(g=>goalDynamicAvg(g, sn)).filter(v=>v!==null);
+    return vals.length ? (vals.reduce((s,v)=>s+v,0)/vals.length) : null;
+  });
+  destroyChart('trend');
+  chartInstances['trend'] = new Chart(document.getElementById('chartGoalTrend'), {
+    type:'line',
+    data:{ labels:['S1','S2','S3','S4','S5','S6'], datasets:[{ data:trend, borderColor:'#4DD8E6', backgroundColor:'rgba(77,216,230,.15)', fill:true, tension:.3, spanGaps:true }] },
+    options: chartBaseOptions({ yMax:100 })
+  });
+}
+
+// ---------------- Documents Dashboard ----------------
+function renderDocumentsDashboard(){
+  const deptTotals = DOC_DEPARTMENTS.map(d=>docDeptTotal(d));
+  destroyChart('docDept');
+  chartInstances['docDept'] = new Chart(document.getElementById('chartDocDept'), {
+    type:'bar',
+    data:{ labels: DOC_DEPARTMENTS, datasets:[{ data:deptTotals, backgroundColor:'#4DD8E6', borderRadius:4 }] },
+    options: chartBaseOptions({})
+  });
+
+  const typeTotals = DOC_TYPES.map(t=>docTypeTotal(t));
+  const palette = ['#4DD8E6','#4ECDA0','#F0A868','#E8697A','#9C7FE0','#7FA3B8'];
+  destroyChart('docType');
+  chartInstances['docType'] = new Chart(document.getElementById('chartDocType'), {
+    type:'doughnut',
+    data:{ labels: DOC_TYPES, datasets:[{ data:typeTotals, backgroundColor:palette }] },
+    options: chartBaseOptions({ legend:true, noScales:true })
+  });
+
+  destroyChart('docStacked');
+  chartInstances['docStacked'] = new Chart(document.getElementById('chartDocStacked'), {
+    type:'bar',
+    data:{
+      labels: DOC_DEPARTMENTS,
+      datasets: DOC_TYPES.map((t,i)=>({
+        label:t,
+        data: DOC_DEPARTMENTS.map(d=>(docCounts[t] && docCounts[t][d]) || 0),
+        backgroundColor: palette[i%palette.length]
+      }))
+    },
+    options: chartBaseOptions({ legend:true, stacked:true })
+  });
+}
+
 // ---------------- init ----------------
 loadCycleList();
+subscribeDocStats();
 </script>
 </body>
 </html>
