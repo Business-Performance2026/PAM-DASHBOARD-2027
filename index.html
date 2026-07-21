@@ -573,6 +573,46 @@ table.doctable input{
 }
 table.doctable input:focus{border-color:var(--cyan-dim);}
 
+/* ---------- Compact goals summary table (dashboard) ---------- */
+.mini-table-wrap{
+  background:var(--surface-hi);
+  border:1px solid var(--line);
+  border-radius:12px;
+  overflow-x:auto;
+}
+table.mini-goaltable{
+  width:100%;
+  border-collapse:collapse;
+  font-size:12.5px;
+  min-width:560px;
+}
+table.mini-goaltable th{
+  text-align:left;
+  padding:10px 14px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+  color:var(--text-dim);
+  border-bottom:1px solid var(--line);
+  white-space:nowrap;
+}
+table.mini-goaltable td{
+  padding:10px 14px;
+  border-bottom:1px solid rgba(255,255,255,.04);
+  color:var(--text-mid);
+  vertical-align:top;
+}
+table.mini-goaltable tr:last-child td{border-bottom:none;}
+table.mini-goaltable td.mt-pct{
+  font-family:'IBM Plex Mono',monospace;
+  font-weight:700;
+  white-space:nowrap;
+}
+table.mini-goaltable td.mt-goal{color:var(--text);font-weight:600;min-width:180px;}
+table.mini-goaltable td.mt-task{min-width:200px;}
+table.mini-goaltable td.mt-comment{color:var(--text-dim);font-style:italic;min-width:220px;}
+
 /* ---------- Dashboards ---------- */
 .section-sub{
   font-size:13px;
@@ -616,7 +656,7 @@ table.doctable input:focus{border-color:var(--cyan-dim);}
 /* ---------- Unified dashboard halves ---------- */
 .dash-halves{
   display:grid;
-  grid-template-columns:1fr 1fr;
+  grid-template-columns:1fr;
   gap:0;
   border:1px solid var(--line);
   border-radius:16px;
@@ -624,10 +664,10 @@ table.doctable input:focus{border-color:var(--cyan-dim);}
   background:var(--surface);
 }
 .dash-half{
-  padding:22px;
-  border-left:1px solid var(--line);
+  padding:24px;
+  border-top:1px solid var(--line);
 }
-.dash-half:first-child{border-left:none;}
+.dash-half:first-child{border-top:none;}
 .half-title{
   font-family:'Space Grotesk',sans-serif;
   font-size:18px;
@@ -643,12 +683,9 @@ table.doctable input:focus{border-color:var(--cyan-dim);}
   width:10px;height:10px;border-radius:50%;flex-shrink:0;
   box-shadow:0 0 10px currentColor;
 }
-.dash-half .dash-grid{margin-bottom:0;}
+.dash-half .dash-grid{margin-bottom:20px;}
 .dash-half .stats{grid-template-columns:repeat(4,1fr);margin-bottom:16px;}
 @media (max-width:900px){
-  .dash-halves{grid-template-columns:1fr;}
-  .dash-half{border-left:none;border-top:1px solid var(--line);}
-  .dash-half:first-child{border-top:none;}
   .dash-half .stats{grid-template-columns:repeat(2,1fr);}
 }
 @media (max-width:820px){
@@ -696,8 +733,8 @@ table.doctable input:focus{border-color:var(--cyan-dim);}
 
   <div class="tabsbar" id="tabsbar">
     <button class="tab active" data-tab="dashboard">Dashboard</button>
-    <button class="tab" data-tab="goals">Goals</button>
-    <button class="tab" data-tab="documents">Documents</button>
+    <button class="tab admin-only-tab" data-tab="goals" style="display:none;">Goals (Admin)</button>
+    <button class="tab admin-only-tab" data-tab="documents" style="display:none;">Documents (Admin)</button>
   </div>
 
   <div class="view active" id="view-dashboard">
@@ -724,6 +761,9 @@ table.doctable input:focus{border-color:var(--cyan-dim);}
             <div class="chart-wrap"><canvas id="chartGoalTrend"></canvas></div>
           </div>
         </div>
+        <div class="mini-table-wrap">
+          <table class="mini-goaltable" id="dashGoalsTable"></table>
+        </div>
       </div>
 
       <div class="dash-half">
@@ -742,6 +782,9 @@ table.doctable input:focus{border-color:var(--cyan-dim);}
             <h3><span class="dot" style="background:var(--amber)"></span>Type Breakdown by Department</h3>
             <div class="chart-wrap tall"><canvas id="chartDocStacked"></canvas></div>
           </div>
+        </div>
+        <div class="doctable-wrap">
+          <table class="doctable" id="dashDocTable"></table>
         </div>
       </div>
     </div>
@@ -1015,6 +1058,8 @@ onAuthStateChanged(auth, (user)=>{
   loginToggleBtn.style.display = isAdmin ? 'none' : 'inline-block';
   document.getElementById('addGoalWrap').style.display = isAdmin ? 'block' : 'none';
   document.getElementById('docAdminBar').style.display = isAdmin ? 'block' : 'none';
+  document.querySelectorAll('.admin-only-tab').forEach(b=> b.style.display = isAdmin ? 'inline-block' : 'none');
+  if(!isAdmin && (currentTab==='goals' || currentTab==='documents')) switchTab('dashboard');
   editingGoalNo = null;
   addingGoal = false;
   loadCycleList(currentCycleId);
@@ -1809,9 +1854,30 @@ function renderGoalsDashboard(){
     data:{ labels:['S1','S2','S3','S4','S5','S6'], datasets:[{ data:trend, borderColor:'#4DD8E6', backgroundColor:'rgba(77,216,230,.15)', fill:true, tension:.3, spanGaps:true }] },
     options: chartBaseOptions({ yMax:100 })
   });
+
+  renderDashboardGoalsTable(sprintN);
 }
 
-// ---------------- Documents Dashboard ----------------
+function renderDashboardGoalsTable(sprintN){
+  const rows = currentGoals.map(g=>{
+    const t = (g.tasks && g.tasks[sprintN-1]) ? g.tasks[sprintN-1] : null;
+    const hasPct = t && t.progress!==null && t.progress!==undefined;
+    const pct = hasPct ? t.progress+'%' : '—';
+    const pctColor = hasPct ? statusColor(t.progress) : 'var(--text-dim)';
+    const taskName = (t && t.name) ? t.name : '—';
+    const comment = (t && t.note) ? t.note : '—';
+    return `<tr>
+      <td class="mt-pct" style="color:${pctColor}">${pct}</td>
+      <td class="mt-goal">${g.name}</td>
+      <td class="mt-task">${taskName}</td>
+      <td class="mt-comment">${comment}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('dashGoalsTable').innerHTML = `
+    <tr><th>Progress</th><th>Goal</th><th>Task</th><th>Comment</th></tr>
+    ${rows || '<tr><td colspan="4" style="text-align:center;color:var(--text-dim);">No goals yet.</td></tr>'}
+  `;
+}
 function renderDocumentsDashboard(){
   if(typeof Chart === 'undefined'){
     document.getElementById('view-dashboard').insertAdjacentHTML('beforeend', '<p style="color:var(--red);font-family:monospace;">Chart.js failed to load — check your internet connection and refresh.</p>');
@@ -1858,6 +1924,25 @@ function renderDocumentsDashboard(){
     },
     options: chartBaseOptions({ legend:true, stacked:true })
   });
+
+  renderDashDocTable();
+}
+
+function renderDashDocTable(){
+  const table = document.getElementById('dashDocTable');
+  if(!table) return;
+  let html = '<tr><th></th>' + DOC_DEPARTMENTS.map(d=>`<th>${d}</th>`).join('') + '<th>Total</th></tr>';
+  DOC_TYPES.forEach(t=>{
+    html += `<tr><td>${t}</td>`;
+    DOC_DEPARTMENTS.forEach(d=>{
+      html += `<td>${(docCounts[t] && docCounts[t][d]) || 0}</td>`;
+    });
+    html += `<td>${docTypeTotal(t)}</td></tr>`;
+  });
+  html += `<tr class="totalrow"><td>Total</td>`;
+  DOC_DEPARTMENTS.forEach(d=>{ html += `<td>${docDeptTotal(d)}</td>`; });
+  html += `<td>${docGrandTotal()}</td></tr>`;
+  table.innerHTML = html;
 }
 
 // ---------------- init ----------------
