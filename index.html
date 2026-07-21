@@ -740,7 +740,7 @@ table.doctable input:focus{border-color:var(--cyan-dim);}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js" onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js';document.head.appendChild(s);"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import {
@@ -1560,6 +1560,10 @@ document.getElementById('docSaveBtn').addEventListener('click', async ()=>{
 
 // ---------------- Goals Dashboard ----------------
 function renderGoalsDashboard(){
+  if(typeof Chart === 'undefined'){
+    document.getElementById('view-goals-dash').insertAdjacentHTML('beforeend', '<p style="color:var(--red);font-family:monospace;">Chart.js failed to load — check your internet connection and refresh.</p>');
+    return;
+  }
   document.getElementById('gdCycleLabel').textContent = currentCycleId || '—';
   const sprintN = getSprintNumber();
   document.getElementById('gdSprintLabel').textContent = sprintN;
@@ -1624,6 +1628,10 @@ function renderGoalsDashboard(){
 
 // ---------------- Documents Dashboard ----------------
 function renderDocumentsDashboard(){
+  if(typeof Chart === 'undefined'){
+    document.getElementById('view-documents-dash').insertAdjacentHTML('beforeend', '<p style="color:var(--red);font-family:monospace;">Chart.js failed to load — check your internet connection and refresh.</p>');
+    return;
+  }
   const deptTotals = DOC_DEPARTMENTS.map(d=>docDeptTotal(d));
   const typeTotalsForStats = DOC_TYPES.map(t=>({ name:t, total: docTypeTotal(t) }));
   const grand = docGrandTotal();
