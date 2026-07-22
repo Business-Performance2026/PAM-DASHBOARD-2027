@@ -1861,17 +1861,24 @@ function renderGoalsDashboard(){
     </div>
   `;
 
-  const labels = currentGoals.map(g=>'#'+g.no);
+  function truncateLabel(str, max){
+    if(!str) return '';
+    return str.length > max ? str.slice(0, max-1).trim()+'…' : str;
+  }
+  const fullNames = currentGoals.map(g=>g.name);
+  const labels = currentGoals.map(g=>truncateLabel(g.name, 16));
   const avgs = currentGoals.map(g=> goalDynamicAvg(g, sprintN) ?? 0);
   const barColors = currentGoals.map(g=>{
     const a = goalDynamicAvg(g, sprintN);
     return a===null ? '#5E8296' : (a>=100 ? '#4ECDA0' : '#F0A868');
   });
   destroyChart('avg');
+  const avgOptions = chartBaseOptions({ yMax:100 });
+  avgOptions.plugins.tooltip.callbacks = { title: (items)=> fullNames[items[0].dataIndex] };
   chartInstances['avg'] = new Chart(document.getElementById('chartGoalAvg'), {
     type:'bar',
     data:{ labels, datasets:[{ data:avgs, backgroundColor:barColors, borderRadius:4 }] },
-    options: chartBaseOptions({ yMax:100 })
+    options: avgOptions
   });
 
   let completeCount=0, delayedCount=0, noDataCount=0;
@@ -1914,9 +1921,9 @@ function renderDashboardGoalsTable(sprintN){
     const visible = (g.tasks || []).slice(0, sprintN);
     if(visible.length === 0){
       return [`<tr>
-        <td class="mt-pct">—</td>
         <td class="mt-goal">${g.name}</td>
         <td class="mt-task">—</td>
+        <td class="mt-pct">—</td>
         <td class="mt-comment">—</td>
       </tr>`];
     }
@@ -1929,15 +1936,15 @@ function renderDashboardGoalsTable(sprintN){
       const hasNote = !!(t && t.note);
       const comment = hasNote ? t.note : '—';
       return `<tr${i===0 ? ' class="mt-newgoal"' : ''}>
-        <td class="mt-pct"><span class="pill" style="color:${pctColor};background:${pctBg}">${pct}</span></td>
         <td class="mt-goal">${i===0 ? g.name : ''}</td>
         <td class="mt-task">${taskName}</td>
+        <td class="mt-pct"><span class="pill" style="color:${pctColor};background:${pctBg}">${pct}</span></td>
         <td class="mt-comment${hasNote ? ' has-note' : ''}">${comment}</td>
       </tr>`;
     });
   }).join('');
   document.getElementById('dashGoalsTable').innerHTML = `
-    <tr><th>Progress</th><th>Goal</th><th>Task</th><th>Comment</th></tr>
+    <tr><th>Goal</th><th>Task</th><th>Progress</th><th>Comment</th></tr>
     ${rows || '<tr><td colspan="4" style="text-align:center;color:var(--text-dim);">No goals yet.</td></tr>'}
   `;
 }
