@@ -551,8 +551,10 @@ table.doctable th, table.doctable td{
 }
 table.doctable th:first-child, table.doctable td:first-child{
   text-align:left;
-  font-weight:600;
-  color:var(--text);
+  font-weight:700;
+  color:var(--green);
+  background:rgba(78,205,160,.06);
+  border-right:2px solid rgba(78,205,160,.3);
 }
 table.doctable th{
   font-family:'IBM Plex Mono',monospace;
@@ -563,14 +565,18 @@ table.doctable th{
   background:linear-gradient(180deg, var(--surface-hi), rgba(23,50,74,.6));
   border-bottom:2px solid var(--cyan-dim);
 }
-table.doctable td{color:var(--text-mid);font-family:'IBM Plex Mono',monospace;font-weight:600;}
-table.doctable tbody tr:hover td{background:rgba(77,216,230,.09) !important;}
+table.doctable th:first-child{color:var(--text-dim);background:var(--surface-hi);border-right:2px solid var(--cyan-dim);}
+table.doctable td{color:#fff;font-family:'IBM Plex Mono',monospace;font-weight:700;}
+table.doctable tbody tr:hover td{background:rgba(77,216,230,.14) !important;}
 table.doctable tr:last-child td, table.doctable .totalrow td{
-  font-weight:700;color:var(--cyan);background:rgba(77,216,230,.1) !important;
-  border-top:2px solid var(--cyan-dim);
+  font-weight:700;color:var(--amber);background:rgba(240,168,104,.12) !important;
+  border-top:2px solid var(--amber);
+}
+table.doctable tr:last-child td:first-child, table.doctable .totalrow td:first-child{
+  color:var(--amber);background:rgba(240,168,104,.14) !important;border-right:2px solid var(--amber);
 }
 table.doctable td:last-child, table.doctable th:last-child{
-  font-weight:700;color:var(--cyan);border-right:none;background:rgba(77,216,230,.06);
+  font-weight:700;color:var(--amber);border-right:none;background:rgba(240,168,104,.08);
 }
 table.doctable input{
   width:52px;
@@ -638,6 +644,28 @@ table.mini-goaltable td.mt-comment.has-note{
 }
 table.mini-goaltable tr.mt-newgoal td{border-top:1px solid var(--cyan-dim);}
 table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
+
+.collapsible-header{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  background:var(--surface-hi);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:13px 16px;
+  cursor:pointer;
+  font-family:'Space Grotesk',sans-serif;
+  font-size:13.5px;
+  font-weight:600;
+  color:var(--text);
+  transition:border-color .15s;
+}
+.collapsible-header:hover{border-color:var(--cyan-dim);}
+.collapsible-chevron{color:var(--cyan);transition:transform .2s;flex-shrink:0;}
+.collapsible-header.open .collapsible-chevron{transform:rotate(180deg);}
+.collapsible-body{display:none;margin-top:10px;}
+.collapsible-body.open{display:block;}
 
 /* ---------- Dashboards ---------- */
 .section-sub{
@@ -787,8 +815,14 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
             <div class="chart-wrap"><canvas id="chartGoalTrend"></canvas></div>
           </div>
         </div>
-        <div class="mini-table-wrap">
-          <table class="mini-goaltable" id="dashGoalsTable"></table>
+        <button class="collapsible-header" id="goalsTableToggle">
+          <span>Goals Detail Table</span>
+          <svg class="collapsible-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <div class="collapsible-body" id="goalsTableBody">
+          <div class="mini-table-wrap">
+            <table class="mini-goaltable" id="dashGoalsTable"></table>
+          </div>
         </div>
       </div>
 
@@ -2027,6 +2061,11 @@ function renderDashDocTable(){
   html += `<td>${docGrandTotal()}</td></tr>`;
   table.innerHTML = html;
 }
+
+document.getElementById('goalsTableToggle').addEventListener('click', ()=>{
+  document.getElementById('goalsTableToggle').classList.toggle('open');
+  document.getElementById('goalsTableBody').classList.toggle('open');
+});
 
 // ---------------- init ----------------
 loadCycleList();
