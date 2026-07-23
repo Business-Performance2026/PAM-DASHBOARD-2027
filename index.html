@@ -146,6 +146,17 @@ body{
   padding:5px 8px;
   outline:none;
 }
+.std-select{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:7px;
+  color:var(--cyan);
+  font-family:'IBM Plex Mono',monospace;
+  font-size:13px;
+  font-weight:600;
+  padding:5px 8px;
+  outline:none;
+}
 .spacer{flex:1;}
 
 .authbox{display:flex;align-items:center;gap:8px;}
@@ -658,6 +669,19 @@ table.doctable input:focus{border-color:var(--cyan-dim);}
   border-radius:12px;
   overflow-x:auto;
 }
+.fill-input{
+  width:100%;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:6px;
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  font-size:12.5px;
+  padding:6px 9px;
+  outline:none;
+}
+.fill-input:focus{border-color:var(--cyan-dim);}
+.fill-input.fill-progress{width:80px;text-align:center;font-family:'IBM Plex Mono',monospace;font-weight:600;}
 table.mini-goaltable{
   width:100%;
   border-collapse:collapse;
@@ -834,9 +858,11 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
   </div>
 
   <div class="adminbar">
-    <div id="cycleSprintGroup" style="display:flex;align-items:center;gap:10px;">
+    <div id="cycleGroup" style="display:flex;align-items:center;gap:10px;">
       <span class="adm-label">Cycle #</span>
       <select id="cycleSelect"><option value="">—</option></select>
+    </div>
+    <div id="sprintGroup" style="display:flex;align-items:center;gap:10px;">
       <span class="adm-label">Sprint #</span>
       <select id="sprintInput">
         <option value="1">1</option>
@@ -846,6 +872,7 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
         <option value="5">5</option>
         <option value="6">6</option>
       </select>
+      <button class="btn small" id="setDefaultBtn" style="display:none;" title="Whoever opens the app will land on this Cycle & Sprint">📌 Set as Default</button>
     </div>
 
     <div class="spacer"></div>
@@ -869,6 +896,7 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
 
   <div class="tabsbar" id="tabsbar">
     <button class="tab active" data-tab="dashboard">Dashboard</button>
+    <button class="tab admin-only-tab" data-tab="fill" style="display:none;">Fill Progress (Admin)</button>
     <button class="tab admin-only-tab" data-tab="goals" style="display:none;">Goals (Admin)</button>
     <button class="tab admin-only-tab" data-tab="documents" style="display:none;">Documents (Admin)</button>
   </div>
@@ -937,6 +965,27 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
           <table class="doctable" id="dashDocTable"></table>
         </div>
       </div>
+    </div>
+  </div>
+
+  <div class="view" id="view-fill">
+    <h2 class="section-title">Fill Task Progress <span class="section-sub">— Cycle <span id="fillCycleLabel">—</span></span></h2>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+      <span class="adm-label" style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.08em;">Task #</span>
+      <select id="fillTaskSelect" class="std-select">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+      </select>
+      <span style="font-size:11.5px;color:var(--ink-dim);font-family:'IBM Plex Mono',monospace;">— shows Task # for every Goal, not cumulative</span>
+      <div class="spacer"></div>
+      <button class="btn primary" id="fillSaveBtn">Save All Changes</button>
+    </div>
+    <div class="mini-table-wrap">
+      <table class="mini-goaltable" id="fillTable"></table>
     </div>
   </div>
 
@@ -1010,7 +1059,7 @@ import {
   getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import {
-  getFirestore, collection, getDocs, doc, setDoc, onSnapshot
+  getFirestore, collection, getDocs, doc, setDoc, getDoc, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -1212,8 +1261,9 @@ onAuthStateChanged(auth, (user)=>{
   loginToggleBtn.style.display = isAdmin ? 'none' : 'inline-block';
   document.getElementById('addGoalWrap').style.display = isAdmin ? 'block' : 'none';
   document.getElementById('docAdminBar').style.display = isAdmin ? 'block' : 'none';
+  document.getElementById('setDefaultBtn').style.display = isAdmin ? 'inline-block' : 'none';
   document.querySelectorAll('.admin-only-tab').forEach(b=> b.style.display = isAdmin ? 'inline-block' : 'none');
-  if(!isAdmin && (currentTab==='goals' || currentTab==='documents')) switchTab('dashboard');
+  if(!isAdmin && (currentTab==='goals' || currentTab==='documents' || currentTab==='fill')) switchTab('dashboard');
   editingGoalNo = null;
   addingGoal = false;
   loadCycleList(currentCycleId);
@@ -1618,6 +1668,7 @@ function renderAll(){
   renderStats();
   renderGoals();
   if(currentTab === 'dashboard') renderDashboard();
+  if(currentTab === 'fill') renderFillTable();
 }
 
 function renderGoals(){
@@ -1753,7 +1804,9 @@ function switchTab(tab){
   document.querySelectorAll('.tabsbar .tab').forEach(b=>b.classList.toggle('active', b.getAttribute('data-tab')===tab));
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+tab).classList.add('active');
-  document.getElementById('cycleSprintGroup').style.display = (tab==='goals' || tab==='dashboard') ? 'flex' : 'none';
+  document.getElementById('cycleGroup').style.display = (tab==='goals' || tab==='dashboard' || tab==='fill') ? 'flex' : 'none';
+  document.getElementById('sprintGroup').style.display = (tab==='goals' || tab==='dashboard') ? 'flex' : 'none';
+  if(tab === 'fill') renderFillTable();
   if(tab === 'dashboard') renderDashboard();
   if(tab === 'documents') renderDocTable();
 }
@@ -2180,8 +2233,93 @@ document.getElementById('goalsTableToggle').addEventListener('click', ()=>{
   document.getElementById('goalsTableBody').classList.toggle('open');
 });
 
+// ---------------- Fill Progress (bulk, non-cumulative single-task entry) ----------------
+function getFillTaskNumber(){
+  const n = parseInt(document.getElementById('fillTaskSelect').value, 10);
+  return (isNaN(n) || n<1 || n>6) ? 1 : n;
+}
+
+function renderFillTable(){
+  document.getElementById('fillCycleLabel').textContent = currentCycleId || '—';
+  const table = document.getElementById('fillTable');
+  if(!currentCycleId || currentGoals.length===0){
+    table.innerHTML = `<tr><td style="padding:20px;text-align:center;color:var(--text-dim);">No goals in this cycle yet — add some from the Goals (Admin) tab first.</td></tr>`;
+    return;
+  }
+  const taskN = getFillTaskNumber();
+  const idx = taskN - 1;
+  let html = `<tr><th>Goal</th><th>Task Name</th><th>Progress %</th><th>Comment</th></tr>`;
+  currentGoals.forEach(g=>{
+    const t = (g.tasks && g.tasks[idx]) ? g.tasks[idx] : {name:'', progress:null, note:''};
+    const progVal = (t.progress===null || t.progress===undefined) ? '' : t.progress;
+    html += `<tr data-goalno="${g.no}">
+      <td class="mt-goal">${g.name}</td>
+      <td><input type="text" class="fill-input fill-name" value="${(t.name||'').replace(/"/g,'&quot;')}"></td>
+      <td><input type="number" min="0" max="100" class="fill-input fill-progress" value="${progVal}" placeholder="—"></td>
+      <td><input type="text" class="fill-input fill-note" value="${(t.note||'').replace(/"/g,'&quot;')}"></td>
+    </tr>`;
+  });
+  table.innerHTML = html;
+}
+
+document.getElementById('fillTaskSelect').addEventListener('change', renderFillTable);
+
+document.getElementById('fillSaveBtn').addEventListener('click', async ()=>{
+  if(!currentCycleId){ alert('Select a Cycle first.'); return; }
+  const taskN = getFillTaskNumber();
+  const idx = taskN - 1;
+  document.querySelectorAll('#fillTable tr[data-goalno]').forEach(row=>{
+    const no = Number(row.getAttribute('data-goalno'));
+    const g = currentGoals.find(x=>x.no===no);
+    if(!g) return;
+    if(!g.tasks) g.tasks = [];
+    while(g.tasks.length <= idx) g.tasks.push({ id:`${g.no}.${g.tasks.length+1})`, name:'', progress:null, note:'' });
+    const progRaw = row.querySelector('.fill-progress').value.trim();
+    g.tasks[idx] = {
+      id: `${g.no}.${taskN})`,
+      name: row.querySelector('.fill-name').value.trim(),
+      progress: progRaw==='' ? null : Math.max(0, Math.min(100, parseInt(progRaw,10))),
+      note: row.querySelector('.fill-note').value.trim()
+    };
+  });
+  await saveCurrentCycle();
+  alert(`Saved Task ${taskN} progress for all goals in Cycle ${currentCycleId}.`);
+});
+
+// ---------------- Default view (Cycle + Sprint shown on first open) ----------------
+document.getElementById('setDefaultBtn').addEventListener('click', async ()=>{
+  if(!currentCycleId){ alert('Select a Cycle first.'); return; }
+  const sprintN = getSprintNumber();
+  try{
+    await setDoc(doc(db,'settings','default'), { cycle: currentCycleId, sprint: sprintN });
+    alert(`Default view set: Cycle ${currentCycleId}, Sprint ${sprintN}.\nAnyone opening the app link will now land here first.`);
+  }catch(err){
+    console.error('Failed to save default view', err);
+    alert('Could not save the default view:\n' + err.message + '\n\nMake sure Firestore Rules also cover the "settings" collection.');
+  }
+});
+
+async function initDefaultView(){
+  let defaultCycle = null, defaultSprint = null;
+  try{
+    const snap = await getDoc(doc(db,'settings','default'));
+    if(snap.exists()){
+      const data = snap.data();
+      defaultCycle = data.cycle || null;
+      defaultSprint = data.sprint || null;
+    }
+  }catch(err){
+    console.error('Could not load default view settings', err);
+  }
+  if(defaultSprint){
+    document.getElementById('sprintInput').value = String(defaultSprint);
+    renderSprintLabel();
+  }
+  await loadCycleList(defaultCycle);
+}
+
 // ---------------- init ----------------
-loadCycleList();
+initDefaultView();
 subscribeDocStats();
 
 if('serviceWorker' in navigator){
