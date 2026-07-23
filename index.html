@@ -846,6 +846,7 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
         <option value="5">5</option>
         <option value="6">6</option>
       </select>
+      <button class="btn small" id="setEntryDefaultBtn" style="display:none;" title="Whoever opens entry.html will land directly on this Cycle & Task, with no picker">📌 Set Entry Page View</button>
     </div>
 
     <div class="spacer"></div>
@@ -1212,6 +1213,7 @@ onAuthStateChanged(auth, (user)=>{
   loginToggleBtn.style.display = isAdmin ? 'none' : 'inline-block';
   document.getElementById('addGoalWrap').style.display = isAdmin ? 'block' : 'none';
   document.getElementById('docAdminBar').style.display = isAdmin ? 'block' : 'none';
+  document.getElementById('setEntryDefaultBtn').style.display = isAdmin ? 'inline-block' : 'none';
   document.querySelectorAll('.admin-only-tab').forEach(b=> b.style.display = isAdmin ? 'inline-block' : 'none');
   if(!isAdmin && (currentTab==='goals' || currentTab==='documents')) switchTab('dashboard');
   editingGoalNo = null;
@@ -2178,6 +2180,18 @@ function renderDashDocTable(){
 document.getElementById('goalsTableToggle').addEventListener('click', ()=>{
   document.getElementById('goalsTableToggle').classList.toggle('open');
   document.getElementById('goalsTableBody').classList.toggle('open');
+});
+
+document.getElementById('setEntryDefaultBtn').addEventListener('click', async ()=>{
+  if(!currentCycleId){ alert('Select a Cycle first.'); return; }
+  const sprintN = getSprintNumber();
+  try{
+    await setDoc(doc(db,'settings','entryDefault'), { cycle: currentCycleId, sprint: sprintN });
+    alert(`Entry page set to Cycle ${currentCycleId}, Task ${sprintN}.\nAnyone opening entry.html will now land there directly — no picker.`);
+  }catch(err){
+    console.error('Failed to save entry default', err);
+    alert('Could not save:\n' + err.message + '\n\nMake sure Firestore Rules also cover the "settings" collection.');
+  }
 });
 
 // ---------------- init ----------------

@@ -233,29 +233,14 @@ h1{
       </div>
     </div>
 
-    <div class="controls-card">
-      <div class="fld">
-        <label>Cycle</label>
-        <select id="cycleSelect"><option value="">—</option></select>
-      </div>
-      <div class="fld">
-        <label>Task #</label>
-        <select id="taskSelect">
-          <option value="1">1</option>
-          <option value="2">2</option>
-          <option value="3">3</option>
-          <option value="4">4</option>
-          <option value="5">5</option>
-          <option value="6">6</option>
-        </select>
-      </div>
-      <span class="hint">Shows Task # for every goal — not cumulative.</span>
+    <div class="controls-card" id="controlsCard">
+      <span class="hint" id="whichLabel">Loading assigned Cycle &amp; Task…</span>
     </div>
 
     <div class="entry-wrap" id="entryWrap"></div>
 
     <div class="save-bar">
-      <button class="btn primary" id="saveBtn" style="margin-top:0;width:auto;">Save Progress</button>
+      <button class="btn primary" id="saveBtn" style="margin-top:0;width:auto;display:none;">Save Progress</button>
     </div>
   </div>
 
@@ -267,7 +252,7 @@ import {
   getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import {
-  getFirestore, collection, getDocs, doc, setDoc, onSnapshot
+  getFirestore, collection, getDocs, doc, setDoc, getDoc, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -307,7 +292,7 @@ onAuthStateChanged(auth, (user)=>{
     document.getElementById('loginView').classList.add('hidden');
     document.getElementById('appView').classList.remove('hidden');
     document.getElementById('whoLabel').textContent = user.email || '';
-    loadCycles();
+    loadFixedView();
   } else {
     document.getElementById('appView').classList.add('hidden');
     document.getElementById('loginView').classList.remove('hidden');
@@ -315,31 +300,39 @@ onAuthStateChanged(auth, (user)=>{
   }
 });
 
-// ---------------- Cycles ----------------
-async function loadCycles(){
-  const sel = document.getElementById('cycleSelect');
-  let ids = [];
+// ---------------- Fixed Cycle/Task (set by the admin, no picker shown here) ----------------
+let fixedTaskN = 1;
+
+async function loadFixedView(){
+  const label = document.getElementById('whichLabel');
+  const saveBtn = document.getElementById('saveBtn');
   try{
-    const snap = await getDocs(collection(db,'cycles'));
-    snap.forEach(d=>ids.push(d.id));
+    const snap = await getDoc(doc(db,'settings','entryDefault'));
+    if(!snap.exists()){
+      label.textContent = 'No Cycle/Task has been assigned yet — ask the admin to set it.';
+      document.getElementById('entryWrap').innerHTML = '';
+      saveBtn.style.display = 'none';
+      return;
+    }
+    const data = snap.data();
+    currentCycleId = data.cycle ? String(data.cycle) : null;
+    fixedTaskN = data.sprint || 1;
+    if(!currentCycleId){
+      label.textContent = 'No Cycle/Task has been assigned yet — ask the admin to set it.';
+      saveBtn.style.display = 'none';
+      return;
+    }
+    label.innerHTML = `Cycle <b style="color:var(--ink)">${currentCycleId}</b> &nbsp;·&nbsp; Task <b style="color:var(--ink)">${fixedTaskN}</b>`;
+    saveBtn.style.display = 'inline-block';
+    subscribeToCycle(currentCycleId);
   }catch(err){
-    alert('Could not load cycles:\n' + err.message);
-  }
-  ids.sort((a,b)=>Number(a)-Number(b));
-  sel.innerHTML = ids.map(id=>`<option value="${id}">Cycle ${id}</option>`).join('');
-  if(ids.length){
-    sel.value = ids[0];
-    subscribeToCycle(ids[0]);
-  } else {
-    currentCycleId = null;
-    currentGoals = [];
-    renderEntryTable();
+    label.textContent = 'Could not load assignment: ' + err.message;
+    saveBtn.style.display = 'none';
   }
 }
 
 function subscribeToCycle(cycleId){
   if(unsubscribeCycle) unsubscribeCycle();
-  currentCycleId = cycleId;
   const ref = doc(db,'cycles',cycleId);
   unsubscribeCycle = onSnapshot(ref, (snap)=>{
     currentGoals = snap.exists() ? (snap.data().goals || []) : [];
@@ -349,15 +342,9 @@ function subscribeToCycle(cycleId){
   });
 }
 
-document.getElementById('cycleSelect').addEventListener('change', (e)=>{
-  if(e.target.value) subscribeToCycle(e.target.value);
-});
-document.getElementById('taskSelect').addEventListener('change', renderEntryTable);
-
 // ---------------- Entry table ----------------
 function getTaskNumber(){
-  const n = parseInt(document.getElementById('taskSelect').value, 10);
-  return (isNaN(n) || n<1 || n>6) ? 1 : n;
+  return fixedTaskN;
 }
 
 function renderEntryTable(){
