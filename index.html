@@ -725,6 +725,21 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
 .collapsible-header.open .collapsible-chevron{transform:rotate(180deg);}
 .collapsible-body{display:none;margin-top:10px;}
 .collapsible-body.open{display:block;}
+.mini-table-filter{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:10px;
+}
+.mini-filter-label{
+  font-size:11px;
+  color:var(--text-dim);
+  font-family:'IBM Plex Mono',monospace;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+}
+.mini-table-filter .seg{padding:2px;}
+.mini-table-filter .seg button{padding:6px 12px;font-size:12px;}
 
 /* ---------- Dashboards ---------- */
 .section-sub{
@@ -887,6 +902,14 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
           <svg class="collapsible-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </button>
         <div class="collapsible-body" id="goalsTableBody">
+          <div class="mini-table-filter">
+            <span class="mini-filter-label">Show</span>
+            <div class="seg" id="dashGoalsFilterSeg">
+              <button data-f="all" class="active">All</button>
+              <button data-f="complete">Completed</button>
+              <button data-f="delayed">Delayed</button>
+            </div>
+          </div>
           <div class="mini-table-wrap">
             <table class="mini-goaltable" id="dashGoalsTable"></table>
           </div>
@@ -2021,8 +2044,17 @@ function renderGoalsDashboard(){
   renderDashboardGoalsTable(sprintN);
 }
 
+let dashGoalsFilter = 'all';
+
 function renderDashboardGoalsTable(sprintN){
-  const rows = currentGoals.flatMap(g=>{
+  const filteredGoals = currentGoals.filter(g=>{
+    if(dashGoalsFilter === 'all') return true;
+    const avg = goalDynamicAvg(g, sprintN);
+    if(dashGoalsFilter === 'complete') return avg!==null && avg>=100;
+    if(dashGoalsFilter === 'delayed') return avg!==null && avg<100;
+    return true;
+  });
+  const rows = filteredGoals.flatMap(g=>{
     const visible = (g.tasks || []).slice(0, sprintN);
     if(visible.length === 0){
       return [`<tr>
@@ -2050,9 +2082,18 @@ function renderDashboardGoalsTable(sprintN){
   }).join('');
   document.getElementById('dashGoalsTable').innerHTML = `
     <tr><th>Goal</th><th>Task</th><th>Progress</th><th>Comment</th></tr>
-    ${rows || '<tr><td colspan="4" style="text-align:center;color:var(--text-dim);">No goals yet.</td></tr>'}
+    ${rows || '<tr><td colspan="4" style="text-align:center;color:var(--text-dim);">No goals match this filter.</td></tr>'}
   `;
 }
+document.getElementById('dashGoalsFilterSeg').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button');
+  if(!btn) return;
+  document.querySelectorAll('#dashGoalsFilterSeg button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  dashGoalsFilter = btn.getAttribute('data-f');
+  renderDashboardGoalsTable(getSprintNumber());
+});
+
 function renderDocumentsDashboard(){
   if(typeof Chart === 'undefined'){
     document.getElementById('view-dashboard').insertAdjacentHTML('beforeend', '<p style="color:var(--red);font-family:monospace;">Chart.js failed to load — check your internet connection and refresh.</p>');
