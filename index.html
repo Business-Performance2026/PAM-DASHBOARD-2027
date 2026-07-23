@@ -2047,16 +2047,16 @@ function renderGoalsDashboard(){
 let dashGoalsFilter = 'all';
 
 function renderDashboardGoalsTable(sprintN){
-  const filteredGoals = currentGoals.filter(g=>{
-    if(dashGoalsFilter === 'all') return true;
-    const avg = goalDynamicAvg(g, sprintN);
-    if(dashGoalsFilter === 'complete') return avg!==null && avg>=100;
-    if(dashGoalsFilter === 'delayed') return avg!==null && avg<100;
-    return true;
-  });
-  const rows = filteredGoals.flatMap(g=>{
+  const rows = currentGoals.flatMap(g=>{
     const visible = (g.tasks || []).slice(0, sprintN);
-    if(visible.length === 0){
+    const filteredTasks = visible.filter(t=>{
+      if(dashGoalsFilter === 'all') return true;
+      const hasPct = t && t.progress!==null && t.progress!==undefined;
+      if(dashGoalsFilter === 'complete') return hasPct && t.progress>=100;
+      if(dashGoalsFilter === 'delayed') return !hasPct || t.progress<100;
+      return true;
+    });
+    if(dashGoalsFilter === 'all' && visible.length === 0){
       return [`<tr>
         <td class="mt-goal">${g.name}</td>
         <td class="mt-task">—</td>
@@ -2064,7 +2064,8 @@ function renderDashboardGoalsTable(sprintN){
         <td class="mt-comment">—</td>
       </tr>`];
     }
-    return visible.map((t,i)=>{
+    if(filteredTasks.length === 0) return [];
+    return filteredTasks.map((t,i)=>{
       const hasPct = t && t.progress!==null && t.progress!==undefined;
       const pct = hasPct ? t.progress+'%' : '—';
       const pctColor = hasPct ? statusColor(t.progress) : 'var(--text-dim)';
@@ -2082,7 +2083,7 @@ function renderDashboardGoalsTable(sprintN){
   }).join('');
   document.getElementById('dashGoalsTable').innerHTML = `
     <tr><th>Goal</th><th>Task</th><th>Progress</th><th>Comment</th></tr>
-    ${rows || '<tr><td colspan="4" style="text-align:center;color:var(--text-dim);">No goals match this filter.</td></tr>'}
+    ${rows || '<tr><td colspan="4" style="text-align:center;color:var(--text-dim);">No tasks match this filter.</td></tr>'}
   `;
 }
 document.getElementById('dashGoalsFilterSeg').addEventListener('click', (e)=>{
