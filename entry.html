@@ -202,6 +202,18 @@ h1{
 }
 .e-goal{color:var(--text);font-weight:600;font-size:13.5px;}
 .e-task-ro{color:var(--text-mid);font-size:12.5px;}
+.e-num{
+  display:inline-block;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10.5px;
+  font-weight:700;
+  color:var(--cyan);
+  background:rgba(77,216,230,.12);
+  border-radius:5px;
+  padding:2px 6px;
+  margin-right:8px;
+  vertical-align:middle;
+}
 .entry-row input, .entry-row textarea{
   width:100%;
   background:var(--surface-hi);
@@ -382,14 +394,17 @@ function renderEntryTable(){
     wrap.innerHTML = `<div class="empty-msg">No goals available for this cycle yet.</div>`;
     return;
   }
-  const idx = getTaskNumber() - 1;
+  const taskN = getTaskNumber();
+  const idx = taskN - 1;
   let html = `<div class="entry-row head"><span>Goal</span><span>Task</span><span>Progress %</span><span>Comment</span></div>`;
   currentGoals.forEach(g=>{
     const t = (g.tasks && g.tasks[idx]) ? g.tasks[idx] : { name:'', progress:null, note:'' };
     const progVal = (t.progress===null || t.progress===undefined) ? '' : t.progress;
+    const goalNo = String(g.no).padStart(2,'0');
+    const taskId = t.id || `${g.no}.${taskN})`;
     html += `<div class="entry-row" data-goalno="${g.no}">
-      <div class="e-goal">${g.name}</div>
-      <div class="e-task-ro">${t.name ? t.name : '<span style="color:var(--text-dim)">(no task set)</span>'}</div>
+      <div class="e-goal"><span class="e-num">${goalNo}</span>${g.name}</div>
+      <div class="e-task-ro"><span class="e-num">${taskId}</span>${t.name ? t.name : '<span style="color:var(--text-dim)">(no task set)</span>'}</div>
       <input type="number" min="0" max="100" class="progress-input" value="${progVal}" placeholder="—">
       <textarea placeholder="Comment / justification (optional)">${t.note || ''}</textarea>
     </div>`;
