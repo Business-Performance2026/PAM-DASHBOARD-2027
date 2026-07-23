@@ -20,19 +20,23 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
 
 :root{
-  --bg: #0A1F2E;
-  --bg-grid: rgba(77,216,230,0.045);
-  --surface: #10283A;
-  --surface-hi: #17324A;
-  --line: #1F4258;
+  --bg: #DBCEC5;
+  --bg-grid: rgba(3,66,69,0.05);
+  --surface: #034245;
+  --surface-hi: #0B5257;
+  --line: rgba(255,255,255,.14);
+  --line-onbg: rgba(3,66,69,.22);
   --cyan: #4DD8E6;
   --cyan-dim: #2E8C99;
   --amber: #F0A868;
   --green: #4ECDA0;
   --red: #E8697A;
-  --text: #E9F3F6;
-  --text-mid: #9CC0D1;
-  --text-dim: #5E8296;
+  --text: #F5F1EA;
+  --text-mid: #B9CFC9;
+  --text-dim: #7DA39D;
+  --ink: #073B3D;
+  --ink-mid: #2C4442;
+  --ink-dim: #4A5D5A;
 }
 
 *{box-sizing:border-box;}
@@ -42,7 +46,7 @@ body{
     linear-gradient(var(--bg-grid) 1px, transparent 1px) 0 0/44px 44px,
     linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px) 0 0/44px 44px,
     var(--bg);
-  color:var(--text);
+  color:var(--ink);
   font-family:'Inter','Segoe UI',sans-serif;
   min-height:100vh;
   padding:28px 20px 60px;
@@ -57,7 +61,7 @@ body{
   justify-content:space-between;
   padding-bottom:18px;
   margin-bottom:18px;
-  border-bottom:1px solid var(--line);
+  border-bottom:1px solid var(--line-onbg);
   position:relative;
 }
 .topbar::after{
@@ -65,7 +69,7 @@ body{
   position:absolute;
   left:0;bottom:-1px;
   width:140px;height:1px;
-  background:linear-gradient(90deg, var(--cyan), transparent);
+  background:linear-gradient(90deg, var(--surface), transparent);
 }
 .topbar-title{display:flex;flex-direction:column;gap:3px;}
 .topbar-eyebrow{
@@ -73,13 +77,13 @@ body{
   font-size:10.5px;
   letter-spacing:.12em;
   text-transform:uppercase;
-  color:var(--text-dim);
+  color:var(--ink-dim);
 }
 .topbar-name{
   font-family:'Space Grotesk',sans-serif;
   font-size:20px;
   font-weight:700;
-  color:#fff;
+  color:var(--ink);
   letter-spacing:-.01em;
 }
 .app-logo{
@@ -114,7 +118,7 @@ body{
   margin-bottom:18px;
   font-family:'IBM Plex Mono',monospace;
   font-size:11.5px;
-  color:var(--text-dim);
+  color:var(--ink-dim);
 }
 .adminbar .adm-label{letter-spacing:.08em;text-transform:uppercase;}
 .adminbar input{
@@ -167,7 +171,7 @@ body{
   font-size:10.5px;
   padding:4px 10px;
   border-radius:20px;
-  background:rgba(78,205,160,.12);
+  background:var(--surface);
   color:var(--green);
 }
 
@@ -215,7 +219,7 @@ body{
 
 /* ---------- Header ---------- */
 header{
-  border-bottom:1px solid var(--line);
+  border-bottom:1px solid var(--line-onbg);
   padding-bottom:22px;
   margin-bottom:26px;
 }
@@ -224,12 +228,12 @@ h1{
   font-size:34px;
   font-weight:700;
   margin:0;
-  color:#fff;
+  color:var(--ink);
   letter-spacing:-.01em;
 }
-h1 .sprint-num{color:var(--cyan);}
+h1 .sprint-num{color:var(--surface);}
 .no-cycle-msg{
-  color:var(--text-dim);
+  color:var(--ink-dim);
   font-size:13px;
   margin-top:8px;
 }
@@ -290,7 +294,7 @@ h1 .sprint-num{color:var(--cyan);}
 }
 .controls .label{
   font-size:12.5px;
-  color:var(--text-dim);
+  color:var(--ink-dim);
   font-family:'IBM Plex Mono',monospace;
   margin-right:4px;
 }
@@ -496,7 +500,7 @@ h1 .sprint-num{color:var(--cyan);}
 .empty{
   text-align:center;
   padding:60px 20px;
-  color:var(--text-dim);
+  color:var(--ink-dim);
   font-size:14px;
 }
 .no-task{
@@ -521,7 +525,7 @@ h1 .sprint-num{color:var(--cyan);}
   letter-spacing:.05em;
 }
 .editrow input, .editrow textarea{
-  background:var(--bg);
+  background:var(--surface-hi);
   border:1px solid var(--line);
   border-radius:7px;
   color:var(--text);
@@ -555,13 +559,13 @@ h1 .sprint-num{color:var(--cyan);}
   display:flex;
   gap:4px;
   margin-bottom:22px;
-  border-bottom:1px solid var(--line);
+  border-bottom:1px solid var(--line-onbg);
   overflow-x:auto;
 }
 .tabsbar button{
   border:none;
   background:transparent;
-  color:var(--text-dim);
+  color:var(--ink-dim);
   font-family:'IBM Plex Mono',monospace;
   font-size:12.5px;
   font-weight:600;
@@ -571,15 +575,15 @@ h1 .sprint-num{color:var(--cyan);}
   border-bottom:2px solid transparent;
   transition:.15s;
 }
-.tabsbar button:hover{color:var(--text-mid);}
-.tabsbar button.active{color:var(--cyan);border-bottom-color:var(--cyan);}
+.tabsbar button:hover{color:var(--ink-mid);}
+.tabsbar button.active{color:var(--surface);border-bottom-color:var(--surface);}
 .view{display:none;}
 .view.active{display:block;}
 h2.section-title{
   font-family:'Space Grotesk',sans-serif;
   font-size:24px;
   font-weight:700;
-  color:#fff;
+  color:var(--ink);
   margin:0 0 18px;
 }
 
@@ -635,7 +639,7 @@ table.doctable td:last-child, table.doctable th:last-child{
 }
 table.doctable input{
   width:52px;
-  background:var(--bg);
+  background:var(--surface-hi);
   border:1px solid var(--line);
   border-radius:6px;
   color:var(--text);
@@ -725,7 +729,7 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
 /* ---------- Dashboards ---------- */
 .section-sub{
   font-size:13px;
-  color:var(--text-dim);
+  color:var(--ink-dim);
   font-family:'IBM Plex Mono',monospace;
   font-weight:400;
 }
@@ -940,7 +944,7 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
     </div>
     <input type="file" id="csvFileInput" accept=".csv" style="display:none;">
     <input type="file" id="docxFileInput" accept=".docx" style="display:none;">
-    <div style="font-size:11.5px;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;margin-top:8px;">
+    <div style="font-size:11.5px;color:var(--ink-dim);font-family:'IBM Plex Mono',monospace;margin-top:8px;">
       Word import: upload the same report file you use today — it reads the last progress table in the document and overwrites the matching goals with its full Sprint 1–6 task history. CSV columns: GoalNo, GoalName, Dependency, Sprint, TaskName, Progress, Justification — one row per task per sprint, merges with existing data.
     </div>
   </div>
@@ -959,7 +963,7 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
       </div>
       <input type="file" id="docDocxFileInput" accept=".docx" style="display:none;">
       <input type="file" id="docXlsxFileInput" accept=".xlsx,.xls" style="display:none;">
-      <div style="font-size:11.5px;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;margin-top:8px;">
+      <div style="font-size:11.5px;color:var(--ink-dim);font-family:'IBM Plex Mono',monospace;margin-top:8px;">
         Upload the same documentation summary table you use today (rows = document types, columns = departments). It's matched by row/column names automatically, so extra columns like "Total" are ignored — edit any number below by hand, then Save.
       </div>
     </div>
@@ -1023,15 +1027,15 @@ function chartBaseOptions(opts={}){
     responsive:true,
     maintainAspectRatio:false,
     plugins:{
-      legend:{ display: !!opts.legend, labels:{ color:'#9CC0D1', font:{family:'IBM Plex Mono'} } },
-      tooltip:{ backgroundColor:'#17324A', titleColor:'#E9F3F6', bodyColor:'#9CC0D1' }
+      legend:{ display: !!opts.legend, labels:{ color:'#B9CFC9', font:{family:'IBM Plex Mono'} } },
+      tooltip:{ backgroundColor:'#0B5257', titleColor:'#F5F1EA', bodyColor:'#B9CFC9' }
     }
   };
   if(opts.indexAxis) base.indexAxis = opts.indexAxis;
   if(!opts.noScales){
     base.scales = {
-      x:{ stacked: !!opts.stacked, ticks:{color:'#9CC0D1'}, grid:{color:'#1F4258'} },
-      y:{ stacked: !!opts.stacked, ticks:{color:'#9CC0D1'}, grid:{color:'#1F4258'}, max: opts.yMax }
+      x:{ stacked: !!opts.stacked, ticks:{color:'#B9CFC9'}, grid:{color:'rgba(255,255,255,.08)'} },
+      y:{ stacked: !!opts.stacked, ticks:{color:'#B9CFC9'}, grid:{color:'rgba(255,255,255,.08)'}, max: opts.yMax }
     };
   }
   return base;
