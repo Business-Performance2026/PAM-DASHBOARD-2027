@@ -1382,7 +1382,8 @@ document.getElementById('exportDocxBtn').addEventListener('click', async ()=>{
 
     const FONT = "Aptos Body";
     function tr(opts){
-      if(typeof opts === 'string') opts = { text: opts };
+      if(typeof opts === 'string') opts = { text: opts, bold: true };
+      if(opts.bold === undefined) opts.bold = true; // everything is bold in the original, except Justification text
       return new TextRun({ font: FONT, ...opts });
     }
 
@@ -1390,48 +1391,50 @@ document.getElementById('exportDocxBtn').addEventListener('click', async ()=>{
     const sd = currentReportDates.sprints[sprintN] || {period:'',deadline:'',submission:''};
     const borderSpec = { style: BorderStyle.SINGLE, size: 2, color: "999999" };
     const cellBorders = { top: borderSpec, bottom: borderSpec, left: borderSpec, right: borderSpec };
+    const cellMargins = { top: 60, bottom: 60, left: 100, right: 100 };
     const COLS = 7; // No. | Goals | Task | Dependencies | Progress | Average% | Justification
-    const GREEN_FILL = "E8F5E9"; // marks fields that change every sprint / need updating — shading only, text stays black
 
-    function metaCell(label, value, span, highlighted){
+    const FILL_TOP = "04806B";     // Sprint Execution banner + Division/GM/Focal Point
+    const FILL_DATES = "C2CAC8";   // Sprint Period / Submission Deadline / Submission To CEO
+    const FILL_HEADER = "226697";  // column header row (No., Goals, Task, ...)
+
+    function metaCell(label, value, span, fill){
       return new TableCell({
-        columnSpan: span, borders: cellBorders, shading: { fill: highlighted ? GREEN_FILL : "F2F2F2" },
-        children: [new Paragraph({ children: [ tr({ text: label, bold: true }), tr(value) ] })]
+        columnSpan: span, borders: cellBorders, margins: cellMargins, shading: { fill },
+        children: [new Paragraph({ children: [ tr(label), tr(value) ] })]
       });
     }
 
-    // Row 0: "Sprint -N Execution Progress Report" (sprint number is what changes each export)
+    // Row 0: "Sprint -N Execution Progress Report"
     const row0 = new TableRow({ children: [
-      new TableCell({ columnSpan: 1, borders: cellBorders, children: [new Paragraph('')] }),
-      new TableCell({ columnSpan: COLS-1, borders: cellBorders, shading: { fill: GREEN_FILL }, children: [
-        new Paragraph({ alignment: AlignmentType.CENTER, children: [
-          tr({ text: `Sprint -${sprintN} Execution Progress Report`, bold: true })
-        ] })
+      new TableCell({ columnSpan: 1, borders: cellBorders, margins: cellMargins, shading: { fill: FILL_TOP }, children: [new Paragraph('')] }),
+      new TableCell({ columnSpan: COLS-1, borders: cellBorders, margins: cellMargins, shading: { fill: FILL_TOP }, children: [
+        new Paragraph({ alignment: AlignmentType.CENTER, children: [ tr(`Sprint -${sprintN} Execution Progress Report`) ] })
       ] })
     ]});
 
     // Row 1: Division / GM in Charge / Focal Point (static — doesn't change per sprint)
     const row1 = new TableRow({ children: [
-      metaCell('Division: ', 'Planning & Asset Management', 3, false),
-      metaCell('GM In Charge: ', 'Suhaila Al Balushi', 2, false),
-      metaCell('Focal Point: ', 'Badar Al Mamari', 2, false)
+      metaCell('Division: ', 'Planning & Asset Management', 3, FILL_TOP),
+      metaCell('GM In Charge: ', 'Suhaila Al Balushi', 2, FILL_TOP),
+      metaCell('Focal Point: ', 'Badar Al Mamari', 2, FILL_TOP)
     ]});
 
-    // Row 2: Sprint period / submission dates — these change every sprint (highlighted, filled from Report Dates panel)
+    // Row 2: Sprint period / submission dates — change every sprint, filled from the Report Dates panel
     const row2 = new TableRow({ children: [
-      metaCell(`Sprint-${sprintN} Period: `, sd.period, 3, true),
-      metaCell('Submission Deadline: ', sd.deadline, 2, true),
-      metaCell('Submission To CEO: ', sd.submission, 2, true)
+      metaCell(`Sprint-${sprintN} Period: `, sd.period, 3, FILL_DATES),
+      metaCell('Submission Deadline: ', sd.deadline, 2, FILL_DATES),
+      metaCell('Submission To CEO: ', sd.submission, 2, FILL_DATES)
     ]});
 
     const headerLabels = ['No.','Goals','Task','Dependencies','Progress (%)','Average%','Justification Of Delay (If Any)'];
     const headerRow = new TableRow({
       tableHeader: true,
       children: headerLabels.map(text => new TableCell({
-        borders: cellBorders,
-        shading: { fill: "0B5257" },
+        borders: cellBorders, margins: cellMargins,
+        shading: { fill: FILL_HEADER },
         verticalAlign: VerticalAlign.CENTER,
-        children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [tr({ text, bold: true, color: "FFFFFF" })] })]
+        children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [tr({ text, color: "FFFFFF" })] })]
       }))
     });
 
@@ -1443,43 +1446,41 @@ document.getElementById('exportDocxBtn').addEventListener('click', async ()=>{
       const overallLabel = (overall===null) ? '' : overall.toFixed(1) + '%';
 
       tasks.forEach((t, i)=>{
-        const isCurrentSprintTask = (i === sprintN - 1); // this task's progress/comment are what change this sprint
         const cells = [];
         if(i === 0){
           cells.push(new TableCell({
-            rowSpan: tasks.length, borders: cellBorders, verticalAlign: VerticalAlign.CENTER,
+            rowSpan: tasks.length, borders: cellBorders, margins: cellMargins, verticalAlign: VerticalAlign.CENTER,
             children:[new Paragraph({ alignment: AlignmentType.CENTER, children:[tr(String(g.no))] })]
           }));
           cells.push(new TableCell({
-            rowSpan: tasks.length, borders: cellBorders, verticalAlign: VerticalAlign.CENTER,
+            rowSpan: tasks.length, borders: cellBorders, margins: cellMargins, verticalAlign: VerticalAlign.CENTER,
             children:[new Paragraph({ children:[tr(g.name || '')] })]
           }));
         }
         const taskLabel = (t && t.id) ? t.id : `${g.no}.${i+1})`;
         const taskText = `${taskLabel} ${(t && t.name) ? t.name : ''}`.trim();
-        cells.push(new TableCell({ borders: cellBorders, children:[new Paragraph({ children:[tr(taskText)] })] }));
+        cells.push(new TableCell({ borders: cellBorders, margins: cellMargins, children:[new Paragraph({ children:[tr(taskText)] })] }));
         if(i === 0){
           cells.push(new TableCell({
-            rowSpan: tasks.length, borders: cellBorders, verticalAlign: VerticalAlign.CENTER,
+            rowSpan: tasks.length, borders: cellBorders, margins: cellMargins, verticalAlign: VerticalAlign.CENTER,
             children:[new Paragraph({ alignment: AlignmentType.CENTER, children:[tr(g.dependency || '')] })]
           }));
         }
         const progText = (t && t.progress!==null && t.progress!==undefined) ? t.progress + '%' : '';
         cells.push(new TableCell({
-          borders: cellBorders,
-          shading: isCurrentSprintTask ? { fill: GREEN_FILL } : undefined,
+          borders: cellBorders, margins: cellMargins,
           children:[new Paragraph({ alignment: AlignmentType.CENTER, children:[tr(progText)] })]
         }));
         if(i === 0){
           cells.push(new TableCell({
-            rowSpan: tasks.length, borders: cellBorders, verticalAlign: VerticalAlign.CENTER,
+            rowSpan: tasks.length, borders: cellBorders, margins: cellMargins, verticalAlign: VerticalAlign.CENTER,
             children:[new Paragraph({ alignment: AlignmentType.CENTER, children:[tr(overallLabel)] })]
           }));
         }
+        // Justification text is the one column that is NOT bold in the original template.
         cells.push(new TableCell({
-          borders: cellBorders,
-          shading: isCurrentSprintTask ? { fill: GREEN_FILL } : undefined,
-          children:[new Paragraph({ children:[tr((t && t.note) ? t.note : '')] })]
+          borders: cellBorders, margins: cellMargins,
+          children:[new Paragraph({ children:[tr({ text: (t && t.note) ? t.note : '', bold: false })] })]
         }));
         rows.push(new TableRow({ children: cells }));
       });
