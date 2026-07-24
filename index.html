@@ -516,15 +516,15 @@ h1 .sprint-num{color:var(--surface);}
   display:grid;
   gap:10px;
 }
-.editrow .field{display:flex;flex-direction:column;gap:4px;}
-.editrow label{
+.editrow .field, .task-edit-block .field{display:flex;flex-direction:column;gap:4px;}
+.editrow label, .task-edit-block label{
   font-size:10px;
   color:var(--text-dim);
   font-family:'IBM Plex Mono',monospace;
   text-transform:uppercase;
   letter-spacing:.05em;
 }
-.editrow input, .editrow textarea{
+.editrow input, .editrow textarea, .task-edit-block input, .task-edit-block textarea{
   background:var(--surface-hi);
   border:1px solid var(--line);
   border-radius:7px;
@@ -535,8 +535,8 @@ h1 .sprint-num{color:var(--surface);}
   outline:none;
   width:100%;
 }
-.editrow input:focus, .editrow textarea:focus{border-color:var(--cyan-dim);}
-.editrow textarea{resize:vertical;min-height:50px;}
+.editrow input:focus, .editrow textarea:focus, .task-edit-block input:focus, .task-edit-block textarea:focus{border-color:var(--cyan-dim);}
+.editrow textarea, .task-edit-block textarea{resize:vertical;min-height:50px;}
 .editrow .row2{display:grid;grid-template-columns:1fr 140px;gap:10px;}
 .editrow .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:4px;}
 .edit-goal-meta{
@@ -545,13 +545,36 @@ h1 .sprint-num{color:var(--surface);}
   gap:10px;
   padding:0 18px 14px;
 }
+.task-edit-list{
+  padding:0 18px 8px;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.task-edit-block{
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:12px 14px;
+  margin-bottom:10px;
+  background:rgba(255,255,255,.03);
+}
+.task-edit-block .row2{display:grid;grid-template-columns:1fr 130px;gap:10px;}
+.task-edit-label{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10.5px;
+  font-weight:700;
+  color:var(--cyan);
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  margin-bottom:8px;
+}
 
 @media (max-width:720px){
   .stats{grid-template-columns:repeat(2,1fr);}
   .task-row,.task-head-row{grid-template-columns:24px 1fr 90px;}
   .t-dep{display:none;}
   .task-head-row span:nth-child(4){display:none;}
-  .edit-goal-meta,.editrow .row2{grid-template-columns:1fr;}
+  .edit-goal-meta,.editrow .row2,.task-edit-block .row2{grid-template-columns:1fr;}
 }
 
 /* ---------- Tabs ---------- */
@@ -1554,9 +1577,30 @@ function goalCardHTML(g, sprintN){
 
 // ---------------- Goal card (edit mode) ----------------
 function goalEditHTML(g, sprintN){
-  const idx = sprintN - 1;
-  const t = (g.tasks && g.tasks[idx]) ? g.tasks[idx] : {id:`${g.no}.${sprintN})`, name:'', progress:null, note:''};
-  const progVal = (t.progress===null || t.progress===undefined) ? '' : t.progress;
+  const tasksHtml = [1,2,3,4,5,6].map(n=>{
+    const idx = n-1;
+    const t = (g.tasks && g.tasks[idx]) ? g.tasks[idx] : {name:'', progress:null, note:''};
+    const progVal = (t.progress===null || t.progress===undefined) ? '' : t.progress;
+    return `
+      <div class="task-edit-block">
+        <div class="task-edit-label">Task ${n}</div>
+        <div class="row2" style="margin-bottom:8px;">
+          <div class="field">
+            <label>Task name</label>
+            <input type="text" class="edit-task-name" data-tasknum="${n}" value="${(t.name||'').replace(/"/g,'&quot;')}">
+          </div>
+          <div class="field">
+            <label>Progress % (leave blank = no data)</label>
+            <input type="number" class="edit-task-progress" data-tasknum="${n}" min="0" max="100" value="${progVal}">
+          </div>
+        </div>
+        <div class="field">
+          <label>Justification of delay (optional)</label>
+          <textarea class="edit-task-note" data-tasknum="${n}">${t.note||''}</textarea>
+        </div>
+      </div>`;
+  }).join('');
+
   return `
     <div class="edit-goal-meta">
       <div class="field">
@@ -1568,24 +1612,13 @@ function goalEditHTML(g, sprintN){
         <input type="text" id="edit-goal-dep" value="${(g.dependency||'').replace(/"/g,'&quot;')}" placeholder="Internal / SCM / External">
       </div>
     </div>
-    <div class="editrow">
-      <div class="field">
-        <label>Task name — Sprint ${sprintN}</label>
-        <input type="text" id="edit-task-name" value="${(t.name||'').replace(/"/g,'&quot;')}">
-      </div>
-      <div class="row2">
-        <div class="field">
-          <label>Justification of delay (optional)</label>
-          <textarea id="edit-task-note">${t.note||''}</textarea>
-        </div>
-        <div class="field">
-          <label>Progress % (leave blank = no data)</label>
-          <input type="number" id="edit-task-progress" min="0" max="100" value="${progVal}">
-        </div>
-      </div>
+    <div class="task-edit-list">
+      ${tasksHtml}
+    </div>
+    <div class="editrow" style="padding-top:4px;">
       <div class="actions">
         <button class="btn" data-action="cancel-edit">Cancel</button>
-        <button class="btn primary" data-action="save-edit" data-goal="${g.no}">Save Changes</button>
+        <button class="btn primary" data-action="save-edit" data-goal="${g.no}">Save All 6 Tasks</button>
       </div>
     </div>
   `;
@@ -1701,16 +1734,20 @@ function renderGoals(){
       if(!g) return;
       g.name = document.getElementById('edit-goal-name').value.trim();
       g.dependency = document.getElementById('edit-goal-dep').value.trim();
-      if(!g.tasks) g.tasks = [];
-      while(g.tasks.length < sprintN) g.tasks.push({id:`${g.no}.${g.tasks.length+1})`, name:'', progress:null, note:''});
-      const idx = sprintN - 1;
-      const progRaw = document.getElementById('edit-task-progress').value;
-      g.tasks[idx] = {
-        id: `${g.no}.${sprintN})`,
-        name: document.getElementById('edit-task-name').value.trim(),
-        progress: progRaw === '' ? null : Math.max(0, Math.min(100, parseInt(progRaw,10))),
-        note: document.getElementById('edit-task-note').value.trim()
-      };
+      const newTasks = [];
+      for(let n=1; n<=6; n++){
+        const nameInp = list.querySelector(`.edit-task-name[data-tasknum="${n}"]`);
+        const progInp = list.querySelector(`.edit-task-progress[data-tasknum="${n}"]`);
+        const noteInp = list.querySelector(`.edit-task-note[data-tasknum="${n}"]`);
+        const progRaw = progInp.value.trim();
+        newTasks.push({
+          id: `${g.no}.${n})`,
+          name: nameInp.value.trim(),
+          progress: progRaw === '' ? null : Math.max(0, Math.min(100, parseInt(progRaw,10))),
+          note: noteInp.value.trim()
+        });
+      }
+      g.tasks = newTasks;
       editingGoalNo = null;
       await saveCurrentCycle();
     });
