@@ -894,6 +894,7 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
 
     <div class="authbox">
       <span id="adminPill" class="pill-admin" style="display:none;">Admin</span>
+      <span id="noAccessPill" style="display:none;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--ink-dim);">Signed in (viewer only)</span>
       <button class="btn" id="logoutBtn" style="display:none;">Logout</button>
       <div class="loginbox">
         <button class="btn" id="loginToggleBtn">Admin Login</button>
@@ -1089,7 +1090,7 @@ import {
   getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import {
-  getFirestore, collection, getDocs, doc, setDoc, onSnapshot
+  getFirestore, collection, getDocs, doc, setDoc, getDoc, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -1309,11 +1310,23 @@ document.getElementById('logoutBtn').addEventListener('click', ()=>{
   signOut(auth);
 });
 
-onAuthStateChanged(auth, (user)=>{
-  isAdmin = !!user;
+onAuthStateChanged(auth, async (user)=>{
+  let verifiedAdmin = false;
+  if(user){
+    try{
+      const adminSnap = await getDoc(doc(db,'admins',user.uid));
+      verifiedAdmin = adminSnap.exists();
+    }catch(err){
+      console.error('Admin check failed', err);
+      verifiedAdmin = false;
+    }
+  }
+  isAdmin = verifiedAdmin;
+  const isSignedIn = !!user;
   document.getElementById('adminPill').style.display = isAdmin ? 'inline-block' : 'none';
-  document.getElementById('logoutBtn').style.display = isAdmin ? 'inline-block' : 'none';
-  loginToggleBtn.style.display = isAdmin ? 'none' : 'inline-block';
+  document.getElementById('noAccessPill').style.display = (isSignedIn && !isAdmin) ? 'inline-block' : 'none';
+  document.getElementById('logoutBtn').style.display = isSignedIn ? 'inline-block' : 'none';
+  loginToggleBtn.style.display = isSignedIn ? 'none' : 'inline-block';
   document.getElementById('addGoalWrap').style.display = isAdmin ? 'block' : 'none';
   document.getElementById('docAdminBar').style.display = isAdmin ? 'block' : 'none';
   document.getElementById('setEntryDefaultBtn').style.display = isAdmin ? 'inline-block' : 'none';
