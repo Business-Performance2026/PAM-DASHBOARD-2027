@@ -1177,10 +1177,18 @@ function visibleTasks(g, sprintN){
   return (g.tasks||[]).slice(0, sprintN);
 }
 function goalDynamicAvg(g, sprintN){
+  const vals = visibleTasks(g, sprintN).filter(t=>t.progress!==null && t.progress!==undefined).map(t=>t.progress);
+  if(vals.length===0) return null;
+  return vals.reduce((a,b)=>a+b,0)/vals.length;
+}
+// Fixed-denominator overall: sum of every task's progress (missing = 0) divided by
+// the goal's actual total task count (5 or 6). Used for the Word export's Average%
+// column and the Entry page's per-goal Average badge — NOT for the Dashboard's
+// Overall/Delayed classification, which should reflect only what's been reported so far.
+function goalFixedAvg(g){
   const total = (g.tasks && g.tasks.length) ? g.tasks.length : 6;
   if(total === 0) return null;
-  const visible = visibleTasks(g, sprintN);
-  const sum = visible.reduce((s,t)=> s + ((t && t.progress!==null && t.progress!==undefined) ? t.progress : 0), 0);
+  const sum = (g.tasks||[]).reduce((s,t)=> s + ((t && t.progress!==null && t.progress!==undefined) ? t.progress : 0), 0);
   return sum / total;
 }
 
@@ -1468,7 +1476,7 @@ document.getElementById('exportDocxBtn').addEventListener('click', async ()=>{
 
     currentGoals.forEach(g=>{
       const tasks = (g.tasks && g.tasks.length) ? g.tasks : Array.from({length:6}, (_,i)=>({ id:`${g.no}.${i+1})`, name:'', progress:null, note:'' }));
-      const overall = goalDynamicAvg(g, tasks.length);
+      const overall = goalFixedAvg(g);
       const overallLabel = (overall===null) ? '' : overall.toFixed(1) + '%';
 
       tasks.forEach((t, i)=>{

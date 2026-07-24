@@ -234,6 +234,18 @@ h1{
   margin-right:8px;
   vertical-align:middle;
 }
+.e-avg{
+  display:inline-block;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10.5px;
+  font-weight:700;
+  color:var(--green);
+  background:rgba(78,205,160,.15);
+  border-radius:5px;
+  padding:2px 7px;
+  margin-right:8px;
+  vertical-align:middle;
+}
 .entry-row input, .entry-row textarea{
   width:100%;
   background:var(--surface-hi);
@@ -412,6 +424,13 @@ function getTaskNumber(){
   return fixedTaskN;
 }
 
+function goalAvg(g){
+  const total = (g.tasks && g.tasks.length) ? g.tasks.length : 6;
+  if(total === 0) return null;
+  const sum = (g.tasks||[]).reduce((s,t)=> s + ((t && t.progress!==null && t.progress!==undefined) ? t.progress : 0), 0);
+  return sum / total;
+}
+
 function renderEntryTable(){
   const wrap = document.getElementById('entryWrap');
   if(!currentCycleId || currentGoals.length === 0){
@@ -426,8 +445,10 @@ function renderEntryTable(){
     const progVal = (t.progress===null || t.progress===undefined) ? '' : t.progress;
     const goalNo = String(g.no).padStart(2,'0');
     const taskId = t.id || `${g.no}.${taskN})`;
+    const avg = goalAvg(g);
+    const avgLabel = avg===null ? '—' : avg.toFixed(1)+'%';
     html += `<div class="entry-row" data-goalno="${g.no}">
-      <div class="e-goal"><span class="e-num">${goalNo}</span>${g.name}</div>
+      <div class="e-goal"><span class="e-avg" title="Average across all this goal's tasks">${avgLabel}</span><span class="e-num">${goalNo}</span>${g.name}</div>
       <div class="e-task-ro"><span class="e-num">${taskId}</span>${t.name ? t.name : '<span style="color:var(--text-dim)">(no task set)</span>'}</div>
       <input type="number" min="0" max="100" class="progress-input" value="${progVal}" placeholder="—">
       <textarea placeholder="Required if progress is under 100%">${t.note || ''}</textarea>
