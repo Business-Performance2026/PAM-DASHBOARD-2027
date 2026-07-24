@@ -1005,7 +1005,7 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
     <input type="file" id="csvFileInput" accept=".csv" style="display:none;">
     <input type="file" id="docxFileInput" accept=".docx" style="display:none;">
     <div style="font-size:11.5px;color:var(--ink-dim);font-family:'IBM Plex Mono',monospace;margin-top:8px;">
-      Word import: upload the same report file you use today — it reads the last progress table in the document and overwrites the matching goals with its full Sprint 1–6 task history. CSV columns: GoalNo, GoalName, Dependency, Sprint, TaskName, Progress, Justification — one row per task per sprint, merges with existing data. Export to Word generates a filled-in copy of the same report template for the current Cycle, ready to hand off or re-upload later.
+      Word import: upload the same report file you use today — it reads the last progress table in the document and overwrites the matching goals with its full Sprint 1–6 task history. CSV columns: GoalNo, GoalName, Dependency, Sprint, TaskName, Progress, Justification — one row per task per sprint, merges with existing data. Export to Word matches your original report layout exactly (title, division/GM/focal point block, landscape page) — fields highlighted in green are the ones that change for the currently selected Sprint.
     </div>
   </div>
 
@@ -1296,10 +1296,49 @@ document.getElementById('exportDocxBtn').addEventListener('click', async ()=>{
 
   try{
     const { Document, Packer, Table, TableRow, TableCell, Paragraph, TextRun,
-            WidthType, VerticalAlign, AlignmentType, HeadingLevel, BorderStyle } = docx;
+            WidthType, VerticalAlign, AlignmentType, HeadingLevel, BorderStyle, PageOrientation } = docx;
 
+    const GREEN = "2E7D32"; // marks fields that change every sprint / need updating
+    const sprintN = getSprintNumber();
     const borderSpec = { style: BorderStyle.SINGLE, size: 2, color: "999999" };
     const cellBorders = { top: borderSpec, bottom: borderSpec, left: borderSpec, right: borderSpec };
+    const COLS = 7; // No. | Goals | Task | Dependencies | Progress | Average% | Justification
+
+    function metaCell(label, value, span, green){
+      return new TableCell({
+        columnSpan: span, borders: cellBorders, shading: { fill: "F2F2F2" },
+        children: [new Paragraph({ children: [
+          new TextRun({ text: label, bold: true }),
+          new TextRun({ text: value, color: green ? GREEN : "000000", bold: green })
+        ] })]
+      });
+    }
+
+    // Row 0: "Sprint -N Execution Progress Report" (sprint number is what changes each export)
+    const row0 = new TableRow({ children: [
+      new TableCell({ columnSpan: 1, borders: cellBorders, children: [new Paragraph('')] }),
+      new TableCell({ columnSpan: COLS-1, borders: cellBorders, shading: { fill: "F2F2F2" }, children: [
+        new Paragraph({ alignment: AlignmentType.CENTER, children: [
+          new TextRun({ text: 'Sprint -', bold: true }),
+          new TextRun({ text: String(sprintN), bold: true, color: GREEN }),
+          new TextRun({ text: ' Execution Progress Report', bold: true })
+        ] })
+      ] })
+    ]});
+
+    // Row 1: Division / GM in Charge / Focal Point (static — doesn't change per sprint)
+    const row1 = new TableRow({ children: [
+      metaCell('Division: ', 'Planning & Asset Management', 3, false),
+      metaCell('GM In Charge: ', 'Suhaila Al Balushi', 2, false),
+      metaCell('Focal Point: ', 'Badar Al Mamari', 2, false)
+    ]});
+
+    // Row 2: Sprint period / submission dates — these change every sprint, marked green as placeholders to fill in
+    const row2 = new TableRow({ children: [
+      metaCell(`Sprint-${sprintN} Period: `, '[edit dates]', 3, true),
+      metaCell('Submission Deadline: ', '[edit date]', 2, true),
+      metaCell('Submission: ', '[edit date]', 2, true)
+    ]});
 
     const headerLabels = ['No.','Goals','Task','Dependencies','Progress (%)','Average%','Justification Of Delay (If Any)'];
     const headerRow = new TableRow({
@@ -1312,7 +1351,7 @@ document.getElementById('exportDocxBtn').addEventListener('click', async ()=>{
       }))
     });
 
-    const rows = [headerRow];
+    const rows = [row0, row1, row2, headerRow];
 
     currentGoals.forEach(g=>{
       const tasks = (g.tasks && g.tasks.length) ? g.tasks : Array.from({length:6}, (_,i)=>({ id:`${g.no}.${i+1})`, name:'', progress:null, note:'' }));
@@ -1320,6 +1359,7 @@ document.getElementById('exportDocxBtn').addEventListener('click', async ()=>{
       const overallLabel = (overall===null) ? '' : overall.toFixed(1) + '%';
 
       tasks.forEach((t, i)=>{
+        const isCurrentSprintTask = (i === sprintN - 1); // this task's progress/comment are what change this sprint
         const cells = [];
         if(i === 0){
           cells.push(new TableCell({
@@ -1341,14 +1381,22 @@ document.getElementById('exportDocxBtn').addEventListener('click', async ()=>{
           }));
         }
         const progText = (t && t.progress!==null && t.progress!==undefined) ? t.progress + '%' : '';
-        cells.push(new TableCell({ borders: cellBorders, children:[new Paragraph({ alignment: AlignmentType.CENTER, children:[new TextRun(progText)] })] }));
+        cells.push(new TableCell({
+          borders: cellBorders,
+          shading: isCurrentSprintTask ? { fill: "E8F5E9" } : undefined,
+          children:[new Paragraph({ alignment: AlignmentType.CENTER, children:[new TextRun({ text: progText, color: isCurrentSprintTask ? GREEN : "000000", bold: isCurrentSprintTask })] })]
+        }));
         if(i === 0){
           cells.push(new TableCell({
             rowSpan: tasks.length, borders: cellBorders, verticalAlign: VerticalAlign.CENTER,
             children:[new Paragraph({ alignment: AlignmentType.CENTER, children:[new TextRun(overallLabel)] })]
           }));
         }
-        cells.push(new TableCell({ borders: cellBorders, children:[new Paragraph((t && t.note) ? t.note : '')] }));
+        cells.push(new TableCell({
+          borders: cellBorders,
+          shading: isCurrentSprintTask ? { fill: "E8F5E9" } : undefined,
+          children:[new Paragraph({ children:[new TextRun({ text: (t && t.note) ? t.note : '', color: isCurrentSprintTask ? GREEN : "000000" })] })]
+        }));
         rows.push(new TableRow({ children: cells }));
       });
     });
@@ -1357,9 +1405,21 @@ document.getElementById('exportDocxBtn').addEventListener('click', async ()=>{
 
     const doc = new Document({
       sections: [{
+        properties: {
+          page: {
+            size: { width: 12240, height: 15840, orientation: PageOrientation.LANDSCAPE },
+            margin: { top: 720, right: 720, bottom: 720, left: 720 }
+          }
+        },
         children: [
-          new Paragraph({ text: `Cycle ${currentCycleId} — Progress Report`, heading: HeadingLevel.HEADING_1 }),
-          new Paragraph({ text: '', spacing: { after: 200 } }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [ new TextRun({
+              text: `The  12 Weeks-Year Plan – Cycle-${currentCycleId} (Muscat) Sprints' Progress Reporting Form`,
+              bold: true, size: 24
+            }) ]
+          }),
+          new Paragraph({ text: '', spacing: { after: 120 } }),
           table
         ]
       }]
@@ -1369,7 +1429,7 @@ document.getElementById('exportDocxBtn').addEventListener('click', async ()=>{
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Cycle_${currentCycleId}_Progress_Report.docx`;
+    a.download = `Cycle_${currentCycleId}_Sprint_${sprintN}_Progress_Report.docx`;
     a.click();
     URL.revokeObjectURL(url);
   }catch(err){
