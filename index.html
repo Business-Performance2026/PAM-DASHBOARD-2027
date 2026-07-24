@@ -1009,6 +1009,28 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
     </div>
   </div>
 
+  <div id="reportDatesWrap" style="display:none;margin-bottom:14px;">
+    <button class="collapsible-header" id="reportDatesToggle">
+      <span>Report Dates (Title &amp; Submission Info)</span>
+      <svg class="collapsible-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    </button>
+    <div class="collapsible-body" id="reportDatesBody">
+      <div class="task-edit-block">
+        <div class="task-edit-label">Cycle date range — fixed from Sprint 1 through Sprint 6</div>
+        <div class="field">
+          <label>Shown in the title, e.g. "From 12th April 2026 – 9th July 2026"</label>
+          <input type="text" id="cycleDateRange" placeholder="From 12th April 2026 – 9th July 2026">
+        </div>
+      </div>
+      <div id="sprintDatesList"></div>
+      <div class="editrow" style="padding-top:4px;">
+        <div class="actions">
+          <button class="btn primary" id="saveReportDatesBtn">Save Report Dates</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="goalsList"></div>
   <div class="empty" id="emptyState" style="display:none;">No results match the current filter or search.</div>
   </div>
@@ -1068,6 +1090,16 @@ const db = getFirestore(app);
 let isAdmin = false;
 let currentCycleId = null;
 let currentGoals = [];           // live goals array for the selected cycle
+let currentReportDates = defaultReportDates(); // title/date info for the Word export, lives in the same cycle doc
+
+function defaultReportDates(){
+  return {
+    cycleRange: '',
+    sprints: { 1:{period:'',deadline:'',submission:''}, 2:{period:'',deadline:'',submission:''},
+               3:{period:'',deadline:'',submission:''}, 4:{period:'',deadline:'',submission:''},
+               5:{period:'',deadline:'',submission:''}, 6:{period:'',deadline:'',submission:''} }
+  };
+}
 let unsubscribeCycle = null;
 let editingGoalNo = null;        // goal.no currently being edited, or null
 let addingGoal = false;
@@ -1170,6 +1202,9 @@ function subscribeToCycle(cycleId){
   const ref = doc(db,'cycles',cycleId);
   unsubscribeCycle = onSnapshot(ref, (snap)=>{
     currentGoals = snap.exists() ? (snap.data().goals || []) : [];
+    const savedDates = snap.exists() ? snap.data().reportDates : null;
+    currentReportDates = savedDates ? { ...defaultReportDates(), ...savedDates, sprints: { ...defaultReportDates().sprints, ...(savedDates.sprints||{}) } } : defaultReportDates();
+    renderReportDatesForm();
     renderAll();
   }, (err)=>{
     console.error('Firestore listen error', err);
@@ -1180,7 +1215,7 @@ function subscribeToCycle(cycleId){
 async function saveCurrentCycle(){
   if(!currentCycleId) return;
   try{
-    await setDoc(doc(db,'cycles',currentCycleId), { goals: currentGoals });
+    await setDoc(doc(db,'cycles',currentCycleId), { goals: currentGoals, reportDates: currentReportDates });
   }catch(err){
     console.error('Save failed', err);
     alert('Save failed:\n' + err.message + '\n\nMost likely cause: Firestore Rules were not published yet, or you are not signed in as admin.');
@@ -1253,6 +1288,7 @@ onAuthStateChanged(auth, (user)=>{
   document.getElementById('addGoalWrap').style.display = isAdmin ? 'block' : 'none';
   document.getElementById('docAdminBar').style.display = isAdmin ? 'block' : 'none';
   document.getElementById('setEntryDefaultBtn').style.display = isAdmin ? 'inline-block' : 'none';
+  document.getElementById('reportDatesWrap').style.display = isAdmin ? 'block' : 'none';
   document.querySelectorAll('.admin-only-tab').forEach(b=> b.style.display = isAdmin ? 'inline-block' : 'none');
   if(!isAdmin && (currentTab==='goals' || currentTab==='documents')) switchTab('dashboard');
   editingGoalNo = null;
@@ -1288,6 +1324,52 @@ document.getElementById('downloadTemplateBtn').addEventListener('click', ()=>{
   URL.revokeObjectURL(url);
 });
 
+// ---------------- Report Dates (title date range + per-sprint dates) ----------------
+function renderReportDatesForm(){
+  document.getElementById('cycleDateRange').value = currentReportDates.cycleRange || '';
+  const list = document.getElementById('sprintDatesList');
+  list.innerHTML = [1,2,3,4,5,6].map(n=>{
+    const d = currentReportDates.sprints[n] || {period:'',deadline:'',submission:''};
+    return `
+      <div class="task-edit-block">
+        <div class="task-edit-label">Sprint ${n}</div>
+        <div class="field" style="margin-bottom:8px;">
+          <label>Sprint Period (e.g. "Sun 12th April 2026 – 23rd April 2026")</label>
+          <input type="text" class="rd-period" data-sprint="${n}" value="${(d.period||'').replace(/"/g,'&quot;')}">
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label>Submission Deadline</label>
+            <input type="text" class="rd-deadline" data-sprint="${n}" value="${(d.deadline||'').replace(/"/g,'&quot;')}">
+          </div>
+          <div class="field">
+            <label>Submission To CEO</label>
+            <input type="text" class="rd-submission" data-sprint="${n}" value="${(d.submission||'').replace(/"/g,'&quot;')}">
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+document.getElementById('reportDatesToggle').addEventListener('click', ()=>{
+  document.getElementById('reportDatesToggle').classList.toggle('open');
+  document.getElementById('reportDatesBody').classList.toggle('open');
+});
+
+document.getElementById('saveReportDatesBtn').addEventListener('click', async ()=>{
+  if(!currentCycleId){ alert('Select a Cycle first.'); return; }
+  currentReportDates.cycleRange = document.getElementById('cycleDateRange').value.trim();
+  [1,2,3,4,5,6].forEach(n=>{
+    currentReportDates.sprints[n] = {
+      period: document.querySelector(`.rd-period[data-sprint="${n}"]`).value.trim(),
+      deadline: document.querySelector(`.rd-deadline[data-sprint="${n}"]`).value.trim(),
+      submission: document.querySelector(`.rd-submission[data-sprint="${n}"]`).value.trim()
+    };
+  });
+  await saveCurrentCycle();
+  alert('Report dates saved.');
+});
+
 // ---------------- Export to Word (.docx) — same layout as the original report template ----------------
 document.getElementById('exportDocxBtn').addEventListener('click', async ()=>{
   if(!currentCycleId){ alert('Select a Cycle first.'); return; }
@@ -1296,32 +1378,34 @@ document.getElementById('exportDocxBtn').addEventListener('click', async ()=>{
 
   try{
     const { Document, Packer, Table, TableRow, TableCell, Paragraph, TextRun,
-            WidthType, VerticalAlign, AlignmentType, HeadingLevel, BorderStyle, PageOrientation } = docx;
+            WidthType, VerticalAlign, AlignmentType, BorderStyle, PageOrientation } = docx;
 
-    const GREEN = "2E7D32"; // marks fields that change every sprint / need updating
+    const FONT = "Aptos Body";
+    function tr(opts){
+      if(typeof opts === 'string') opts = { text: opts };
+      return new TextRun({ font: FONT, ...opts });
+    }
+
     const sprintN = getSprintNumber();
+    const sd = currentReportDates.sprints[sprintN] || {period:'',deadline:'',submission:''};
     const borderSpec = { style: BorderStyle.SINGLE, size: 2, color: "999999" };
     const cellBorders = { top: borderSpec, bottom: borderSpec, left: borderSpec, right: borderSpec };
     const COLS = 7; // No. | Goals | Task | Dependencies | Progress | Average% | Justification
+    const GREEN_FILL = "E8F5E9"; // marks fields that change every sprint / need updating — shading only, text stays black
 
-    function metaCell(label, value, span, green){
+    function metaCell(label, value, span, highlighted){
       return new TableCell({
-        columnSpan: span, borders: cellBorders, shading: { fill: "F2F2F2" },
-        children: [new Paragraph({ children: [
-          new TextRun({ text: label, bold: true }),
-          new TextRun({ text: value, color: green ? GREEN : "000000", bold: green })
-        ] })]
+        columnSpan: span, borders: cellBorders, shading: { fill: highlighted ? GREEN_FILL : "F2F2F2" },
+        children: [new Paragraph({ children: [ tr({ text: label, bold: true }), tr(value) ] })]
       });
     }
 
     // Row 0: "Sprint -N Execution Progress Report" (sprint number is what changes each export)
     const row0 = new TableRow({ children: [
       new TableCell({ columnSpan: 1, borders: cellBorders, children: [new Paragraph('')] }),
-      new TableCell({ columnSpan: COLS-1, borders: cellBorders, shading: { fill: "F2F2F2" }, children: [
+      new TableCell({ columnSpan: COLS-1, borders: cellBorders, shading: { fill: GREEN_FILL }, children: [
         new Paragraph({ alignment: AlignmentType.CENTER, children: [
-          new TextRun({ text: 'Sprint -', bold: true }),
-          new TextRun({ text: String(sprintN), bold: true, color: GREEN }),
-          new TextRun({ text: ' Execution Progress Report', bold: true })
+          tr({ text: `Sprint -${sprintN} Execution Progress Report`, bold: true })
         ] })
       ] })
     ]});
@@ -1333,11 +1417,11 @@ document.getElementById('exportDocxBtn').addEventListener('click', async ()=>{
       metaCell('Focal Point: ', 'Badar Al Mamari', 2, false)
     ]});
 
-    // Row 2: Sprint period / submission dates — these change every sprint, marked green as placeholders to fill in
+    // Row 2: Sprint period / submission dates — these change every sprint (highlighted, filled from Report Dates panel)
     const row2 = new TableRow({ children: [
-      metaCell(`Sprint-${sprintN} Period: `, '[edit dates]', 3, true),
-      metaCell('Submission Deadline: ', '[edit date]', 2, true),
-      metaCell('Submission: ', '[edit date]', 2, true)
+      metaCell(`Sprint-${sprintN} Period: `, sd.period, 3, true),
+      metaCell('Submission Deadline: ', sd.deadline, 2, true),
+      metaCell('Submission To CEO: ', sd.submission, 2, true)
     ]});
 
     const headerLabels = ['No.','Goals','Task','Dependencies','Progress (%)','Average%','Justification Of Delay (If Any)'];
@@ -1347,7 +1431,7 @@ document.getElementById('exportDocxBtn').addEventListener('click', async ()=>{
         borders: cellBorders,
         shading: { fill: "0B5257" },
         verticalAlign: VerticalAlign.CENTER,
-        children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text, bold: true, color: "FFFFFF" })] })]
+        children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [tr({ text, bold: true, color: "FFFFFF" })] })]
       }))
     });
 
@@ -1364,38 +1448,38 @@ document.getElementById('exportDocxBtn').addEventListener('click', async ()=>{
         if(i === 0){
           cells.push(new TableCell({
             rowSpan: tasks.length, borders: cellBorders, verticalAlign: VerticalAlign.CENTER,
-            children:[new Paragraph({ alignment: AlignmentType.CENTER, children:[new TextRun(String(g.no))] })]
+            children:[new Paragraph({ alignment: AlignmentType.CENTER, children:[tr(String(g.no))] })]
           }));
           cells.push(new TableCell({
             rowSpan: tasks.length, borders: cellBorders, verticalAlign: VerticalAlign.CENTER,
-            children:[new Paragraph(g.name || '')]
+            children:[new Paragraph({ children:[tr(g.name || '')] })]
           }));
         }
         const taskLabel = (t && t.id) ? t.id : `${g.no}.${i+1})`;
         const taskText = `${taskLabel} ${(t && t.name) ? t.name : ''}`.trim();
-        cells.push(new TableCell({ borders: cellBorders, children:[new Paragraph(taskText)] }));
+        cells.push(new TableCell({ borders: cellBorders, children:[new Paragraph({ children:[tr(taskText)] })] }));
         if(i === 0){
           cells.push(new TableCell({
             rowSpan: tasks.length, borders: cellBorders, verticalAlign: VerticalAlign.CENTER,
-            children:[new Paragraph({ alignment: AlignmentType.CENTER, children:[new TextRun(g.dependency || '')] })]
+            children:[new Paragraph({ alignment: AlignmentType.CENTER, children:[tr(g.dependency || '')] })]
           }));
         }
         const progText = (t && t.progress!==null && t.progress!==undefined) ? t.progress + '%' : '';
         cells.push(new TableCell({
           borders: cellBorders,
-          shading: isCurrentSprintTask ? { fill: "E8F5E9" } : undefined,
-          children:[new Paragraph({ alignment: AlignmentType.CENTER, children:[new TextRun({ text: progText, color: isCurrentSprintTask ? GREEN : "000000", bold: isCurrentSprintTask })] })]
+          shading: isCurrentSprintTask ? { fill: GREEN_FILL } : undefined,
+          children:[new Paragraph({ alignment: AlignmentType.CENTER, children:[tr(progText)] })]
         }));
         if(i === 0){
           cells.push(new TableCell({
             rowSpan: tasks.length, borders: cellBorders, verticalAlign: VerticalAlign.CENTER,
-            children:[new Paragraph({ alignment: AlignmentType.CENTER, children:[new TextRun(overallLabel)] })]
+            children:[new Paragraph({ alignment: AlignmentType.CENTER, children:[tr(overallLabel)] })]
           }));
         }
         cells.push(new TableCell({
           borders: cellBorders,
-          shading: isCurrentSprintTask ? { fill: "E8F5E9" } : undefined,
-          children:[new Paragraph({ children:[new TextRun({ text: (t && t.note) ? t.note : '', color: isCurrentSprintTask ? GREEN : "000000" })] })]
+          shading: isCurrentSprintTask ? { fill: GREEN_FILL } : undefined,
+          children:[new Paragraph({ children:[tr((t && t.note) ? t.note : '')] })]
         }));
         rows.push(new TableRow({ children: cells }));
       });
@@ -1403,6 +1487,7 @@ document.getElementById('exportDocxBtn').addEventListener('click', async ()=>{
 
     const table = new Table({ rows, width: { size: 100, type: WidthType.PERCENTAGE } });
 
+    const titleRange = currentReportDates.cycleRange ? ` ${currentReportDates.cycleRange}` : '';
     const doc = new Document({
       sections: [{
         properties: {
@@ -1414,8 +1499,8 @@ document.getElementById('exportDocxBtn').addEventListener('click', async ()=>{
         children: [
           new Paragraph({
             alignment: AlignmentType.CENTER,
-            children: [ new TextRun({
-              text: `The  12 Weeks-Year Plan – Cycle-${currentCycleId} (Muscat) Sprints' Progress Reporting Form`,
+            children: [ tr({
+              text: `The  12 Weeks-Year Plan – Cycle-${currentCycleId} (Muscat)${titleRange} Sprints' Progress Reporting Form`,
               bold: true, size: 24
             }) ]
           }),
