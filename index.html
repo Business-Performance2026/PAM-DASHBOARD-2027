@@ -1394,30 +1394,31 @@ document.getElementById('exportDocxBtn').addEventListener('click', async ()=>{
     const cellMargins = { top: 60, bottom: 60, left: 100, right: 100 };
     const COLS = 7; // No. | Goals | Task | Dependencies | Progress | Average% | Justification
 
-    const FILL_TOP = "04806B";     // Sprint Execution banner + Division/GM/Focal Point
+    const FILL_TOP = "035547";     // Division/GM/Focal Point row
     const FILL_DATES = "C2CAC8";   // Sprint Period / Submission Deadline / Submission To CEO
     const FILL_HEADER = "226697";  // column header row (No., Goals, Task, ...)
 
-    function metaCell(label, value, span, fill){
+    function metaCell(label, value, span, fill, textColor){
+      const runOpts = textColor ? { color: textColor } : {};
       return new TableCell({
-        columnSpan: span, borders: cellBorders, margins: cellMargins, shading: { fill },
-        children: [new Paragraph({ children: [ tr(label), tr(value) ] })]
+        columnSpan: span, borders: cellBorders, margins: cellMargins, shading: fill ? { fill } : undefined,
+        children: [new Paragraph({ children: [ tr({ text: label, ...runOpts }), tr({ text: value, ...runOpts }) ] })]
       });
     }
 
-    // Row 0: "Sprint -N Execution Progress Report"
+    // Row 0: "Sprint -N Execution Progress Report" — plain white background, bold text only
     const row0 = new TableRow({ children: [
-      new TableCell({ columnSpan: 1, borders: cellBorders, margins: cellMargins, shading: { fill: FILL_TOP }, children: [new Paragraph('')] }),
-      new TableCell({ columnSpan: COLS-1, borders: cellBorders, margins: cellMargins, shading: { fill: FILL_TOP }, children: [
+      new TableCell({ columnSpan: 1, borders: cellBorders, margins: cellMargins, children: [new Paragraph('')] }),
+      new TableCell({ columnSpan: COLS-1, borders: cellBorders, margins: cellMargins, children: [
         new Paragraph({ alignment: AlignmentType.CENTER, children: [ tr(`Sprint -${sprintN} Execution Progress Report`) ] })
       ] })
     ]});
 
-    // Row 1: Division / GM in Charge / Focal Point (static — doesn't change per sprint)
+    // Row 1: Division / GM in Charge / Focal Point (static — doesn't change per sprint) — white text on dark teal
     const row1 = new TableRow({ children: [
-      metaCell('Division: ', 'Planning & Asset Management', 3, FILL_TOP),
-      metaCell('GM In Charge: ', 'Suhaila Al Balushi', 2, FILL_TOP),
-      metaCell('Focal Point: ', 'Badar Al Mamari', 2, FILL_TOP)
+      metaCell('Division: ', 'Planning & Asset Management', 3, FILL_TOP, "FFFFFF"),
+      metaCell('GM In Charge: ', 'Suhaila Al Balushi', 2, FILL_TOP, "FFFFFF"),
+      metaCell('Focal Point: ', 'Badar Al Mamari', 2, FILL_TOP, "FFFFFF")
     ]});
 
     // Row 2: Sprint period / submission dates — change every sprint, filled from the Report Dates panel
