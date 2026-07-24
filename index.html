@@ -1022,6 +1022,19 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
           <input type="text" id="cycleDateRange" placeholder="From 12th April 2026 – 9th July 2026">
         </div>
       </div>
+      <div class="task-edit-block">
+        <div class="task-edit-label">Names — update whenever they change</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div class="field">
+            <label>GM In Charge</label>
+            <input type="text" id="gmInChargeInput" placeholder="e.g. Suhaila Al Balushi">
+          </div>
+          <div class="field">
+            <label>Focal Point</label>
+            <input type="text" id="focalPointInput" placeholder="e.g. Badar Al Mamari">
+          </div>
+        </div>
+      </div>
       <div id="sprintDatesList"></div>
       <div class="editrow" style="padding-top:4px;">
         <div class="actions">
@@ -1095,6 +1108,8 @@ let currentReportDates = defaultReportDates(); // title/date info for the Word e
 function defaultReportDates(){
   return {
     cycleRange: '',
+    gmInCharge: '',
+    focalPoint: '',
     sprints: { 1:{period:'',deadline:'',submission:''}, 2:{period:'',deadline:'',submission:''},
                3:{period:'',deadline:'',submission:''}, 4:{period:'',deadline:'',submission:''},
                5:{period:'',deadline:'',submission:''}, 6:{period:'',deadline:'',submission:''} }
@@ -1327,6 +1342,8 @@ document.getElementById('downloadTemplateBtn').addEventListener('click', ()=>{
 // ---------------- Report Dates (title date range + per-sprint dates) ----------------
 function renderReportDatesForm(){
   document.getElementById('cycleDateRange').value = currentReportDates.cycleRange || '';
+  document.getElementById('gmInChargeInput').value = currentReportDates.gmInCharge || '';
+  document.getElementById('focalPointInput').value = currentReportDates.focalPoint || '';
   const list = document.getElementById('sprintDatesList');
   list.innerHTML = [1,2,3,4,5,6].map(n=>{
     const d = currentReportDates.sprints[n] || {period:'',deadline:'',submission:''};
@@ -1359,6 +1376,8 @@ document.getElementById('reportDatesToggle').addEventListener('click', ()=>{
 document.getElementById('saveReportDatesBtn').addEventListener('click', async ()=>{
   if(!currentCycleId){ alert('Select a Cycle first.'); return; }
   currentReportDates.cycleRange = document.getElementById('cycleDateRange').value.trim();
+  currentReportDates.gmInCharge = document.getElementById('gmInChargeInput').value.trim();
+  currentReportDates.focalPoint = document.getElementById('focalPointInput').value.trim();
   [1,2,3,4,5,6].forEach(n=>{
     currentReportDates.sprints[n] = {
       period: document.querySelector(`.rd-period[data-sprint="${n}"]`).value.trim(),
@@ -1417,8 +1436,8 @@ document.getElementById('exportDocxBtn').addEventListener('click', async ()=>{
     // Row 1: Division / GM in Charge / Focal Point (static — doesn't change per sprint) — white text on dark teal
     const row1 = new TableRow({ children: [
       metaCell('Division: ', 'Planning & Asset Management', 3, FILL_TOP, "FFFFFF"),
-      metaCell('GM In Charge: ', 'Suhaila Al Balushi', 2, FILL_TOP, "FFFFFF"),
-      metaCell('Focal Point: ', 'Badar Al Mamari', 2, FILL_TOP, "FFFFFF")
+      metaCell('GM In Charge: ', currentReportDates.gmInCharge || 'Suhaila Al Balushi', 2, FILL_TOP, "FFFFFF"),
+      metaCell('Focal Point: ', currentReportDates.focalPoint || 'Badar Al Mamari', 2, FILL_TOP, "FFFFFF")
     ]});
 
     // Row 2: Sprint period / submission dates — change every sprint, filled from the Report Dates panel
