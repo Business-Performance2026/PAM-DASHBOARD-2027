@@ -123,6 +123,8 @@ h1{
   border-bottom:1px solid var(--line-onbg);
 }
 .topbar .who{font-size:12px;color:var(--ink-dim);font-family:'IBM Plex Mono',monospace;}
+.entry-logo{height:38px;width:auto;object-fit:contain;}
+.save-bar.top{margin-bottom:16px;}
 
 .controls-card{
   background:var(--surface);
@@ -191,14 +193,17 @@ h1{
   border-bottom:1px solid rgba(255,255,255,.06);
 }
 .entry-row:last-child{border-bottom:none;}
+.entry-row.row-invalid{background:rgba(232,105,122,.1);}
+.entry-row.row-invalid textarea{border-color:var(--red);}
 .entry-row.head{
   font-family:'IBM Plex Mono',monospace;
-  font-size:10px;
+  font-size:11px;
+  font-weight:700;
   text-transform:uppercase;
   letter-spacing:.06em;
-  color:var(--text-dim);
+  color:#FFFFFF;
   background:var(--surface-hi);
-  padding:12px 20px;
+  padding:13px 20px;
 }
 .e-goal{color:var(--text);font-weight:600;font-size:13.5px;}
 .e-task-ro{color:var(--text-mid);font-size:12.5px;}
@@ -266,11 +271,9 @@ h1{
 
   <div id="appView" class="hidden">
     <div class="topbar">
-      <div>
-        <h1>Fill Progress</h1>
-        <div class="sub">Update the % progress and comment for each goal's task — nothing else can be changed here.</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:12px;">
+      <h1>12 WEEKS PLAN</h1>
+      <div style="display:flex;align-items:center;gap:16px;">
+        <img src="nama-logo.png" alt="Nama Water Services" class="entry-logo">
         <span class="who" id="whoLabel"></span>
         <button class="btn" id="logoutBtn">Logout</button>
       </div>
@@ -278,11 +281,11 @@ h1{
 
     <div class="assignment-heading" id="whichLabel">Loading assigned Cycle &amp; Task…</div>
 
-    <div class="entry-wrap" id="entryWrap"></div>
-
-    <div class="save-bar">
+    <div class="save-bar top">
       <button class="btn primary" id="saveBtn" style="margin-top:0;width:auto;display:none;">Save Progress</button>
     </div>
+
+    <div class="entry-wrap" id="entryWrap"></div>
   </div>
 
 </div>
@@ -406,7 +409,7 @@ function renderEntryTable(){
       <div class="e-goal"><span class="e-num">${goalNo}</span>${g.name}</div>
       <div class="e-task-ro"><span class="e-num">${taskId}</span>${t.name ? t.name : '<span style="color:var(--text-dim)">(no task set)</span>'}</div>
       <input type="number" min="0" max="100" class="progress-input" value="${progVal}" placeholder="—">
-      <textarea placeholder="Comment / justification (optional)">${t.note || ''}</textarea>
+      <textarea placeholder="Required if progress is under 100%">${t.note || ''}</textarea>
     </div>`;
   });
   wrap.innerHTML = html;
@@ -416,6 +419,27 @@ document.getElementById('saveBtn').addEventListener('click', async ()=>{
   if(!currentCycleId){ alert('No cycle selected.'); return; }
   const taskN = getTaskNumber();
   const idx = taskN - 1;
+
+  // Validate first: any row below 100% must have a comment explaining why.
+  let firstInvalid = null;
+  document.querySelectorAll('#entryWrap .entry-row[data-goalno]').forEach(row=>{
+    row.classList.remove('row-invalid');
+    const progRaw = row.querySelector('.progress-input').value.trim();
+    const noteVal = row.querySelector('textarea').value.trim();
+    const progNum = progRaw === '' ? null : parseInt(progRaw, 10);
+    const isIncomplete = progNum === null || progNum < 100;
+    if(isIncomplete && noteVal === ''){
+      row.classList.add('row-invalid');
+      if(!firstInvalid) firstInvalid = row;
+    }
+  });
+  if(firstInvalid){
+    alert('Please provide a reason why this task is not yet 100% complete before saving.');
+    firstInvalid.querySelector('textarea').focus();
+    firstInvalid.scrollIntoView({behavior:'smooth', block:'center'});
+    return;
+  }
+
   document.querySelectorAll('#entryWrap .entry-row[data-goalno]').forEach(row=>{
     const no = Number(row.getAttribute('data-goalno'));
     const g = currentGoals.find(x=>x.no===no);
