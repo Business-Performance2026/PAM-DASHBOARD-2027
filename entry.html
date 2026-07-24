@@ -129,12 +129,12 @@ h1{
 .save-bar.top{margin-bottom:16px;}
 .cycle-task-inline{
   font-family:'Space Grotesk',sans-serif;
-  font-size:17px;
+  font-size:15px;
   font-weight:700;
   color:var(--ink);
 }
 .cycle-task-inline b{color:var(--surface);font-weight:700;}
-.cycle-task-inline .sep{color:var(--ink-dim);font-weight:400;margin:0 8px;font-size:14px;}
+.cycle-task-inline .sep{color:var(--ink-dim);font-weight:400;margin:0 8px;font-size:13px;}
 
 .controls-card{
   background:var(--surface);
@@ -167,14 +167,22 @@ h1{
   outline:none;
 }
 .controls-card .hint{font-size:11.5px;color:var(--text-dim);}
-.plan-title{
-  font-family:'Space Grotesk',sans-serif;
-  font-size:26px;
-  font-weight:700;
-  color:var(--ink);
-  margin:0 0 20px;
+.plan-row{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-bottom:20px;
   padding-bottom:16px;
   border-bottom:1px solid var(--line-onbg);
+}
+.plan-title{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:19px;
+  font-weight:700;
+  color:var(--ink);
+  margin:0;
   letter-spacing:.03em;
 }
 
@@ -274,7 +282,6 @@ h1{
     <div class="topbar">
       <div class="topbar-left">
         <img src="nama-logo.png" alt="Nama Water Services" class="entry-logo">
-        <span class="cycle-task-inline" id="whichLabel">Loading assigned Cycle &amp; Task…</span>
       </div>
       <div class="topbar-right">
         <button class="btn" id="logoutBtn">Logout</button>
@@ -282,7 +289,10 @@ h1{
       </div>
     </div>
 
-    <h1 class="plan-title">12 WEEKS PLAN</h1>
+    <div class="plan-row">
+      <h1 class="plan-title">12 WEEKS PLAN</h1>
+      <span class="cycle-task-inline" id="whichLabel">Loading assigned Cycle &amp; Task…</span>
+    </div>
 
     <div class="save-bar top">
       <button class="btn primary" id="saveBtn" style="margin-top:0;width:auto;display:none;">Save Progress</button>
