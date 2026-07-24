@@ -201,7 +201,7 @@ h1{
 }
 .entry-row{
   display:grid;
-  grid-template-columns:1.4fr 1fr .7fr 1.4fr;
+  grid-template-columns:1.4fr 1fr .7fr 1.4fr 56px;
   gap:14px;
   align-items:center;
   padding:16px 20px;
@@ -234,17 +234,21 @@ h1{
   margin-right:8px;
   vertical-align:middle;
 }
-.e-avg{
-  display:inline-block;
+.e-avg-circle{
+  width:46px;
+  height:46px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
   font-family:'IBM Plex Mono',monospace;
-  font-size:10.5px;
+  font-size:11px;
   font-weight:700;
-  color:var(--green);
-  background:rgba(78,205,160,.15);
-  border-radius:5px;
-  padding:2px 7px;
-  margin-right:8px;
-  vertical-align:middle;
+  border:2px solid currentColor;
+  background:rgba(255,255,255,.04);
+  margin:0 auto;
+  text-align:center;
+  line-height:1.1;
 }
 .entry-row input, .entry-row textarea{
   width:100%;
@@ -439,19 +443,21 @@ function renderEntryTable(){
   }
   const taskN = getTaskNumber();
   const idx = taskN - 1;
-  let html = `<div class="entry-row head"><span>Goal</span><span>Task</span><span>Progress %</span><span>Comment</span></div>`;
+  let html = `<div class="entry-row head"><span>Goal</span><span>Task</span><span>Progress %</span><span>Comment</span><span style="text-align:center;">Avg</span></div>`;
   currentGoals.forEach(g=>{
     const t = (g.tasks && g.tasks[idx]) ? g.tasks[idx] : { name:'', progress:null, note:'' };
     const progVal = (t.progress===null || t.progress===undefined) ? '' : t.progress;
     const goalNo = String(g.no).padStart(2,'0');
     const taskId = t.id || `${g.no}.${taskN})`;
     const avg = goalAvg(g);
-    const avgLabel = avg===null ? '—' : avg.toFixed(1)+'%';
+    const avgLabel = avg===null ? '—' : avg.toFixed(0)+'%';
+    const avgColor = avg===null ? 'var(--text-dim)' : avg>=100 ? 'var(--green)' : avg>=70 ? 'var(--amber)' : 'var(--red)';
     html += `<div class="entry-row" data-goalno="${g.no}">
-      <div class="e-goal"><span class="e-avg" title="Average across all this goal's tasks">${avgLabel}</span><span class="e-num">${goalNo}</span>${g.name}</div>
+      <div class="e-goal"><span class="e-num">${goalNo}</span>${g.name}</div>
       <div class="e-task-ro"><span class="e-num">${taskId}</span>${t.name ? t.name : '<span style="color:var(--text-dim)">(no task set)</span>'}</div>
       <input type="number" min="0" max="100" class="progress-input" value="${progVal}" placeholder="—">
       <textarea placeholder="Required if progress is under 100%">${t.note || ''}</textarea>
+      <div class="e-avg-circle" style="color:${avgColor};" title="Average across all this goal's tasks">${avgLabel}</div>
     </div>`;
   });
   wrap.innerHTML = html;
