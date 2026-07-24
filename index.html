@@ -717,6 +717,18 @@ table.mini-goaltable td.mt-pct .pill{
   border-radius:20px;
 }
 table.mini-goaltable td.mt-goal{color:#fff;font-weight:700;min-width:190px;}
+.mt-num{
+  display:inline-block;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10px;
+  font-weight:700;
+  color:var(--cyan);
+  background:rgba(77,216,230,.14);
+  border-radius:5px;
+  padding:2px 6px;
+  margin-right:7px;
+  vertical-align:middle;
+}
 table.mini-goaltable td.mt-task{min-width:210px;}
 table.mini-goaltable td.mt-comment{color:var(--text-dim);font-style:italic;min-width:220px;}
 table.mini-goaltable td.mt-comment.has-note{
@@ -2087,6 +2099,7 @@ let dashGoalsFilter = 'all';
 
 function renderDashboardGoalsTable(sprintN){
   const rows = currentGoals.flatMap(g=>{
+    const goalNo = String(g.no).padStart(2,'0');
     const visible = (g.tasks || []).slice(0, sprintN);
     const filteredTasks = visible.filter(t=>{
       if(dashGoalsFilter === 'all') return true;
@@ -2097,7 +2110,7 @@ function renderDashboardGoalsTable(sprintN){
     });
     if(dashGoalsFilter === 'all' && visible.length === 0){
       return [`<tr>
-        <td class="mt-goal">${g.name}</td>
+        <td class="mt-goal"><span class="mt-num">${goalNo}</span>${g.name}</td>
         <td class="mt-task">—</td>
         <td class="mt-pct">—</td>
         <td class="mt-comment">—</td>
@@ -2110,11 +2123,12 @@ function renderDashboardGoalsTable(sprintN){
       const pctColor = hasPct ? statusColor(t.progress) : 'var(--text-dim)';
       const pctBg = hasPct ? (t.progress===100 ? 'rgba(78,205,160,.15)' : t.progress>=70 ? 'rgba(240,168,104,.15)' : 'rgba(232,105,122,.15)') : 'rgba(255,255,255,.06)';
       const taskName = (t && t.name) ? t.name : '—';
+      const taskId = (t && t.id) ? t.id : '';
       const hasNote = !!(t && t.note);
       const comment = hasNote ? t.note : '—';
       return `<tr${i===0 ? ' class="mt-newgoal"' : ''}>
-        <td class="mt-goal">${i===0 ? g.name : ''}</td>
-        <td class="mt-task">${taskName}</td>
+        <td class="mt-goal">${i===0 ? `<span class="mt-num">${goalNo}</span>${g.name}` : ''}</td>
+        <td class="mt-task">${taskId ? `<span class="mt-num">${taskId}</span>` : ''}${taskName}</td>
         <td class="mt-pct"><span class="pill" style="color:${pctColor};background:${pctBg}">${pct}</span></td>
         <td class="mt-comment${hasNote ? ' has-note' : ''}">${comment}</td>
       </tr>`;
