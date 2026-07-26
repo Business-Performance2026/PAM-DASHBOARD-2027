@@ -888,6 +888,7 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
         <option value="6">6</option>
       </select>
       <button class="btn small" id="setEntryDefaultBtn" style="display:none;" title="Whoever opens entry.html will land directly on this Cycle & Task, with no picker">📌 Set Entry Page View</button>
+      <button class="btn small danger" id="deleteCycleBtn" style="display:none;" title="Permanently delete the selected Cycle and all its goals">🗑 Delete Cycle</button>
     </div>
 
     <div class="spacer"></div>
@@ -917,7 +918,7 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
   </div>
 
   <div class="view active" id="view-dashboard">
-    <h2 class="section-title">Overview <span class="section-sub">— Cycle <span id="gdCycleLabel">—</span>, Sprint 1–<span id="gdSprintLabel">1</span></span></h2>
+    <h2 class="section-title">12 Weeks Plan <span class="section-sub">— Cycle <span id="gdCycleLabel">—</span>, Sprint 1–<span id="gdSprintLabel">1</span></span></h2>
     <div class="dash-halves">
       <div class="dash-half">
         <h3 class="half-title"><span class="half-dot" style="background:var(--cyan)"></span>Goals</h3>
@@ -1056,7 +1057,7 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
   </div>
 
   <div class="view" id="view-documents">
-    <h2 class="section-title">Documentation Status</h2>
+    <h2 class="section-title">PAM Documentation (Outdated)</h2>
     <div id="docAdminBar" style="display:none;margin-bottom:14px;">
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn primary" id="docSaveBtn" style="flex:1;min-width:140px;padding:12px;">Save Changes</button>
@@ -1090,7 +1091,7 @@ import {
   getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import {
-  getFirestore, collection, getDocs, doc, setDoc, getDoc, onSnapshot
+  getFirestore, collection, getDocs, doc, setDoc, getDoc, deleteDoc, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -1123,6 +1124,7 @@ function defaultReportDates(){
   };
 }
 let unsubscribeCycle = null;
+let hasAutoSelectedSprint = false; // only auto-pick the last sprint with data once, on first load
 let editingGoalNo = null;        // goal.no currently being edited, or null
 let addingGoal = false;
 
@@ -1213,7 +1215,7 @@ async function loadCycleList(preferId){
   if(isAdmin){
     sel.innerHTML += `<option value="__new__">+ New Cycle…</option>`;
   }
-  let target = preferId && ids.includes(String(preferId)) ? String(preferId) : ids[0];
+  let target = preferId && ids.includes(String(preferId)) ? String(preferId) : ids[ids.length-1];
   if(target){
     sel.value = target;
     subscribeToCycle(target);
@@ -1235,6 +1237,18 @@ function subscribeToCycle(cycleId){
     const savedDates = snap.exists() ? snap.data().reportDates : null;
     currentReportDates = savedDates ? { ...defaultReportDates(), ...savedDates, sprints: { ...defaultReportDates().sprints, ...(savedDates.sprints||{}) } } : defaultReportDates();
     renderReportDatesForm();
+    if(!hasAutoSelectedSprint){
+      hasAutoSelectedSprint = true;
+      let lastSprintWithData = 1;
+      currentGoals.forEach(g=>{
+        (g.tasks||[]).forEach((t,i)=>{
+          if(t && t.progress!==null && t.progress!==undefined && (i+1) > lastSprintWithData){
+            lastSprintWithData = i+1;
+          }
+        });
+      });
+      document.getElementById('sprintInput').value = String(lastSprintWithData);
+    }
     renderAll();
   }, (err)=>{
     console.error('Firestore listen error', err);
@@ -1330,6 +1344,7 @@ onAuthStateChanged(auth, async (user)=>{
   document.getElementById('addGoalWrap').style.display = isAdmin ? 'block' : 'none';
   document.getElementById('docAdminBar').style.display = isAdmin ? 'block' : 'none';
   document.getElementById('setEntryDefaultBtn').style.display = isAdmin ? 'inline-block' : 'none';
+  document.getElementById('deleteCycleBtn').style.display = isAdmin ? 'inline-block' : 'none';
   document.getElementById('reportDatesWrap').style.display = isAdmin ? 'block' : 'none';
   document.querySelectorAll('.admin-only-tab').forEach(b=> b.style.display = isAdmin ? 'inline-block' : 'none');
   if(!isAdmin && (currentTab==='goals' || currentTab==='documents')) switchTab('dashboard');
@@ -2529,6 +2544,28 @@ document.getElementById('setEntryDefaultBtn').addEventListener('click', async ()
   }catch(err){
     console.error('Failed to save entry default', err);
     alert('Could not save:\n' + err.message + '\n\nMake sure Firestore Rules also cover the "settings" collection.');
+  }
+});
+
+document.getElementById('deleteCycleBtn').addEventListener('click', async ()=>{
+  if(!currentCycleId){ alert('Select a Cycle first.'); return; }
+  const idToDelete = currentCycleId;
+  const typed = prompt(`This permanently deletes Cycle ${idToDelete} and all its goals — this cannot be undone.\n\nType ${idToDelete} to confirm:`);
+  if(typed === null) return;
+  if(typed.trim() !== String(idToDelete)){
+    alert('Cycle number didn\'t match — nothing was deleted.');
+    return;
+  }
+  try{
+    await deleteDoc(doc(db,'cycles',idToDelete));
+    if(unsubscribeCycle){ unsubscribeCycle(); unsubscribeCycle = null; }
+    currentCycleId = null;
+    currentGoals = [];
+    await loadCycleList();
+    alert(`Cycle ${idToDelete} deleted.`);
+  }catch(err){
+    console.error('Delete failed', err);
+    alert('Could not delete this cycle:\n' + err.message);
   }
 });
 
