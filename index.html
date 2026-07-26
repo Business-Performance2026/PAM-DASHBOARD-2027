@@ -913,6 +913,7 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
 
   <div class="tabsbar" id="tabsbar">
     <button class="tab active" data-tab="dashboard">Dashboard</button>
+    <button class="tab" data-tab="dashboard2">Dashboard-2</button>
     <button class="tab admin-only-tab" data-tab="goals" style="display:none;">Goals (Admin)</button>
     <button class="tab admin-only-tab" data-tab="documents" style="display:none;">Documents (Admin)</button>
   </div>
@@ -980,6 +981,50 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
         <div class="doctable-wrap">
           <table class="doctable" id="dashDocTable"></table>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="view" id="view-dashboard2">
+    <h2 class="section-title">2025 Work Plan <span class="section-sub">— 12 WP Data (Q2–Q3)</span></h2>
+    <div class="stats" id="wp2StatStrip"></div>
+
+    <div class="dash-grid">
+      <div class="dash-card">
+        <h3><span class="dot" style="background:var(--cyan)"></span>Status Breakdown</h3>
+        <div class="chart-wrap"><canvas id="chartWp2Status"></canvas></div>
+      </div>
+      <div class="dash-card">
+        <h3><span class="dot" style="background:var(--green)"></span>Average Achievement by Goal</h3>
+        <div class="chart-wrap"><canvas id="chartWp2GoalAvg"></canvas></div>
+      </div>
+      <div class="dash-card">
+        <h3><span class="dot" style="background:var(--amber)"></span>Tasks by Quarter &amp; Status</h3>
+        <div class="chart-wrap"><canvas id="chartWp2Quarter"></canvas></div>
+      </div>
+      <div class="dash-card">
+        <h3><span class="dot" style="background:var(--cyan)"></span>Task Count by Goal</h3>
+        <div class="chart-wrap"><canvas id="chartWp2TaskCount"></canvas></div>
+      </div>
+    </div>
+
+    <button class="collapsible-header" id="wp2TableToggle">
+      <span>Task Detail Table</span>
+      <svg class="collapsible-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    </button>
+    <div class="collapsible-body" id="wp2TableBody">
+      <div class="mini-table-filter">
+        <span class="mini-filter-label">Show</span>
+        <div class="seg" id="wp2FilterSeg">
+          <button data-f="all" class="active">All</button>
+          <button data-f="close">Closed</button>
+          <button data-f="overdue">Overdue</button>
+          <button data-f="not started">Not Started</button>
+          <button data-f="transfer">Transfer</button>
+        </div>
+      </div>
+      <div class="mini-table-wrap">
+        <table class="mini-goaltable" id="wp2Table"></table>
       </div>
     </div>
   </div>
@@ -1132,6 +1177,882 @@ let currentFilter = 'all';
 let currentSearch = '';
 
 let currentTab = 'dashboard';
+
+const WP2_DATA = [
+  {
+    "goal": "Non-domestic Wastewater Study",
+    "task": "Tender Floating",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-04-20",
+    "dateEnd": "2025-05-03",
+    "status": "close"
+  },
+  {
+    "goal": "Non-domestic Wastewater Study",
+    "task": "Tender Floating.",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-05-04",
+    "dateEnd": "2025-05-17",
+    "status": "close"
+  },
+  {
+    "goal": "Non-domestic Wastewater Study",
+    "task": "Bid Receiving & Evaluation",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-05-18",
+    "dateEnd": "2025-05-31",
+    "status": "close"
+  },
+  {
+    "goal": "Non-domestic Wastewater Study",
+    "task": "Bid Receiving & Evaluatio.",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-06-01",
+    "dateEnd": "2025-06-14",
+    "status": "close"
+  },
+  {
+    "goal": "Non-domestic Wastewater Study",
+    "task": "Tender Awarding",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-06-15",
+    "dateEnd": "2025-06-28",
+    "status": "close"
+  },
+  {
+    "goal": "Non-domestic Wastewater Study",
+    "task": "Kick off Meeting",
+    "quarter": "Q2",
+    "achievement": 0.0,
+    "dateStart": "2025-06-29",
+    "dateEnd": "2025-07-12",
+    "status": "overdue"
+  },
+  {
+    "goal": "Non-domestic Wastewater Study",
+    "task": "Kick off Meeting/data collection",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-08-10",
+    "dateEnd": "2025-08-23",
+    "status": "Transfer"
+  },
+  {
+    "goal": "Non-domestic Wastewater Study",
+    "task": "Data Collection",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-08-24",
+    "dateEnd": "2025-09-06",
+    "status": "Not started"
+  },
+  {
+    "goal": "Non-domestic Wastewater Study",
+    "task": "Data Verification",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-09-07",
+    "dateEnd": "2025-09-20",
+    "status": "Not started"
+  },
+  {
+    "goal": "Non-domestic Wastewater Study",
+    "task": "Site Visit",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-09-21",
+    "dateEnd": "2025-10-04",
+    "status": "Not started"
+  },
+  {
+    "goal": "Non-domestic Wastewater Study",
+    "task": "Inception Report",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-10-05",
+    "dateEnd": "2025-10-18",
+    "status": "Not started"
+  },
+  {
+    "goal": "Non-domestic Wastewater Study",
+    "task": "Draft of short-Term Plan",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-10-19",
+    "dateEnd": "2025-11-01",
+    "status": "Not started"
+  },
+  {
+    "goal": "Wellfields Safe Yield Assessment Project (Phase 2)",
+    "task": "Data Collection & Validation",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-04-20",
+    "dateEnd": "2025-05-03",
+    "status": "close"
+  },
+  {
+    "goal": "Wellfields Safe Yield Assessment Project (Phase 2)",
+    "task": "Data Collection & Validatio.",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-05-04",
+    "dateEnd": "2025-05-17",
+    "status": "close"
+  },
+  {
+    "goal": "Wellfields Safe Yield Assessment Project (Phase 2)",
+    "task": "Data Collection & Validation..",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-05-18",
+    "dateEnd": "2025-05-31",
+    "status": "close"
+  },
+  {
+    "goal": "Wellfields Safe Yield Assessment Project (Phase 2)",
+    "task": "Site visits",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-06-01",
+    "dateEnd": "2025-06-14",
+    "status": "close"
+  },
+  {
+    "goal": "Wellfields Safe Yield Assessment Project (Phase 2)",
+    "task": "Geophysical Survey",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-06-15",
+    "dateEnd": "2025-06-28",
+    "status": "close"
+  },
+  {
+    "goal": "Wellfields Safe Yield Assessment Project (Phase 2)",
+    "task": "Inception Report",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-06-29",
+    "dateEnd": "2025-07-12",
+    "status": "close"
+  },
+  {
+    "goal": "Wellfields Safe Yield Assessment Project (Phase 2)",
+    "task": "Field Program: Aquifer test analysis",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-08-10",
+    "dateEnd": "2025-08-23",
+    "status": "Not started"
+  },
+  {
+    "goal": "Wellfields Safe Yield Assessment Project (Phase 2)",
+    "task": "Groundwater Modeling",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-08-24",
+    "dateEnd": "2025-09-06",
+    "status": "Not started"
+  },
+  {
+    "goal": "Wellfields Safe Yield Assessment Project (Phase 2)",
+    "task": "Groundwater Modeling.",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-09-07",
+    "dateEnd": "2025-09-20",
+    "status": "Not started"
+  },
+  {
+    "goal": "Wellfields Safe Yield Assessment Project (Phase 2)",
+    "task": "Safe Yield Assessment",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-09-21",
+    "dateEnd": "2025-10-04",
+    "status": "Not started"
+  },
+  {
+    "goal": "Wellfields Safe Yield Assessment Project (Phase 2)",
+    "task": "Conceptual Design",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-10-05",
+    "dateEnd": "2025-10-18",
+    "status": "Not started"
+  },
+  {
+    "goal": "Wellfields Safe Yield Assessment Project (Phase 2)",
+    "task": "Modeling Report",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-10-19",
+    "dateEnd": "2025-11-01",
+    "status": "Not started"
+  },
+  {
+    "goal": "Wellfields Safe Yield Assessment Project (Phase 3)",
+    "task": "Tender Preparation",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-04-20",
+    "dateEnd": "2025-05-03",
+    "status": "close"
+  },
+  {
+    "goal": "Wellfields Safe Yield Assessment Project (Phase 3)",
+    "task": "Continue the Tender Preparation. Review and Internal Approval. Send to the Supply Chain",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-05-04",
+    "dateEnd": "2025-05-17",
+    "status": "close"
+  },
+  {
+    "goal": "Wellfields Safe Yield Assessment Project (Phase 3)",
+    "task": "Tender Review and discussions with Supply Chain to finalize the Note to MITC + MITC Approval",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-05-18",
+    "dateEnd": "2025-05-31",
+    "status": "close"
+  },
+  {
+    "goal": "Wellfields Safe Yield Assessment Project (Phase 3)",
+    "task": "Tender Floating",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-06-01",
+    "dateEnd": "2025-06-14",
+    "status": "close"
+  },
+  {
+    "goal": "Wellfields Safe Yield Assessment Project (Phase 3)",
+    "task": "Bids Receiving",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-06-15",
+    "dateEnd": "2025-06-28",
+    "status": "close"
+  },
+  {
+    "goal": "Wellfields Safe Yield Assessment Project (Phase 3)",
+    "task": "Bids Receiving .",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-06-29",
+    "dateEnd": "2025-07-12",
+    "status": "close"
+  },
+  {
+    "goal": "Wellfields Safe Yield Assessment Project (Phase 3)",
+    "task": "Tender Evaluation",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-08-10",
+    "dateEnd": "2025-08-23",
+    "status": "Not started"
+  },
+  {
+    "goal": "Wellfields Safe Yield Assessment Project (Phase 3)",
+    "task": "Project awarding",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-08-24",
+    "dateEnd": "2025-09-06",
+    "status": "Not started"
+  },
+  {
+    "goal": "Wellfields Safe Yield Assessment Project (Phase 3)",
+    "task": "kick of meeting, Data Collection and Site Visit",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-09-07",
+    "dateEnd": "2025-09-20",
+    "status": "Not started"
+  },
+  {
+    "goal": "Wellfields Safe Yield Assessment Project (Phase 3)",
+    "task": "Data Collection and Site Visit",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-09-21",
+    "dateEnd": "2025-10-04",
+    "status": "Not started"
+  },
+  {
+    "goal": "Wellfields Safe Yield Assessment Project (Phase 3)",
+    "task": "Model Review and Relational Database",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-10-05",
+    "dateEnd": "2025-10-18",
+    "status": "Not started"
+  },
+  {
+    "goal": "Wellfields Safe Yield Assessment Project (Phase 3)",
+    "task": "Draft Inception Report",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-10-19",
+    "dateEnd": "2025-11-01",
+    "status": "Not started"
+  },
+  {
+    "goal": "Merging and Updating the Standards and Engineering Specifications",
+    "task": "Volume 1: Design Guidelines (50%)",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-04-20",
+    "dateEnd": "2025-05-03",
+    "status": "close"
+  },
+  {
+    "goal": "Merging and Updating the Standards and Engineering Specifications",
+    "task": "Volume 1: Design Guidelines (100%)",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-05-04",
+    "dateEnd": "2025-05-17",
+    "status": "close"
+  },
+  {
+    "goal": "Merging and Updating the Standards and Engineering Specifications",
+    "task": "Volume 2 & 3: Standards Specifications and drawings (30%)",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-05-18",
+    "dateEnd": "2025-05-31",
+    "status": "close"
+  },
+  {
+    "goal": "Merging and Updating the Standards and Engineering Specifications",
+    "task": "Volume 2 & 3: Standards Specifications and drawings (60%)",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-06-01",
+    "dateEnd": "2025-06-14",
+    "status": "close"
+  },
+  {
+    "goal": "Merging and Updating the Standards and Engineering Specifications",
+    "task": "Volume 2 & 3: Standards Specifications and drawings (100%)",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-06-15",
+    "dateEnd": "2025-06-28",
+    "status": "close"
+  },
+  {
+    "goal": "Merging and Updating the Standards and Engineering Specifications",
+    "task": "Version 0 - NWS review and comments",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-06-29",
+    "dateEnd": "2025-07-12",
+    "status": "close"
+  },
+  {
+    "goal": "Merging and Updating the Standards and Engineering Specifications",
+    "task": "25 % Completion of Version 1 of IES Documents (3 volumes)",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-08-10",
+    "dateEnd": "2025-08-23",
+    "status": "Not started"
+  },
+  {
+    "goal": "Merging and Updating the Standards and Engineering Specifications",
+    "task": "0 % Completion of Version 1 of IES Documents (3 volumes) Documents (3 volumes)",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-08-24",
+    "dateEnd": "2025-09-06",
+    "status": "Not started"
+  },
+  {
+    "goal": "Merging and Updating the Standards and Engineering Specifications",
+    "task": "100 % Completion of IES Documents (3 volumes)",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-09-07",
+    "dateEnd": "2025-09-20",
+    "status": "Not started"
+  },
+  {
+    "goal": "Merging and Updating the Standards and Engineering Specifications",
+    "task": "Version 1 - NWS review and comment",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-09-21",
+    "dateEnd": "2025-10-04",
+    "status": "Not started"
+  },
+  {
+    "goal": "Merging and Updating the Standards and Engineering Specifications",
+    "task": "Continues Version 1 NWS review and comments and Stakeholders Workshop(#2) (15 and 16th October)",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-10-05",
+    "dateEnd": "2025-10-18",
+    "status": "Not started"
+  },
+  {
+    "goal": "Merging and Updating the Standards and Engineering Specifications",
+    "task": "Version 1 of IES Documents integrated with stakeholders\u2019 workshop #2 comments and Awareness sessions",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-10-19",
+    "dateEnd": "2025-11-01",
+    "status": "Not started"
+  },
+  {
+    "goal": "Soil Investigation for Qurum Reservoirs",
+    "task": "100% of Completion of Recommendations (Tender Documentation / drawings, BOQ), and 50% Completion of NWS Review",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-04-20",
+    "dateEnd": "2025-05-03",
+    "status": "close"
+  },
+  {
+    "goal": "Soil Investigation for Qurum Reservoirs",
+    "task": "100% of Completion of Recommendations (Tender Documentation / drawings, BOQ), and 100% Completion of NWS Review",
+    "quarter": "Q2",
+    "achievement": 0.9,
+    "dateStart": "2025-05-04",
+    "dateEnd": "2025-05-17",
+    "status": "overdue"
+  },
+  {
+    "goal": "Soil Investigation for Qurum Reservoirs",
+    "task": "Final Submission",
+    "quarter": "Q2",
+    "achievement": 0.1,
+    "dateStart": "2025-05-18",
+    "dateEnd": "2025-05-31",
+    "status": "overdue"
+  },
+  {
+    "goal": "Soil Investigation for Qurum Reservoirs",
+    "task": "Implementation of Recommendations",
+    "quarter": "Q2",
+    "achievement": 0.0,
+    "dateStart": "2025-06-01",
+    "dateEnd": "2025-06-14",
+    "status": "overdue"
+  },
+  {
+    "goal": "Soil Investigation for Qurum Reservoirs",
+    "task": "100% of Completion of Recommendations (Tender Documentation / drawings, BOQ), and 100% Completion of NWS Review.",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-08-10",
+    "dateEnd": "2025-08-23",
+    "status": "Transfer"
+  },
+  {
+    "goal": "Soil Investigation for Qurum Reservoirs",
+    "task": "Final Submission.",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-08-24",
+    "dateEnd": "2025-09-06",
+    "status": "Transfer"
+  },
+  {
+    "goal": "Soil Investigation for Qurum Reservoirs",
+    "task": "Implementation of Recommendations.",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-09-07",
+    "dateEnd": "2025-09-20",
+    "status": "Not started"
+  },
+  {
+    "goal": "Development of Business Case for Sludge Utilization with OCC",
+    "task": "100% of Development Business Scenarios for identifying the best Sludge fees price for OCC",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-04-20",
+    "dateEnd": "2025-05-03",
+    "status": "close"
+  },
+  {
+    "goal": "Development of Business Case for Sludge Utilization with OCC",
+    "task": "Business Case Report Submission after CFO Approval",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-05-04",
+    "dateEnd": "2025-05-17",
+    "status": "close"
+  },
+  {
+    "goal": "Development of Business Case for Sludge Utilization with OCC",
+    "task": "OCC Discussion and Negotiation",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-05-18",
+    "dateEnd": "2025-05-31",
+    "status": "close"
+  },
+  {
+    "goal": "Development of Business Case for Sludge Utilization with OCC",
+    "task": "Draft a Memorandum Of Collaboration (MOC)",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-06-01",
+    "dateEnd": "2025-06-14",
+    "status": "close"
+  },
+  {
+    "goal": "Development of Business Case for Sludge Utilization with OCC",
+    "task": "Draft a Memorandum Of Collaboration (MOC)",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-06-15",
+    "dateEnd": "2025-06-28",
+    "status": "close"
+  },
+  {
+    "goal": "Development of Business Case for Sludge Utilization with OCC",
+    "task": "Signing of Memorandum Of Collaboration (MOC)",
+    "quarter": "Q2",
+    "achievement": 0.0,
+    "dateStart": "2025-06-29",
+    "dateEnd": "2025-07-12",
+    "status": "overdue"
+  },
+  {
+    "goal": "RG STPs Technical Assessment for Improvements and Upgradation Works",
+    "task": "100% Completion of Data Collection",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-04-20",
+    "dateEnd": "2025-05-03",
+    "status": "close"
+  },
+  {
+    "goal": "RG STPs Technical Assessment for Improvements and Upgradation Works",
+    "task": "50 % Completion of Data Collection",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-05-04",
+    "dateEnd": "2025-05-17",
+    "status": "close"
+  },
+  {
+    "goal": "RG STPs Technical Assessment for Improvements and Upgradation Works",
+    "task": "Aqua plus Assessment Report Review and Analysis",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-05-18",
+    "dateEnd": "2025-05-31",
+    "status": "close"
+  },
+  {
+    "goal": "RG STPs Technical Assessment for Improvements and Upgradation Works",
+    "task": "50 % completion of Site Visits for critical STPs (One representative STP for each governorate)",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-06-01",
+    "dateEnd": "2025-06-14",
+    "status": "close"
+  },
+  {
+    "goal": "RG STPs Technical Assessment for Improvements and Upgradation Works",
+    "task": "100 % completion of Site Visits for critical STPs (One representative STP for each governorate)",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-06-15",
+    "dateEnd": "2025-06-28",
+    "status": "close"
+  },
+  {
+    "goal": "RG STPs Technical Assessment for Improvements and Upgradation Works",
+    "task": "Alignment with 7 years Statement Plan and ongoing Operational Projects (O&M or CPD)",
+    "quarter": "Q2",
+    "achievement": 1.0,
+    "dateStart": "2025-06-29",
+    "dateEnd": "2025-07-12",
+    "status": "close"
+  },
+  {
+    "goal": "RG STPs Technical Assessment for Improvements and Upgradation Works",
+    "task": "alignment with the 7-years statements and the ongoing operational projects for each governorate",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-08-10",
+    "dateEnd": "2025-08-23",
+    "status": "Not started"
+  },
+  {
+    "goal": "RG STPs Technical Assessment for Improvements and Upgradation Works",
+    "task": "Issue the Recommendations for Al Dhakhliya Governorate STPs",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-08-24",
+    "dateEnd": "2025-09-06",
+    "status": "Not started"
+  },
+  {
+    "goal": "RG STPs Technical Assessment for Improvements and Upgradation Works",
+    "task": "Issue the Recommendations for South Al Sharqyia and Al Dhahira Governorates STPs",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-09-07",
+    "dateEnd": "2025-09-20",
+    "status": "Not started"
+  },
+  {
+    "goal": "RG STPs Technical Assessment for Improvements and Upgradation Works",
+    "task": "Issue the Recommendations for North and South Al Batinah Governorates STPs",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-09-21",
+    "dateEnd": "2025-10-04",
+    "status": "Not started"
+  },
+  {
+    "goal": "RG STPs Technical Assessment for Improvements and Upgradation Works",
+    "task": "Issue the Recommendations for North Al Sharqyia Governorate STPs",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-10-05",
+    "dateEnd": "2025-10-18",
+    "status": "Not started"
+  },
+  {
+    "goal": "RG STPs Technical Assessment for Improvements and Upgradation Works",
+    "task": "Issue the Recommendations for Musandam and Al Wusta Governorates STPs",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-10-19",
+    "dateEnd": "2025-11-01",
+    "status": "Not started"
+  },
+  {
+    "goal": "GIS Verification - Bausher",
+    "task": "Data Collection",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-08-10",
+    "dateEnd": "2025-08-23",
+    "status": "Not started"
+  },
+  {
+    "goal": "GIS Verification - Bausher",
+    "task": "Site verification",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-08-24",
+    "dateEnd": "2025-09-06",
+    "status": "Not started"
+  },
+  {
+    "goal": "GIS Verification - Bausher",
+    "task": "Data approval by O&M",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-09-07",
+    "dateEnd": "2025-09-20",
+    "status": "Not started"
+  },
+  {
+    "goal": "GIS Verification - Bausher",
+    "task": "Data QC by survey team",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-09-21",
+    "dateEnd": "2025-10-04",
+    "status": "Not started"
+  },
+  {
+    "goal": "GIS Verification - Bausher",
+    "task": "CC&B data verification and approval",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-10-05",
+    "dateEnd": "2025-10-18",
+    "status": "Not started"
+  },
+  {
+    "goal": "GIS Verification - Bausher",
+    "task": "Bausher GIS data upload to server",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-10-19",
+    "dateEnd": "2025-11-01",
+    "status": "Not started"
+  },
+  {
+    "goal": "Asset Register Verification & Evaluation for RG",
+    "task": "Bids received and starting Technical Evaluation",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-08-10",
+    "dateEnd": "2025-08-23",
+    "status": "Not started"
+  },
+  {
+    "goal": "Asset Register Verification & Evaluation for RG",
+    "task": "Technical Evaluation",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-08-24",
+    "dateEnd": "2025-09-06",
+    "status": "Not started"
+  },
+  {
+    "goal": "Asset Register Verification & Evaluation for RG",
+    "task": "100% complete technical evaluation Report and MITC approvals",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-09-07",
+    "dateEnd": "2025-09-20",
+    "status": "Not started"
+  },
+  {
+    "goal": "Asset Register Verification & Evaluation for RG",
+    "task": "Commercial Evaluation and MITC approvals",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-09-21",
+    "dateEnd": "2025-10-04",
+    "status": "Not started"
+  },
+  {
+    "goal": "Asset Register Verification & Evaluation for RG",
+    "task": "Project Awards and mobilization",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-10-05",
+    "dateEnd": "2025-10-18",
+    "status": "Not started"
+  },
+  {
+    "goal": "Asset Register Verification & Evaluation for RG",
+    "task": "Kickoff meeting",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-10-19",
+    "dateEnd": "2025-11-01",
+    "status": "Not started"
+  },
+  {
+    "goal": "Asset Management 55001 Standard",
+    "task": "Commercial Evaluation and MITC Approval",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-08-10",
+    "dateEnd": "2025-08-23",
+    "status": "Not started"
+  },
+  {
+    "goal": "Asset Management 55001 Standard",
+    "task": "Project Award and Kick of meeting",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-08-24",
+    "dateEnd": "2025-09-06",
+    "status": "Not started"
+  },
+  {
+    "goal": "Asset Management 55001 Standard",
+    "task": "Data Collection and gap assessment,",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-09-07",
+    "dateEnd": "2025-09-20",
+    "status": "Not started"
+  },
+  {
+    "goal": "Asset Management 55001 Standard",
+    "task": "Fill all Gaps",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-09-21",
+    "dateEnd": "2025-10-04",
+    "status": "Not started"
+  },
+  {
+    "goal": "Asset Management 55001 Standard",
+    "task": "Fill all Gaps.",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-10-05",
+    "dateEnd": "2025-10-18",
+    "status": "Not started"
+  },
+  {
+    "goal": "Asset Management 55001 Standard",
+    "task": "Fill all Gaps and submit draft v0 of integrated standard documents",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-10-19",
+    "dateEnd": "2025-11-01",
+    "status": "Not started"
+  },
+  {
+    "goal": "Asset Criticality and Risk Mitigation Framework Consultancy Services to Study Assets/Sites Under Potential Risk in Zones 1, 2 and 3",
+    "task": "Tender Awarding and Kick of meeting",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-08-10",
+    "dateEnd": "2025-08-23",
+    "status": "Not started"
+  },
+  {
+    "goal": "Asset Criticality and Risk Mitigation Framework Consultancy Services to Study Assets/Sites Under Potential Risk in Zones 1, 2 and 3",
+    "task": "Data Collection and Site Visit (zone1)",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-08-24",
+    "dateEnd": "2025-09-06",
+    "status": "Not started"
+  },
+  {
+    "goal": "Asset Criticality and Risk Mitigation Framework Consultancy Services to Study Assets/Sites Under Potential Risk in Zones 1, 2 and 3",
+    "task": "Data Collection and Site Visit (zone2)",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-09-07",
+    "dateEnd": "2025-09-20",
+    "status": "Not started"
+  },
+  {
+    "goal": "Asset Criticality and Risk Mitigation Framework Consultancy Services to Study Assets/Sites Under Potential Risk in Zones 1, 2 and 3",
+    "task": "Data Collection and Site Visit (zone3)",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-09-21",
+    "dateEnd": "2025-10-04",
+    "status": "Not started"
+  },
+  {
+    "goal": "Asset Criticality and Risk Mitigation Framework Consultancy Services to Study Assets/Sites Under Potential Risk in Zones 1, 2 and 3",
+    "task": "Preparation of technical inspection report",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-10-05",
+    "dateEnd": "2025-10-18",
+    "status": "Not started"
+  },
+  {
+    "goal": "Asset Criticality and Risk Mitigation Framework Consultancy Services to Study Assets/Sites Under Potential Risk in Zones 1, 2 and 3",
+    "task": "Submit the draft inspection report",
+    "quarter": "Q3",
+    "achievement": 0.0,
+    "dateStart": "2025-10-19",
+    "dateEnd": "2025-11-01",
+    "status": "Not started"
+  }
+];
 
 const DOC_DEPARTMENTS = ["A. Planning","A. Engineering","A. Performance","RDI"];
 const DOC_TYPES = ["Policy","Manual","Guidelines","Procedure","Format","Work Instruction"];
@@ -2108,6 +3029,7 @@ function switchTab(tab){
   document.getElementById('view-'+tab).classList.add('active');
   document.getElementById('cycleSprintGroup').style.display = (tab==='goals' || tab==='dashboard') ? 'flex' : 'none';
   if(tab === 'dashboard') renderDashboard();
+  if(tab === 'dashboard2') renderWp2Dashboard();
   if(tab === 'documents') renderDocTable();
 }
 
@@ -2567,6 +3489,139 @@ document.getElementById('deleteCycleBtn').addEventListener('click', async ()=>{
     console.error('Delete failed', err);
     alert('Could not delete this cycle:\n' + err.message);
   }
+});
+
+// ---------------- Dashboard-2 (2025 Work Plan, from uploaded Excel) ----------------
+const WP2_STATUS_COLORS = { 'close':'#4ECDA0', 'overdue':'#E8697A', 'not started':'#7DA39D', 'transfer':'#F0A868' };
+const WP2_STATUS_LABELS = { 'close':'Closed', 'overdue':'Overdue', 'not started':'Not Started', 'transfer':'Transfer' };
+let wp2Filter = 'all';
+
+function wp2NormStatus(s){ return (s||'').toLowerCase().trim(); }
+
+function renderWp2Dashboard(){
+  if(typeof Chart === 'undefined'){
+    document.getElementById('view-dashboard2').insertAdjacentHTML('beforeend', '<p style="color:var(--red);font-family:monospace;">Chart.js failed to load — check your internet connection and refresh.</p>');
+    return;
+  }
+  renderWp2Stats();
+  renderWp2Charts();
+  renderWp2Table();
+}
+
+function renderWp2Stats(){
+  const total = WP2_DATA.length;
+  const byStatus = {};
+  WP2_DATA.forEach(r=>{ const s = wp2NormStatus(r.status); byStatus[s] = (byStatus[s]||0)+1; });
+  const closed = byStatus['close']||0;
+  const overdue = byStatus['overdue']||0;
+  const avgAchievement = total ? (WP2_DATA.reduce((s,r)=> s + (r.achievement||0), 0) / total * 100).toFixed(1) : '—';
+  document.getElementById('wp2StatStrip').innerHTML = `
+    <div class="stat"><div class="num">${total}</div><div class="lbl">Total Tasks</div><div class="cap">Across all goals, Q2–Q3 2025</div></div>
+    <div class="stat complete"><div class="num">${closed}</div><div class="lbl">Closed</div><div class="cap">Tasks fully completed</div></div>
+    <div class="stat delayed"><div class="num">${overdue}</div><div class="lbl">Overdue</div><div class="cap">Tasks past their due date</div></div>
+    <div class="stat avg"><div class="num">${avgAchievement}%</div><div class="lbl">Avg Achievement</div><div class="cap">Average completion across all tasks</div></div>
+  `;
+}
+
+function renderWp2Charts(){
+  // Status breakdown donut
+  const byStatus = {};
+  WP2_DATA.forEach(r=>{ const s = wp2NormStatus(r.status); byStatus[s] = (byStatus[s]||0)+1; });
+  const statusKeys = Object.keys(byStatus);
+  destroyChart('wp2Status');
+  chartInstances['wp2Status'] = new Chart(document.getElementById('chartWp2Status'), {
+    type:'doughnut',
+    data:{
+      labels: statusKeys.map(k=>WP2_STATUS_LABELS[k]||k),
+      datasets:[{ data: statusKeys.map(k=>byStatus[k]), backgroundColor: statusKeys.map(k=>WP2_STATUS_COLORS[k]||'#7DA39D') }]
+    },
+    options: chartBaseOptions({ legend:true, noScales:true })
+  });
+
+  // Average achievement by goal
+  const goalMap = {};
+  WP2_DATA.forEach(r=>{
+    if(!goalMap[r.goal]) goalMap[r.goal] = [];
+    if(r.achievement!==null) goalMap[r.goal].push(r.achievement);
+  });
+  const goalNames = Object.keys(goalMap);
+  const goalAvgs = goalNames.map(g=>{
+    const vals = goalMap[g];
+    return vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length*100) : 0;
+  });
+  function truncLabel(s,max){ return s.length>max ? s.slice(0,max-1).trim()+'…' : s; }
+  const goalLabels = goalNames.map(g=>truncLabel(g,18));
+  destroyChart('wp2GoalAvg');
+  const goalAvgOptions = chartBaseOptions({ yMax:100 });
+  goalAvgOptions.plugins.tooltip.callbacks = { title:(items)=>goalNames[items[0].dataIndex] };
+  chartInstances['wp2GoalAvg'] = new Chart(document.getElementById('chartWp2GoalAvg'), {
+    type:'bar',
+    data:{ labels: goalLabels, datasets:[{ data: goalAvgs.map(v=>v.toFixed(1)), backgroundColor: goalAvgs.map(v=> v>=100?'#4ECDA0': v>=50?'#F0A868':'#E8697A'), borderRadius:4 }] },
+    options: goalAvgOptions
+  });
+
+  // Tasks by Quarter & Status (stacked)
+  const quarters = [...new Set(WP2_DATA.map(r=>r.quarter))].sort();
+  const statusList = ['close','overdue','not started','transfer'];
+  destroyChart('wp2Quarter');
+  chartInstances['wp2Quarter'] = new Chart(document.getElementById('chartWp2Quarter'), {
+    type:'bar',
+    data:{
+      labels: quarters,
+      datasets: statusList.map(st=>({
+        label: WP2_STATUS_LABELS[st],
+        data: quarters.map(q => WP2_DATA.filter(r=>r.quarter===q && wp2NormStatus(r.status)===st).length),
+        backgroundColor: WP2_STATUS_COLORS[st]
+      }))
+    },
+    options: chartBaseOptions({ legend:true, stacked:true })
+  });
+
+  // Task count by goal
+  const taskCounts = goalNames.map(g=>WP2_DATA.filter(r=>r.goal===g).length);
+  destroyChart('wp2TaskCount');
+  chartInstances['wp2TaskCount'] = new Chart(document.getElementById('chartWp2TaskCount'), {
+    type:'bar',
+    data:{ labels: goalNames.map(g=>truncLabel(g,20)), datasets:[{ data: taskCounts, backgroundColor:'#4DD8E6', borderRadius:4 }] },
+    options: chartBaseOptions({ indexAxis:'y' })
+  });
+}
+
+function renderWp2Table(){
+  const table = document.getElementById('wp2Table');
+  const filtered = WP2_DATA.filter(r=> wp2Filter==='all' || wp2NormStatus(r.status)===wp2Filter);
+  let html = `<tr><th>Goal</th><th>Task</th><th>Quarter</th><th>Achievement</th><th>Status</th></tr>`;
+  if(filtered.length===0){
+    html += `<tr><td colspan="5" style="text-align:center;color:var(--text-dim);">No tasks match this filter.</td></tr>`;
+  } else {
+    filtered.forEach(r=>{
+      const st = wp2NormStatus(r.status);
+      const pct = r.achievement===null ? '—' : (r.achievement*100).toFixed(0)+'%';
+      const pctColor = r.achievement===null ? 'var(--text-dim)' : r.achievement>=1 ? 'var(--green)' : r.achievement>=0.5 ? 'var(--amber)' : 'var(--red)';
+      html += `<tr>
+        <td class="mt-goal">${r.goal}</td>
+        <td class="mt-task">${r.task}</td>
+        <td>${r.quarter}</td>
+        <td class="mt-pct"><span class="pill" style="color:${pctColor};background:rgba(255,255,255,.06)">${pct}</span></td>
+        <td><span class="t-status ${st==='close'?'complete':st==='overdue'?'delayed':'transferred'}">${WP2_STATUS_LABELS[st]||r.status}</span></td>
+      </tr>`;
+    });
+  }
+  table.innerHTML = html;
+}
+
+document.getElementById('wp2TableToggle').addEventListener('click', ()=>{
+  document.getElementById('wp2TableToggle').classList.toggle('open');
+  document.getElementById('wp2TableBody').classList.toggle('open');
+});
+
+document.getElementById('wp2FilterSeg').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button');
+  if(!btn) return;
+  document.querySelectorAll('#wp2FilterSeg button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  wp2Filter = btn.getAttribute('data-f');
+  renderWp2Table();
 });
 
 // ---------------- init ----------------
