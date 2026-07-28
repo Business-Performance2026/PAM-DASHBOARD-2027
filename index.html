@@ -1059,6 +1059,10 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
             <h3><span class="dot" style="background:var(--cyan)"></span>Overall Average Trend (Sprint 1→6)</h3>
             <div class="chart-wrap"><canvas id="chartGoalTrend"></canvas></div>
           </div>
+          <div class="dash-card full">
+            <h3><span class="dot" style="background:var(--red)"></span>Delayed Tasks <span style="font-size:11px;color:var(--text-dim);font-weight:400;margin-right:8px;">— progress under 100%, Sprint 1–<span id="delayedSprintLabel">1</span></span></h3>
+            <div class="chart-wrap" id="delayedTasksWrap"><canvas id="chartDelayedTasks"></canvas></div>
+          </div>
         </div>
         <button class="collapsible-header" id="goalsTableToggle">
           <span>Goals Detail Table</span>
@@ -2620,7 +2624,52 @@ function renderGoalsDashboard(){
     options: chartBaseOptions({ yMax:100 })
   });
 
+  renderDelayedTasksChart(sprintN);
   renderDashboardGoalsTable(sprintN);
+}
+
+function renderDelayedTasksChart(sprintN){
+  document.getElementById('delayedSprintLabel').textContent = sprintN;
+
+  const delayed = [];
+  currentGoals.forEach(g=>{
+    visibleTasks(g, sprintN).forEach(t=>{
+      if(t && t.progress!==null && t.progress!==undefined && t.progress<100){
+        delayed.push({ goal:g.name, task:t.name||'(untitled task)', progress:t.progress });
+      }
+    });
+  });
+  delayed.sort((a,b)=>a.progress-b.progress);
+
+  const wrap = document.getElementById('delayedTasksWrap');
+  if(delayed.length===0){
+    wrap.style.height='120px';
+    wrap.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-dim);font-size:13px;">No delayed tasks in this range 🎉</div>`;
+    return;
+  }
+  if(!document.getElementById('chartDelayedTasks')){
+    wrap.innerHTML = '<canvas id="chartDelayedTasks"></canvas>';
+  }
+  wrap.style.height = Math.max(220, delayed.length*32) + 'px';
+
+  const labels = delayed.map(d=> truncateLabel2(`${d.goal} — ${d.task}`, 46));
+  const values = delayed.map(d=>d.progress);
+  const colors = delayed.map(d=> d.progress<70 ? '#E8697A' : '#F0A868');
+
+  destroyChart('delayed');
+  const opts = chartBaseOptions({ indexAxis:'y', yMax:100 });
+  opts.plugins.tooltip.callbacks = {
+    title:(items)=> delayed[items[0].dataIndex].goal,
+    label:(item)=> `${delayed[item.dataIndex].task}: ${item.formattedValue}%`
+  };
+  chartInstances['delayed'] = new Chart(document.getElementById('chartDelayedTasks'), {
+    type:'bar',
+    data:{ labels, datasets:[{ data:values, backgroundColor:colors, borderRadius:4 }] },
+    options: opts
+  });
+}
+function truncateLabel2(str, max){
+  return str && str.length>max ? str.slice(0,max-1).trim()+'…' : (str||'');
 }
 
 let dashGoalsFilter = 'all';
