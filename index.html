@@ -819,6 +819,101 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
   box-shadow:0 0 8px currentColor;
 }
 .dash-card.full{grid-column:1 / -1;}
+
+/* ---------- Dashboard-2: Key Responsibilities infographic cards ---------- */
+.audit-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:16px;
+}
+.audit-card{
+  background:linear-gradient(180deg, var(--surface-hi) 0%, var(--surface) 120px);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:18px 20px;
+  border-top:3px solid var(--acc, var(--cyan));
+  transition:border-color .15s, transform .15s;
+}
+.audit-card:hover{transform:translateY(-2px);}
+.audit-card-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:14px;
+}
+.audit-card-title{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:14.5px;
+  font-weight:700;
+  color:var(--text);
+  line-height:1.35;
+}
+.audit-card-no{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10.5px;
+  color:var(--acc, var(--cyan));
+  font-weight:700;
+  margin-right:8px;
+}
+.audit-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10px;
+  font-weight:700;
+  padding:4px 10px;
+  border-radius:20px;
+  white-space:nowrap;
+  flex-shrink:0;
+}
+.audit-badge .dot-ico{width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 6px currentColor;}
+.audit-body{display:flex;gap:16px;align-items:flex-start;}
+.audit-ring{
+  width:60px;height:60px;border-radius:50%;
+  background: conic-gradient(var(--acc, var(--cyan)) calc(var(--pct,0)*1%), rgba(255,255,255,.08) 0);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.audit-ring-inner{
+  width:47px;height:47px;border-radius:50%;
+  background:var(--surface);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'IBM Plex Mono',monospace;
+  font-weight:700;
+  font-size:12px;
+  color:var(--text);
+  text-align:center;
+  line-height:1.1;
+}
+.audit-progress-list{
+  list-style:none;
+  margin:0;padding:0;
+  font-size:12px;
+  color:var(--text-mid);
+  line-height:1.65;
+  flex:1;
+}
+.audit-progress-list li{padding-right:14px;position:relative;}
+.audit-progress-list li::before{
+  content:"›";
+  position:absolute; right:0; top:0;
+  color:var(--acc, var(--cyan));
+  font-weight:700;
+}
+.audit-scope{
+  font-size:11px;
+  color:var(--text-dim);
+  font-style:italic;
+  margin-top:12px;
+  padding-top:12px;
+  border-top:1px solid rgba(255,255,255,.06);
+  line-height:1.5;
+}
+@media (max-width:820px){
+  .audit-grid{grid-template-columns:1fr;}
+}
 .chart-wrap{position:relative;height:260px;width:100%;}
 .chart-wrap.tall{height:320px;}
 
@@ -986,29 +1081,15 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
   </div>
 
   <div class="view" id="view-dashboard2">
-    <h2 class="section-title">Dashboard-2 <span class="section-sub">— PAM Balanced Scorecard 2025</span></h2>
-    <div class="stats" id="bsc2StatStrip"></div>
+    <h2 class="section-title">Dashboard-2 <span class="section-sub">— Key Responsibilities Tracker</span></h2>
+    <div class="stats" id="auditStatStrip"></div>
 
-    <div class="dash-grid">
-      <div class="dash-card">
-        <h3><span class="dot" style="background:var(--cyan)"></span>Score by Perspective</h3>
-        <div class="chart-wrap"><canvas id="chartBsc2Radar"></canvas></div>
-      </div>
-      <div class="dash-card">
-        <h3><span class="dot" style="background:var(--green)"></span>Completion % by KPI</h3>
-        <div class="chart-wrap tall"><canvas id="chartBsc2Kpi"></canvas></div>
-      </div>
+    <div class="dash-card full" style="margin-bottom:20px;">
+      <h3><span class="dot" style="background:var(--cyan)"></span>Status Overview</h3>
+      <div class="chart-wrap" style="height:220px;"><canvas id="chartAuditStatus"></canvas></div>
     </div>
 
-    <button class="collapsible-header" id="bsc2TableToggle">
-      <span>KPI Detail</span>
-      <svg class="collapsible-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-    </button>
-    <div class="collapsible-body" id="bsc2TableBody">
-      <div class="mini-table-wrap">
-        <table class="mini-goaltable" id="bsc2Table"></table>
-      </div>
-    </div>
+    <div class="audit-grid" id="auditCards"></div>
   </div>
 
   <div class="view" id="view-goals">
@@ -1161,7 +1242,8 @@ let currentSearch = '';
 let currentTab = 'dashboard';
 
 
-const BSC2_DATA = [{"no": 1, "perspective": "Governance", "kpi": "Fulfilment of the ICV requirements", "owner": "Muneer al Rashdi", "weight": 0.1, "completion": 0.5, "update": "RDI Projects : \n- We are currently progressing with the procurement process to award three RDI projects       \n - We currently have 5 startups in Stage 3 of the Hamat program (OIA Qimam Hackathon), which focuses on post-hackathon development support. And we also have 3 startups in Upgrade program and in the process to sign the agreement.   \n- Reporting & Monitoring : Q1 REPORT SUBMITTED \n- Bonus initivies : Upgrade Program agreement with Ministry of Higher Education, Research & Innovation, which aims Transforming Student Graduation Projects into Startups."}, {"no": 2, "perspective": "Governance", "kpi": "Compliance with regulator KPIs", "owner": "Abdulhakeem al Dhuhli", "weight": 0.07, "completion": null, "update": "Coverage: \nWater :72.5%\nWastewater: 30.1%"}, {"no": 3, "perspective": "Operational", "kpi": "Decarbonization Mitigation Projects \na) Energy Efficiency Roadmap\nb) Resource Recovery: e.g., Biomethane/Biogenic CO2 collaboration (OQT), TE (X2E)", "owner": "a) Talal al Abri\nb) Muneer al Rashdi", "weight": 0.08, "completion": null, "update": "a) Strategic Energy efficiency performance plan 100% , Currently working in reginonal wise + cpmlete the dashbord integartion with nama supply   b) In the process of signing two agreements for pilot projects with HEMA Energy and OQ regarding the utilization of TE for agricultural purposes (carbon sink) and biofuel production."}, {"no": 4, "perspective": "Operational", "kpi": "NRW Reduction\na) Water Balance Audit for 2025\nb) Close WB Audit Findings in (a)", "owner": "Salim Al Farsi", "weight": 0.06, "completion": 1.0, "update": ""}, {"no": 5, "perspective": "Operational", "kpi": "Wastewater Networks Infiltration Study", "owner": "Abdulhakeem al Dhuhli", "weight": 0.08, "completion": 0.2, "update": "MITC approval for tender float obtained, Tender floated on 3rd of June 2026"}, {"no": 6, "perspective": "Operational", "kpi": "Assess Water Transmission System Condition (One system)", "owner": "Said Al Busaidi / Khalifa", "weight": 0.08, "completion": 0.75, "update": "We are in last stage of inspection: preparing of CCTV. Recently we are under the communication with related department to give us permission to starting, we face a little bit of difficulty about shutdown time due to OM has difficult about that case, but we are in negation with them."}, {"no": 7, "perspective": "Operational", "kpi": "Strategic Study for Integrated Water Resources in the Sultanate of Oman", "owner": "Sultan Al Salami", "weight": 0.08, "completion": 0.26, "update": "Formal letter submitted to APSR requesting budget revision from OMR 500,000 to OMR 1,500,000.\n\nIn Progress: Awaiting APSR approval on the revised budget and integrated scope (Step 24 \u2013 \"Budget Approval\" is overdue from Feb 2026)."}, {"no": 8, "perspective": "Operational", "kpi": "Developing Detailed Engineering Improvement Plan for RG STPs to Improve the Compliance", "owner": "Intisar Al Sulaimi", "weight": 0.08, "completion": null, "update": "The assessment of Sharqia Governorate STPs in the finalization stage, completed the compliance quality of Muscat and Buraimi STPs and the Scope of work for the consultant has been completed and sent to Asset Planning Division."}, {"no": 9, "perspective": "Operational", "kpi": "Feasibility Study of Sludge Utilization", "owner": "Intisar Al Sulaimi", "weight": 0.09, "completion": null, "update": "The advisory tender has been floated, 8 bidders has purchased the tender and awaited the bids submission, Next week is pre-bids site visit."}, {"no": 10, "perspective": "Operational", "kpi": "Updating Hydraulic Model of Muscat Water Supply System as per the Latest GIS Data and DMAs Verification", "owner": "Ahmed Al Namaani", "weight": 0.08, "completion": 0.47, "update": "1.\tHydraulic Model Update as per New GIS Data:\n-Quriyat & Al Amerat: 100% completed\n-Bawsher                       : 95% completed\n-Seeb                               : 60% completed\n\n2.\tDMAs Verification:\n-Quriyat & Al Amerat: 95% completed\n-Bawsher                       : 10% completed\n-Seeb                               : not started"}, {"no": 11, "perspective": "Operational", "kpi": "Cost Optimization Contribution KPI  - Maintenance Optimization", "owner": "Abdullah al Kharusi", "weight": 0.05, "completion": 0.5, "update": "The progress is as planned"}, {"no": 12, "perspective": "Operational", "kpi": "TE Utilization-Al-Batina Strategic TE line (Barka-Shinas)", "owner": "Suhaila al Bulushi /  Saud al Nadhabi", "weight": 0.05, "completion": 0.35, "update": "The Inception Stage is completed"}, {"no": 13, "perspective": "LG & Innovation", "kpi": "Implementation of Agreed Culture Action Plans", "owner": "Hanan al Habsi", "weight": 0.05, "completion": null, "update": ""}, {"no": 14, "perspective": "Common KPIs", "kpi": "Common KPIs", "owner": "All", "weight": 0.05, "completion": null, "update": ""}];
+
+const AUDIT_DATA = [{"no": 1, "responsibility": "Internal Audit Findings", "scope": "Monitor and coordinate the closure of 7 Internal Audit findings, follow up with finding owners, collect supporting evidence, and liaise with the Internal Audit team.", "progress": ["\u2022 3 findings closed", "\u2022 2 findings under Internal Audit review", "\u2022 1 finding not yet due", "\u20221 finding to be carried forward to the next quarter"], "percentage": 0.42, "status": "Ongoing"}, {"no": 2, "responsibility": "Muscat Verification Project Audit", "scope": "monitor audit activities for the Muscat Verification Project, ensuring all requested information is provided to auditors.", "progress": ["Audit completed on 10 June 2026. Awaiting issuance of the official audit report."], "percentage": "Pending Audit Report", "status": "Pending Audit Report"}, {"no": 3, "responsibility": "APSR Q2 Data Return", "scope": "Prepare, validate, and submit regulatory APSR Q2 performance data with supporting evidence and stakeholder coordination.", "progress": ["Q2 APSR report successfully submitted within the required timeline."], "percentage": 0.5, "status": "Completed"}, {"no": 4, "responsibility": "Monthly Water Production Reporting", "scope": "Collect, validate, and consolidate monthly Water Production data for APSR reporting.", "progress": ["June data submitted successfully. Preparation and coordination for July submission are underway."], "percentage": 0.58, "status": "Ongoing"}, {"no": 5, "responsibility": "Balanced Scorecard (BSC) & KPI Monitoring", "scope": "Monitor 14 Directorate KPIs, identify performance risks, engage KPI owners, and track corrective actions.", "progress": ["\u2022 Monthly monitoring protocol starts in August.", "\u2022 7 KPIs identified as high risk (<50% progress).", "\u2022 5 KPIs on track.", "\u2022 1 KPI completed."], "percentage": "Updated up to Q2", "status": "Ongoing"}, {"no": 6, "responsibility": "Water Quality Plan Enhancement", "scope": "Monitor implementation of the Water Quality Improvement Plan across 10 action items and follow up with responsible teams.", "progress": ["\u2022 3 actions completed", "\u2022 2 awaiting confirmation for closure", "\u2022 1 in progress\u2022 4 scheduled for future milestones"], "percentage": 0.3, "status": "Ongoing"}, {"no": 7, "responsibility": "Quarterly Management Reporting", "scope": "Prepare and coordinate the PAM Quarterly Management Report for executive review, consolidating updates", "progress": ["Q2 Management Report completed and submitted."], "percentage": 0.5, "status": "Completed"}];
 
 const DOC_DEPARTMENTS = ["A. Planning","A. Engineering","A. Performance","RDI"];
 const DOC_TYPES = ["Policy","Manual","Guidelines","Procedure","Format","Work Instruction"];
@@ -2138,7 +2220,7 @@ function switchTab(tab){
   document.getElementById('view-'+tab).classList.add('active');
   document.getElementById('cycleSprintGroup').style.display = (tab==='goals' || tab==='dashboard') ? 'flex' : 'none';
   if(tab === 'dashboard') renderDashboard();
-  if(tab === 'dashboard2') renderBsc2Dashboard();
+  if(tab === 'dashboard2') renderAuditDashboard();
   if(tab === 'documents') renderDocTable();
 }
 
@@ -2600,115 +2682,93 @@ document.getElementById('deleteCycleBtn').addEventListener('click', async ()=>{
   }
 });
 
-// ---------------- Dashboard-2 (PAM Balanced Scorecard 2025) ----------------
-function bsc2Truncate(s,max){ return s.length>max ? s.slice(0,max-1).trim()+'…' : s; }
-function bsc2Color(c){
-  if(c===null) return '#7DA39D';
-  if(c>=1) return '#4ECDA0';
-  if(c>=0.7) return '#F0A868';
-  return '#E8697A';
+// ---------------- Dashboard-2 (Key Responsibilities Tracker) ----------------
+function auditStatusMeta(status){
+  const s = (status||'').toLowerCase();
+  if(s.includes('complet')) return { color:'#4ECDA0', label:'Completed', bg:'rgba(78,205,160,.14)' };
+  if(s.includes('pending')) return { color:'#B39DDB', label:'Pending Audit Report', bg:'rgba(179,157,219,.16)' };
+  if(s.includes('ongoing')) return { color:'#F2C94C', label:'Ongoing', bg:'rgba(242,201,76,.16)' };
+  return { color:'#7DA39D', label: status||'—', bg:'rgba(125,163,159,.14)' };
+}
+function auditPctValue(r){
+  if(typeof r.percentage === 'number') return Math.round(r.percentage*100);
+  return null;
+}
+function auditPctLabel(r){
+  const v = auditPctValue(r);
+  if(v!==null) return v+'%';
+  if(typeof r.percentage === 'string' && r.percentage.trim()) return r.percentage; // e.g. "Updated up to Q2"
+  return '—';
 }
 
-function renderBsc2Dashboard(){
+function renderAuditDashboard(){
   if(typeof Chart === 'undefined'){
     document.getElementById('view-dashboard2').insertAdjacentHTML('beforeend', '<p style="color:var(--red);font-family:monospace;">Chart.js failed to load — check your internet connection and refresh.</p>');
     return;
   }
-  renderBsc2Stats();
-  renderBsc2Charts();
-  renderBsc2Table();
+  renderAuditStats();
+  renderAuditChart();
+  renderAuditCards();
 }
 
-function renderBsc2Stats(){
-  const reported = BSC2_DATA.filter(r=>r.completion!==null);
-  const weightSum = reported.reduce((s,r)=>s+r.weight,0);
-  const weightedScore = weightSum ? (reported.reduce((s,r)=>s+r.weight*r.completion,0)/weightSum*100).toFixed(0) : '—';
-  const onTarget = reported.filter(r=>r.completion>=1).length;
-  const below = reported.filter(r=>r.completion<0.7).length;
-  document.getElementById('bsc2StatStrip').innerHTML = `
-    <div class="stat avg"><div class="num">${weightedScore}${weightSum?'%':''}</div><div class="lbl">Weighted Score</div><div class="cap">Weight-adjusted average of reported KPIs</div></div>
-    <div class="stat"><div class="num">${BSC2_DATA.length}</div><div class="lbl">Total KPIs</div><div class="cap">Across all perspectives</div></div>
-    <div class="stat complete"><div class="num">${onTarget}</div><div class="lbl">At/Above Target</div><div class="cap">Completion 100% or higher</div></div>
-    <div class="stat delayed"><div class="num">${below}</div><div class="lbl">Below Target</div><div class="cap">Completion under 70%</div></div>
+function renderAuditStats(){
+  const total = AUDIT_DATA.length;
+  const completed = AUDIT_DATA.filter(r=>(r.status||'').toLowerCase().includes('complet')).length;
+  const ongoing = AUDIT_DATA.filter(r=>(r.status||'').toLowerCase().includes('ongoing')).length;
+  const pending = AUDIT_DATA.filter(r=>(r.status||'').toLowerCase().includes('pending')).length;
+  document.getElementById('auditStatStrip').innerHTML = `
+    <div class="stat"><div class="num">${total}</div><div class="lbl">Key Responsibilities</div><div class="cap">Tracked this period</div></div>
+    <div class="stat complete"><div class="num">${completed}</div><div class="lbl">Completed</div><div class="cap">Fully delivered items</div></div>
+    <div class="stat delayed" style="--num-color:#F2C94C;"><div class="num" style="color:#F2C94C;">${ongoing}</div><div class="lbl">Ongoing</div><div class="cap">Actively in progress</div></div>
+    <div class="stat" style="--num-color:#B39DDB;"><div class="num" style="color:#B39DDB;">${pending}</div><div class="lbl">Pending Audit Report</div><div class="cap">Awaiting external issuance</div></div>
   `;
 }
 
-function renderBsc2Charts(){
-  // Score by Perspective — radar
-  const perspMap = {};
-  BSC2_DATA.forEach(r=>{
-    if(!perspMap[r.perspective]) perspMap[r.perspective] = [];
-    if(r.completion!==null) perspMap[r.perspective].push(r.completion);
+function renderAuditChart(){
+  const counts = {};
+  AUDIT_DATA.forEach(r=>{
+    const meta = auditStatusMeta(r.status);
+    counts[meta.label] = (counts[meta.label]||0) + 1;
   });
-  const perspectives = Object.keys(perspMap);
-  const perspScores = perspectives.map(p=>{
-    const vals = perspMap[p];
-    return vals.length ? Math.round(vals.reduce((a,b)=>a+b,0)/vals.length*100) : 0;
+  const labels = Object.keys(counts);
+  const colors = labels.map(l=>{
+    if(l==='Completed') return '#4ECDA0';
+    if(l==='Ongoing') return '#F2C94C';
+    if(l==='Pending Audit Report') return '#B39DDB';
+    return '#7DA39D';
   });
-  destroyChart('bsc2Radar');
-  chartInstances['bsc2Radar'] = new Chart(document.getElementById('chartBsc2Radar'), {
-    type:'radar',
-    data:{
-      labels: perspectives,
-      datasets:[{
-        label:'Score %',
-        data: perspScores,
-        backgroundColor:'rgba(77,216,230,.2)',
-        borderColor:'#4DD8E6',
-        pointBackgroundColor:'#4DD8E6'
-      }]
-    },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{ display:false }, tooltip:{ backgroundColor:'#0B5257', titleColor:'#F5F1EA', bodyColor:'#B9CFC9' } },
-      scales:{ r:{
-        min:0, max:100,
-        ticks:{ color:'#B9CFC9', backdropColor:'transparent', stepSize:25 },
-        grid:{ color:'rgba(255,255,255,.12)' },
-        angleLines:{ color:'rgba(255,255,255,.12)' },
-        pointLabels:{ color:'#F5F1EA', font:{ size:11 } }
-      } }
-    }
-  });
-
-  // Completion % by KPI — horizontal bar
-  const kpiLabels = BSC2_DATA.map(r=>bsc2Truncate(`${r.no}. ${r.kpi.split('\n')[0]}`, 34));
-  const kpiFullNames = BSC2_DATA.map(r=>r.kpi.split('\n')[0]);
-  const kpiValues = BSC2_DATA.map(r=> r.completion===null ? 0 : Math.round(r.completion*100));
-  const kpiColors = BSC2_DATA.map(r=>bsc2Color(r.completion));
-  destroyChart('bsc2Kpi');
-  const kpiOptions = chartBaseOptions({ indexAxis:'y', yMax:120 });
-  kpiOptions.plugins.tooltip.callbacks = {
-    title:(items)=>kpiFullNames[items[0].dataIndex],
-    label:(item)=> BSC2_DATA[item.dataIndex].completion===null ? 'No data reported yet' : `Completion: ${item.formattedValue}%`
-  };
-  chartInstances['bsc2Kpi'] = new Chart(document.getElementById('chartBsc2Kpi'), {
-    type:'bar',
-    data:{ labels: kpiLabels, datasets:[{ data: kpiValues, backgroundColor: kpiColors, borderRadius:4 }] },
-    options: kpiOptions
+  destroyChart('auditStatus');
+  chartInstances['auditStatus'] = new Chart(document.getElementById('chartAuditStatus'), {
+    type:'doughnut',
+    data:{ labels, datasets:[{ data: labels.map(l=>counts[l]), backgroundColor: colors }] },
+    options: chartBaseOptions({ legend:true, noScales:true })
   });
 }
 
-function renderBsc2Table(){
-  let html = `<tr><th>KPI</th><th>Perspective</th><th>Owner</th><th>Weight</th><th>Completion</th></tr>`;
-  BSC2_DATA.forEach(r=>{
-    const pct = r.completion===null ? '—' : Math.round(r.completion*100)+'%';
-    const color = bsc2Color(r.completion);
-    html += `<tr>
-      <td class="mt-goal">${r.no}. ${r.kpi.split('\n')[0]}</td>
-      <td class="mt-task">${r.perspective}</td>
-      <td class="mt-task">${r.owner || '—'}</td>
-      <td class="mt-task">${Math.round(r.weight*100)}%</td>
-      <td class="mt-pct"><span class="pill" style="color:${color};background:rgba(255,255,255,.06)">${pct}</span></td>
-    </tr>`;
-  });
-  document.getElementById('bsc2Table').innerHTML = html;
+function renderAuditCards(){
+  const wrap = document.getElementById('auditCards');
+  wrap.innerHTML = AUDIT_DATA.map(r=>{
+    const meta = auditStatusMeta(r.status);
+    const pctVal = auditPctValue(r);
+    const ringPct = pctVal===null ? 0 : pctVal;
+    const ringLabel = auditPctLabel(r);
+    const progressHtml = r.progress.map(p=>`<li>${p.replace(/^•\s*/,'')}</li>`).join('');
+    return `
+      <div class="audit-card" style="--acc:${meta.color};">
+        <div class="audit-card-head">
+          <div class="audit-card-title"><span class="audit-card-no">${String(r.no).padStart(2,'0')}</span>${r.responsibility}</div>
+          <span class="audit-badge" style="color:${meta.color};background:${meta.bg};"><span class="dot-ico"></span>${meta.label}</span>
+        </div>
+        <div class="audit-body">
+          <div class="audit-ring" style="--pct:${ringPct};--acc:${meta.color};">
+            <div class="audit-ring-inner" style="color:${meta.color};">${ringLabel.length>6 ? '<span style=\"font-size:9px;\">'+ringLabel+'</span>' : ringLabel}</div>
+          </div>
+          <ul class="audit-progress-list">${progressHtml}</ul>
+        </div>
+        ${r.scope ? `<div class="audit-scope">${r.scope}</div>` : ''}
+      </div>`;
+  }).join('');
 }
-
-document.getElementById('bsc2TableToggle').addEventListener('click', ()=>{
-  document.getElementById('bsc2TableToggle').classList.toggle('open');
-  document.getElementById('bsc2TableBody').classList.toggle('open');
-});
 
 // ---------------- init ----------------
 loadCycleList();
