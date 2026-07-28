@@ -1278,7 +1278,11 @@ const KPI3_DATA = [
   { type:"initiative", title:"TDP training developing plan long term", execText:"On going (First stage)", update:"Initiative under progress" },
   { type:"kpi", title:"Trainings & Events overseas", pct:40, execText:"40% based on last report", update:"KPI updated up to Q2" },
   { type:"initiative", title:"Build relation with Project directorate and agreed on giving PAM opportunity in overseas trainings through contractors, such as China trainings, UK trainings", execText:"", update:"Initiative under progress" },
-  { type:"kpi", title:"Events in-house & Overseas report", pct:null, execText:"Updated up to Q2", update:"" }
+  { type:"kpi", title:"Events in-house & Overseas report", pct:null, execText:"Updated up to Q2", update:"" },
+  { type:"kpi", title:"Integrated Management System, Quality Audit", pct:null, execText:"Just uploaded in Intelex on 27 July", update:"Under progress (the deadline to close 31 Dec 2026)" },
+  { type:"kpi", title:"Culture Survey report", pct:100, execText:"100% closed", update:"Updated & Sent to Talent Management team" },
+  { type:"initiative", title:"Internal culture survey report within PAM", pct:60, execText:"60%", update:"Under progress" },
+  { type:"initiative", title:"Manual Of Authority", pct:null, execText:"Done approved", update:"Version two Updated" }
 ];
 
 const DOC_DEPARTMENTS = ["A. Planning","A. Engineering","A. Performance","RDI"];
@@ -2853,9 +2857,9 @@ function renderKpi3Chart(){
 
 function kpi3Card(r, accent){
   const isKpi = r.type==='kpi';
-  const pctKnown = isKpi && r.pct!==null;
+  const pctKnown = (typeof r.pct === 'number');
   const ringPct = pctKnown ? r.pct : 0;
-  const ringLabel = isKpi ? (pctKnown ? r.pct+'%' : `<span style="font-size:9px;">${r.execText}</span>`) : `<span style="font-size:9px;">${r.execText||'—'}</span>`;
+  const ringLabel = pctKnown ? r.pct+'%' : `<span style="font-size:9px;">${r.execText||'—'}</span>`;
   return `
     <div class="audit-card" style="--acc:${accent};">
       <div class="audit-card-head">
