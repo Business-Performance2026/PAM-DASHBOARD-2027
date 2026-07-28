@@ -146,6 +146,16 @@ body{
   padding:5px 8px;
   outline:none;
 }
+.std-select{
+  background:var(--surface-hi);
+  border:1px solid var(--line);
+  border-radius:7px;
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  font-size:13px;
+  padding:8px 10px;
+  outline:none;
+}
 .spacer{flex:1;}
 
 .authbox{display:flex;align-items:center;gap:8px;}
@@ -1001,6 +1011,7 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
 
     <div class="authbox">
       <span id="adminPill" class="pill-admin" style="display:none;">Admin</span>
+      <span id="editorPill" class="pill-admin" style="display:none;background:rgba(77,216,230,.15);color:var(--cyan);"></span>
       <span id="noAccessPill" style="display:none;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--ink-dim);">Signed in (viewer only)</span>
       <button class="btn" id="logoutBtn" style="display:none;">Logout</button>
       <div class="loginbox">
@@ -1245,6 +1256,7 @@ const db = getFirestore(app);
 
 // ---------------- state ----------------
 let isAdmin = false;
+let scopedBoard = null; // 'dashboard2' | 'dashboard3' | null — set for scoped editor accounts
 let currentCycleId = null;
 let currentGoals = [];           // live goals array for the selected cycle
 let currentReportDates = defaultReportDates(); // title/date info for the Word export, lives in the same cycle doc
@@ -1271,9 +1283,9 @@ let currentTab = 'dashboard';
 
 
 
-const AUDIT_DATA = [{"no": 1, "responsibility": "Internal Audit Findings", "scope": "Monitor and coordinate the closure of 7 Internal Audit findings, follow up with finding owners, collect supporting evidence, and liaise with the Internal Audit team.", "progress": ["\u2022 3 findings closed", "\u2022 2 findings under Internal Audit review", "\u2022 1 finding not yet due", "\u20221 finding to be carried forward to the next quarter"], "percentage": 0.42, "status": "Ongoing"}, {"no": 2, "responsibility": "Muscat Verification Project Audit", "scope": "monitor audit activities for the Muscat Verification Project, ensuring all requested information is provided to auditors.", "progress": ["Audit completed on 10 June 2026. Awaiting issuance of the official audit report."], "percentage": "Pending Audit Report", "status": "Pending Audit Report"}, {"no": 3, "responsibility": "APSR Q2 Data Return", "scope": "Prepare, validate, and submit regulatory APSR Q2 performance data with supporting evidence and stakeholder coordination.", "progress": ["Q2 APSR report successfully submitted within the required timeline."], "percentage": 0.5, "status": "Completed"}, {"no": 4, "responsibility": "Monthly Water Production Reporting", "scope": "Collect, validate, and consolidate monthly Water Production data for APSR reporting.", "progress": ["June data submitted successfully. Preparation and coordination for July submission are underway."], "percentage": 0.58, "status": "Ongoing"}, {"no": 5, "responsibility": "Balanced Scorecard (BSC) & KPI Monitoring", "scope": "Monitor 14 Directorate KPIs, identify performance risks, engage KPI owners, and track corrective actions.", "progress": ["\u2022 Monthly monitoring protocol starts in August.", "\u2022 7 KPIs identified as high risk (<50% progress).", "\u2022 5 KPIs on track.", "\u2022 1 KPI completed."], "percentage": "Updated up to Q2", "status": "Ongoing"}, {"no": 6, "responsibility": "Water Quality Plan Enhancement", "scope": "Monitor implementation of the Water Quality Improvement Plan across 10 action items and follow up with responsible teams.", "progress": ["\u2022 3 actions completed", "\u2022 2 awaiting confirmation for closure", "\u2022 1 in progress\u2022 4 scheduled for future milestones"], "percentage": 0.3, "status": "Ongoing"}, {"no": 7, "responsibility": "Quarterly Management Reporting", "scope": "Prepare and coordinate the PAM Quarterly Management Report for executive review, consolidating updates", "progress": ["Q2 Management Report completed and submitted."], "percentage": 0.5, "status": "Completed"}];
+let AUDIT_DATA = [{"no": 1, "responsibility": "Internal Audit Findings", "scope": "Monitor and coordinate the closure of 7 Internal Audit findings, follow up with finding owners, collect supporting evidence, and liaise with the Internal Audit team.", "progress": ["\u2022 3 findings closed", "\u2022 2 findings under Internal Audit review", "\u2022 1 finding not yet due", "\u20221 finding to be carried forward to the next quarter"], "percentage": 0.42, "status": "Ongoing"}, {"no": 2, "responsibility": "Muscat Verification Project Audit", "scope": "monitor audit activities for the Muscat Verification Project, ensuring all requested information is provided to auditors.", "progress": ["Audit completed on 10 June 2026. Awaiting issuance of the official audit report."], "percentage": "Pending Audit Report", "status": "Pending Audit Report"}, {"no": 3, "responsibility": "APSR Q2 Data Return", "scope": "Prepare, validate, and submit regulatory APSR Q2 performance data with supporting evidence and stakeholder coordination.", "progress": ["Q2 APSR report successfully submitted within the required timeline."], "percentage": 0.5, "status": "Completed"}, {"no": 4, "responsibility": "Monthly Water Production Reporting", "scope": "Collect, validate, and consolidate monthly Water Production data for APSR reporting.", "progress": ["June data submitted successfully. Preparation and coordination for July submission are underway."], "percentage": 0.58, "status": "Ongoing"}, {"no": 5, "responsibility": "Balanced Scorecard (BSC) & KPI Monitoring", "scope": "Monitor 14 Directorate KPIs, identify performance risks, engage KPI owners, and track corrective actions.", "progress": ["\u2022 Monthly monitoring protocol starts in August.", "\u2022 7 KPIs identified as high risk (<50% progress).", "\u2022 5 KPIs on track.", "\u2022 1 KPI completed."], "percentage": "Updated up to Q2", "status": "Ongoing"}, {"no": 6, "responsibility": "Water Quality Plan Enhancement", "scope": "Monitor implementation of the Water Quality Improvement Plan across 10 action items and follow up with responsible teams.", "progress": ["\u2022 3 actions completed", "\u2022 2 awaiting confirmation for closure", "\u2022 1 in progress\u2022 4 scheduled for future milestones"], "percentage": 0.3, "status": "Ongoing"}, {"no": 7, "responsibility": "Quarterly Management Reporting", "scope": "Prepare and coordinate the PAM Quarterly Management Report for executive review, consolidating updates", "progress": ["Q2 Management Report completed and submitted."], "percentage": 0.5, "status": "Completed"}];
 
-const KPI3_DATA = [
+let KPI3_DATA = [
   { type:"kpi", title:"Trainings & Events in-house", pct:50, execText:"50% based on last report", update:"updated up to Q2" },
   { type:"initiative", title:"TDP training developing plan long term", execText:"On going (First stage)", update:"Initiative under progress" },
   { type:"kpi", title:"Trainings & Events overseas", pct:40, execText:"40% based on last report", update:"KPI updated up to Q2" },
@@ -1478,19 +1490,27 @@ document.getElementById('logoutBtn').addEventListener('click', ()=>{
 
 onAuthStateChanged(auth, async (user)=>{
   let verifiedAdmin = false;
+  let role = null;
   if(user){
     try{
       const adminSnap = await getDoc(doc(db,'admins',user.uid));
-      verifiedAdmin = adminSnap.exists();
+      if(adminSnap.exists()){
+        const data = adminSnap.data() || {};
+        role = data.role || 'admin'; // legacy docs with no role field = full admin
+        verifiedAdmin = (role === 'admin');
+      }
     }catch(err){
       console.error('Admin check failed', err);
       verifiedAdmin = false;
     }
   }
   isAdmin = verifiedAdmin;
+  scopedBoard = (role === 'dashboard2' || role === 'dashboard3') ? role : null;
   const isSignedIn = !!user;
   document.getElementById('adminPill').style.display = isAdmin ? 'inline-block' : 'none';
-  document.getElementById('noAccessPill').style.display = (isSignedIn && !isAdmin) ? 'inline-block' : 'none';
+  document.getElementById('editorPill').style.display = scopedBoard ? 'inline-block' : 'none';
+  document.getElementById('editorPill').textContent = scopedBoard === 'dashboard2' ? 'Editor: Dashboard-2' : scopedBoard === 'dashboard3' ? 'Editor: Dashboard-3' : '';
+  document.getElementById('noAccessPill').style.display = (isSignedIn && !isAdmin && !scopedBoard) ? 'inline-block' : 'none';
   document.getElementById('logoutBtn').style.display = isSignedIn ? 'inline-block' : 'none';
   loginToggleBtn.style.display = isSignedIn ? 'none' : 'inline-block';
   document.getElementById('addGoalWrap').style.display = isAdmin ? 'block' : 'none';
@@ -1499,7 +1519,21 @@ onAuthStateChanged(auth, async (user)=>{
   document.getElementById('deleteCycleBtn').style.display = isAdmin ? 'inline-block' : 'none';
   document.getElementById('reportDatesWrap').style.display = isAdmin ? 'block' : 'none';
   document.querySelectorAll('.admin-only-tab').forEach(b=> b.style.display = isAdmin ? 'inline-block' : 'none');
-  if(!isAdmin && (currentTab==='goals' || currentTab==='documents')) switchTab('dashboard');
+
+  // Scoped editors (Dashboard-2 / Dashboard-3 only): hide every other tab, lock them to their one board.
+  document.querySelectorAll('.tabsbar .tab').forEach(b=>{
+    const t = b.getAttribute('data-tab');
+    if(scopedBoard){
+      b.style.display = (t === scopedBoard) ? 'inline-block' : 'none';
+    } else {
+      b.style.display = (b.classList.contains('admin-only-tab') && !isAdmin) ? 'none' : 'inline-block';
+    }
+  });
+  if(scopedBoard && currentTab !== scopedBoard) switchTab(scopedBoard);
+  if(!isAdmin && (currentTab==='goals' || currentTab==='documents')) switchTab(scopedBoard || 'dashboard');
+
+  renderAuditDashboard();
+  renderKpi3Dashboard();
   editingGoalNo = null;
   addingGoal = false;
   loadCycleList(currentCycleId);
@@ -2338,6 +2372,38 @@ function subscribeDocStats(){
   });
 }
 
+// ---------------- Board data (Dashboard-2 / Dashboard-3) — Firestore-backed, editable ----------------
+const DEFAULT_AUDIT_DATA = AUDIT_DATA;
+const DEFAULT_KPI3_DATA = KPI3_DATA;
+
+function subscribeBoardData(boardId){
+  const ref = doc(db,'boardData',boardId);
+  onSnapshot(ref, async (snap)=>{
+    if(snap.exists() && Array.isArray(snap.data().items)){
+      if(boardId==='dashboard2') AUDIT_DATA = snap.data().items;
+      if(boardId==='dashboard3') KPI3_DATA = snap.data().items;
+    } else {
+      // First run: seed Firestore with the built-in defaults so it becomes the live source of truth.
+      const seed = boardId==='dashboard2' ? DEFAULT_AUDIT_DATA : DEFAULT_KPI3_DATA;
+      try{ await setDoc(ref, { items: seed }); }catch(err){ console.error('Seed failed', err); }
+      return; // the setDoc above will re-trigger this same onSnapshot with real data
+    }
+    if(currentTab==='dashboard2') renderAuditDashboard();
+    if(currentTab==='dashboard3') renderKpi3Dashboard();
+  }, (err)=>{
+    console.error('boardData listen error ('+boardId+')', err);
+  });
+}
+
+async function saveBoardData(boardId, items){
+  try{
+    await setDoc(doc(db,'boardData',boardId), { items });
+  }catch(err){
+    console.error('Save failed', err);
+    alert('Save failed:\n' + err.message + '\n\nMake sure Firestore Rules also cover the "boardData" collection.');
+  }
+}
+
 document.getElementById('docSaveBtn').addEventListener('click', async ()=>{
   try{
     await setDoc(doc(db,'docStats','summary'), { counts: docCounts });
@@ -2786,19 +2852,59 @@ function renderAuditChart(){
   });
 }
 
+let editingAuditNo = null;
+function canEditDashboard2(){ return isAdmin || scopedBoard === 'dashboard2'; }
+
 function renderAuditCards(){
   const wrap = document.getElementById('auditCards');
   wrap.innerHTML = AUDIT_DATA.map(r=>{
+    if(editingAuditNo === r.no){
+      return `
+        <div class="audit-card" style="--acc:${auditStatusMeta(r.status).color};">
+          <div class="task-edit-block" style="border:none;padding:0;background:none;">
+            <div class="field" style="margin-bottom:8px;">
+              <label>Responsibility</label>
+              <input type="text" id="ae-resp" value="${r.responsibility.replace(/"/g,'&quot;')}">
+            </div>
+            <div class="row2" style="margin-bottom:8px;">
+              <div class="field">
+                <label>Status</label>
+                <select id="ae-status" class="std-select" style="width:100%;">
+                  <option ${r.status==='Ongoing'?'selected':''}>Ongoing</option>
+                  <option ${r.status==='Completed'?'selected':''}>Completed</option>
+                  <option ${r.status==='Pending Audit Report'?'selected':''}>Pending Audit Report</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Percentage (blank if N/A)</label>
+                <input type="number" id="ae-pct" min="0" max="100" value="${typeof r.percentage==='number' ? Math.round(r.percentage*100) : ''}">
+              </div>
+            </div>
+            <div class="field" style="margin-bottom:8px;">
+              <label>Progress / Key Achievements (one per line)</label>
+              <textarea id="ae-progress" style="min-height:80px;">${r.progress.join('\n')}</textarea>
+            </div>
+            <div class="actions">
+              <button class="btn" data-audit-cancel="1">Cancel</button>
+              <button class="btn primary" data-audit-save="${r.no}">Save</button>
+            </div>
+          </div>
+        </div>`;
+    }
     const meta = auditStatusMeta(r.status);
     const pctVal = auditPctValue(r);
     const ringPct = pctVal===null ? 0 : pctVal;
     const ringLabel = auditPctLabel(r);
     const progressHtml = r.progress.map(p=>`<li>${p.replace(/^•\s*/,'')}</li>`).join('');
+    const editBtn = canEditDashboard2() ? `<button class="btn small" data-audit-edit="${r.no}" style="margin-right:6px;">Edit</button>` : '';
     return `
       <div class="audit-card" style="--acc:${meta.color};">
         <div class="audit-card-head">
           <div class="audit-card-title"><span class="audit-card-no">${String(r.no).padStart(2,'0')}</span>${r.responsibility}</div>
-          <span class="audit-badge" style="color:${meta.color};background:${meta.bg};"><span class="dot-ico"></span>${meta.label}</span>
+          <div style="display:flex;align-items:center;flex-shrink:0;">
+            ${editBtn}
+            <span class="audit-badge" style="color:${meta.color};background:${meta.bg};"><span class="dot-ico"></span>${meta.label}</span>
+          </div>
         </div>
         <div class="audit-body">
           <div class="audit-ring" style="--pct:${ringPct};--acc:${meta.color};">
@@ -2809,6 +2915,27 @@ function renderAuditCards(){
         ${r.scope ? `<div class="audit-scope">${r.scope}</div>` : ''}
       </div>`;
   }).join('');
+
+  wrap.querySelectorAll('[data-audit-edit]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ editingAuditNo = Number(btn.getAttribute('data-audit-edit')); renderAuditCards(); });
+  });
+  wrap.querySelectorAll('[data-audit-cancel]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ editingAuditNo = null; renderAuditCards(); });
+  });
+  wrap.querySelectorAll('[data-audit-save]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const no = Number(btn.getAttribute('data-audit-save'));
+      const item = AUDIT_DATA.find(x=>x.no===no);
+      if(!item) return;
+      item.responsibility = document.getElementById('ae-resp').value.trim();
+      item.status = document.getElementById('ae-status').value;
+      const pctRaw = document.getElementById('ae-pct').value.trim();
+      item.percentage = pctRaw==='' ? item.percentage : parseInt(pctRaw,10)/100;
+      item.progress = document.getElementById('ae-progress').value.split('\n').map(s=>s.trim()).filter(Boolean);
+      editingAuditNo = null;
+      await saveBoardData('dashboard2', AUDIT_DATA);
+    });
+  });
 }
 
 // ---------------- Dashboard-3 (My KPI's along with my Initiatives) ----------------
@@ -2855,16 +2982,59 @@ function renderKpi3Chart(){
   });
 }
 
-function kpi3Card(r, accent){
+let editingKpi3Idx = null;
+function canEditDashboard3(){ return isAdmin || scopedBoard === 'dashboard3'; }
+
+function kpi3Card(r, accent, idx){
   const isKpi = r.type==='kpi';
+  if(editingKpi3Idx === idx){
+    return `
+      <div class="audit-card" style="--acc:${accent};">
+        <div class="task-edit-block" style="border:none;padding:0;background:none;">
+          <div class="field" style="margin-bottom:8px;">
+            <label>Title</label>
+            <input type="text" id="ke-title" value="${r.title.replace(/"/g,'&quot;')}">
+          </div>
+          <div class="row2" style="margin-bottom:8px;">
+            <div class="field">
+              <label>Type</label>
+              <select id="ke-type" class="std-select" style="width:100%;">
+                <option value="kpi" ${isKpi?'selected':''}>KPI</option>
+                <option value="initiative" ${!isKpi?'selected':''}>Initiative</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Percentage (blank if N/A)</label>
+              <input type="number" id="ke-pct" min="0" max="100" value="${typeof r.pct==='number' ? r.pct : ''}">
+            </div>
+          </div>
+          <div class="field" style="margin-bottom:8px;">
+            <label>Execution text (used when no %)</label>
+            <input type="text" id="ke-exec" value="${(r.execText||'').replace(/"/g,'&quot;')}">
+          </div>
+          <div class="field" style="margin-bottom:8px;">
+            <label>Key Update</label>
+            <input type="text" id="ke-update" value="${(r.update||'').replace(/"/g,'&quot;')}">
+          </div>
+          <div class="actions">
+            <button class="btn" data-kpi3-cancel="1">Cancel</button>
+            <button class="btn primary" data-kpi3-save="${idx}">Save</button>
+          </div>
+        </div>
+      </div>`;
+  }
   const pctKnown = (typeof r.pct === 'number');
   const ringPct = pctKnown ? r.pct : 0;
   const ringLabel = pctKnown ? r.pct+'%' : `<span style="font-size:9px;">${r.execText||'—'}</span>`;
+  const editBtn = canEditDashboard3() ? `<button class="btn small" data-kpi3-edit="${idx}" style="margin-right:6px;">Edit</button>` : '';
   return `
     <div class="audit-card" style="--acc:${accent};">
       <div class="audit-card-head">
         <div class="audit-card-title">${r.title}</div>
-        <span class="audit-badge" style="color:${accent};background:${accent}26;"><span class="dot-ico"></span>${isKpi?'KPI':'Initiative'}</span>
+        <div style="display:flex;align-items:center;flex-shrink:0;">
+          ${editBtn}
+          <span class="audit-badge" style="color:${accent};background:${accent}26;"><span class="dot-ico"></span>${isKpi?'KPI':'Initiative'}</span>
+        </div>
       </div>
       <div class="audit-body">
         <div class="audit-ring" style="--pct:${ringPct};--acc:${accent};">
@@ -2876,13 +3046,39 @@ function kpi3Card(r, accent){
 }
 
 function renderKpi3Cards(){
-  document.getElementById('kpi3KpiCards').innerHTML = KPI3_DATA.filter(r=>r.type==='kpi').map(r=>kpi3Card(r,'#F2C94C')).join('');
-  document.getElementById('kpi3InitCards').innerHTML = KPI3_DATA.filter(r=>r.type==='initiative').map(r=>kpi3Card(r,'#4DD8E6')).join('');
+  const kpiWrap = document.getElementById('kpi3KpiCards');
+  const initWrap = document.getElementById('kpi3InitCards');
+  kpiWrap.innerHTML = KPI3_DATA.map((r,i)=> r.type==='kpi' ? kpi3Card(r,'#F2C94C',i) : '').join('');
+  initWrap.innerHTML = KPI3_DATA.map((r,i)=> r.type==='initiative' ? kpi3Card(r,'#4DD8E6',i) : '').join('');
+
+  document.querySelectorAll('[data-kpi3-edit]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ editingKpi3Idx = Number(btn.getAttribute('data-kpi3-edit')); renderKpi3Cards(); });
+  });
+  document.querySelectorAll('[data-kpi3-cancel]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ editingKpi3Idx = null; renderKpi3Cards(); });
+  });
+  document.querySelectorAll('[data-kpi3-save]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const idx = Number(btn.getAttribute('data-kpi3-save'));
+      const item = KPI3_DATA[idx];
+      if(!item) return;
+      item.title = document.getElementById('ke-title').value.trim();
+      item.type = document.getElementById('ke-type').value;
+      const pctRaw = document.getElementById('ke-pct').value.trim();
+      item.pct = pctRaw==='' ? null : parseInt(pctRaw,10);
+      item.execText = document.getElementById('ke-exec').value.trim();
+      item.update = document.getElementById('ke-update').value.trim();
+      editingKpi3Idx = null;
+      await saveBoardData('dashboard3', KPI3_DATA);
+    });
+  });
 }
 
 // ---------------- init ----------------
 loadCycleList();
 subscribeDocStats();
+subscribeBoardData('dashboard2');
+subscribeBoardData('dashboard3');
 
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js').catch(err=>console.error('SW registration failed', err));
