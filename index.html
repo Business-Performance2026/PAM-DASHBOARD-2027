@@ -1060,7 +1060,10 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
             <div class="chart-wrap"><canvas id="chartGoalTrend"></canvas></div>
           </div>
           <div class="dash-card full">
-            <h3><span class="dot" style="background:var(--red)"></span>Delayed Tasks <span style="font-size:11px;color:var(--text-dim);font-weight:400;margin-right:8px;">— progress under 100%, Sprint 1–<span id="delayedSprintLabel">1</span></span></h3>
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:16px;">
+              <h3 style="margin:0;"><span class="dot" style="background:var(--red)"></span>Delayed Tasks <span style="font-size:11px;color:var(--text-dim);font-weight:400;margin-right:8px;">— progress under 100%, Sprint 1–<span id="delayedSprintLabel">1</span></span></h3>
+              <span id="delayedCountBadge" style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;color:var(--red);background:rgba(232,105,122,.14);border-radius:20px;padding:4px 12px;flex-shrink:0;">0</span>
+            </div>
             <div class="chart-wrap" id="delayedTasksWrap"><canvas id="chartDelayedTasks"></canvas></div>
           </div>
         </div>
@@ -2641,6 +2644,9 @@ function renderDelayedTasksChart(sprintN){
   });
   delayed.sort((a,b)=>a.progress-b.progress);
 
+  const countBadge = document.getElementById('delayedCountBadge');
+  if(countBadge) countBadge.textContent = delayed.length;
+
   const wrap = document.getElementById('delayedTasksWrap');
   if(delayed.length===0){
     wrap.style.height='120px';
@@ -2650,21 +2656,22 @@ function renderDelayedTasksChart(sprintN){
   if(!document.getElementById('chartDelayedTasks')){
     wrap.innerHTML = '<canvas id="chartDelayedTasks"></canvas>';
   }
-  wrap.style.height = Math.max(220, delayed.length*32) + 'px';
+  wrap.style.height = Math.max(220, delayed.length*34) + 'px';
 
-  const labels = delayed.map(d=> truncateLabel2(`${d.goal} — ${d.task}`, 46));
+  const labels = delayed.map(d=> truncateLabel2(d.task, 55));
   const values = delayed.map(d=>d.progress);
   const colors = delayed.map(d=> d.progress<70 ? '#E8697A' : '#F0A868');
 
   destroyChart('delayed');
   const opts = chartBaseOptions({ indexAxis:'y', yMax:100 });
+  opts.minBarLength = 6; // keeps 0% bars visible & hoverable instead of collapsing to nothing
   opts.plugins.tooltip.callbacks = {
-    title:(items)=> delayed[items[0].dataIndex].goal,
-    label:(item)=> `${delayed[item.dataIndex].task}: ${item.formattedValue}%`
+    title:(items)=> delayed[items[0].dataIndex].task,
+    label:(item)=> [`Goal: ${delayed[item.dataIndex].goal}`, `Progress: ${delayed[item.dataIndex].progress}%`]
   };
   chartInstances['delayed'] = new Chart(document.getElementById('chartDelayedTasks'), {
     type:'bar',
-    data:{ labels, datasets:[{ data:values, backgroundColor:colors, borderRadius:4 }] },
+    data:{ labels, datasets:[{ data:values, backgroundColor:colors, borderRadius:4, minBarLength:6 }] },
     options: opts
   });
 }
