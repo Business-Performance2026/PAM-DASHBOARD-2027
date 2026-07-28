@@ -914,6 +914,17 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
 @media (max-width:820px){
   .audit-grid{grid-template-columns:1fr;}
 }
+.kpi3-section-title{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  font-family:'Space Grotesk',sans-serif;
+  font-size:15px;
+  font-weight:700;
+  color:var(--ink);
+  margin:0 0 12px;
+}
+.kpi3-section-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
 .chart-wrap{position:relative;height:260px;width:100%;}
 .chart-wrap.tall{height:320px;}
 
@@ -1009,6 +1020,7 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
   <div class="tabsbar" id="tabsbar">
     <button class="tab active" data-tab="dashboard">Dashboard</button>
     <button class="tab" data-tab="dashboard2">Dashboard-2</button>
+    <button class="tab" data-tab="dashboard3">Dashboard-3</button>
     <button class="tab admin-only-tab" data-tab="goals" style="display:none;">Goals (Admin)</button>
     <button class="tab admin-only-tab" data-tab="documents" style="display:none;">Documents (Admin)</button>
   </div>
@@ -1090,6 +1102,22 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
     </div>
 
     <div class="audit-grid" id="auditCards"></div>
+  </div>
+
+  <div class="view" id="view-dashboard3">
+    <h2 class="section-title">Dashboard-3 <span class="section-sub">— My KPI's along with my Initiatives</span></h2>
+    <div class="stats" id="kpi3StatStrip"></div>
+
+    <div class="dash-card full" style="margin-bottom:20px;">
+      <h3><span class="dot" style="background:#F2C94C"></span>KPI Execution %</h3>
+      <div class="chart-wrap" style="height:200px;"><canvas id="chartKpi3"></canvas></div>
+    </div>
+
+    <h3 class="kpi3-section-title"><span class="kpi3-section-dot" style="background:#F2C94C;box-shadow:0 0 8px #F2C94C;"></span>KPIs</h3>
+    <div class="audit-grid" id="kpi3KpiCards"></div>
+
+    <h3 class="kpi3-section-title" style="margin-top:22px;"><span class="kpi3-section-dot" style="background:var(--cyan);box-shadow:0 0 8px var(--cyan);"></span>My Initiatives</h3>
+    <div class="audit-grid" id="kpi3InitCards"></div>
   </div>
 
   <div class="view" id="view-goals">
@@ -1244,6 +1272,14 @@ let currentTab = 'dashboard';
 
 
 const AUDIT_DATA = [{"no": 1, "responsibility": "Internal Audit Findings", "scope": "Monitor and coordinate the closure of 7 Internal Audit findings, follow up with finding owners, collect supporting evidence, and liaise with the Internal Audit team.", "progress": ["\u2022 3 findings closed", "\u2022 2 findings under Internal Audit review", "\u2022 1 finding not yet due", "\u20221 finding to be carried forward to the next quarter"], "percentage": 0.42, "status": "Ongoing"}, {"no": 2, "responsibility": "Muscat Verification Project Audit", "scope": "monitor audit activities for the Muscat Verification Project, ensuring all requested information is provided to auditors.", "progress": ["Audit completed on 10 June 2026. Awaiting issuance of the official audit report."], "percentage": "Pending Audit Report", "status": "Pending Audit Report"}, {"no": 3, "responsibility": "APSR Q2 Data Return", "scope": "Prepare, validate, and submit regulatory APSR Q2 performance data with supporting evidence and stakeholder coordination.", "progress": ["Q2 APSR report successfully submitted within the required timeline."], "percentage": 0.5, "status": "Completed"}, {"no": 4, "responsibility": "Monthly Water Production Reporting", "scope": "Collect, validate, and consolidate monthly Water Production data for APSR reporting.", "progress": ["June data submitted successfully. Preparation and coordination for July submission are underway."], "percentage": 0.58, "status": "Ongoing"}, {"no": 5, "responsibility": "Balanced Scorecard (BSC) & KPI Monitoring", "scope": "Monitor 14 Directorate KPIs, identify performance risks, engage KPI owners, and track corrective actions.", "progress": ["\u2022 Monthly monitoring protocol starts in August.", "\u2022 7 KPIs identified as high risk (<50% progress).", "\u2022 5 KPIs on track.", "\u2022 1 KPI completed."], "percentage": "Updated up to Q2", "status": "Ongoing"}, {"no": 6, "responsibility": "Water Quality Plan Enhancement", "scope": "Monitor implementation of the Water Quality Improvement Plan across 10 action items and follow up with responsible teams.", "progress": ["\u2022 3 actions completed", "\u2022 2 awaiting confirmation for closure", "\u2022 1 in progress\u2022 4 scheduled for future milestones"], "percentage": 0.3, "status": "Ongoing"}, {"no": 7, "responsibility": "Quarterly Management Reporting", "scope": "Prepare and coordinate the PAM Quarterly Management Report for executive review, consolidating updates", "progress": ["Q2 Management Report completed and submitted."], "percentage": 0.5, "status": "Completed"}];
+
+const KPI3_DATA = [
+  { type:"kpi", title:"Trainings & Events in-house", pct:50, execText:"50% based on last report", update:"updated up to Q2" },
+  { type:"initiative", title:"TDP training developing plan long term", execText:"On going (First stage)", update:"Initiative under progress" },
+  { type:"kpi", title:"Trainings & Events overseas", pct:40, execText:"40% based on last report", update:"KPI updated up to Q2" },
+  { type:"initiative", title:"Build relation with Project directorate and agreed on giving PAM opportunity in overseas trainings through contractors, such as China trainings, UK trainings", execText:"", update:"Initiative under progress" },
+  { type:"kpi", title:"Events in-house & Overseas report", pct:null, execText:"Updated up to Q2", update:"" }
+];
 
 const DOC_DEPARTMENTS = ["A. Planning","A. Engineering","A. Performance","RDI"];
 const DOC_TYPES = ["Policy","Manual","Guidelines","Procedure","Format","Work Instruction"];
@@ -2221,6 +2257,7 @@ function switchTab(tab){
   document.getElementById('cycleSprintGroup').style.display = (tab==='goals' || tab==='dashboard') ? 'flex' : 'none';
   if(tab === 'dashboard') renderDashboard();
   if(tab === 'dashboard2') renderAuditDashboard();
+  if(tab === 'dashboard3') renderKpi3Dashboard();
   if(tab === 'documents') renderDocTable();
 }
 
@@ -2768,6 +2805,75 @@ function renderAuditCards(){
         ${r.scope ? `<div class="audit-scope">${r.scope}</div>` : ''}
       </div>`;
   }).join('');
+}
+
+// ---------------- Dashboard-3 (My KPI's along with my Initiatives) ----------------
+function renderKpi3Dashboard(){
+  if(typeof Chart === 'undefined'){
+    document.getElementById('view-dashboard3').insertAdjacentHTML('beforeend', '<p style="color:var(--red);font-family:monospace;">Chart.js failed to load — check your internet connection and refresh.</p>');
+    return;
+  }
+  renderKpi3Stats();
+  renderKpi3Chart();
+  renderKpi3Cards();
+}
+
+function renderKpi3Stats(){
+  const kpis = KPI3_DATA.filter(r=>r.type==='kpi');
+  const initiatives = KPI3_DATA.filter(r=>r.type==='initiative');
+  const numericKpis = kpis.filter(r=>r.pct!==null);
+  const avgPct = numericKpis.length ? Math.round(numericKpis.reduce((s,r)=>s+r.pct,0)/numericKpis.length) : '—';
+  document.getElementById('kpi3StatStrip').innerHTML = `
+    <div class="stat"><div class="num">${KPI3_DATA.length}</div><div class="lbl">Total Items</div><div class="cap">KPIs and initiatives tracked</div></div>
+    <div class="stat" style="--num-color:#F2C94C;"><div class="num" style="color:#F2C94C;">${kpis.length}</div><div class="lbl">KPIs</div><div class="cap">Measurable targets</div></div>
+    <div class="stat avg"><div class="num">${initiatives.length}</div><div class="lbl">Initiatives</div><div class="cap">Ongoing strategic efforts</div></div>
+    <div class="stat complete"><div class="num">${avgPct}${numericKpis.length?'%':''}</div><div class="lbl">Avg KPI Execution</div><div class="cap">Across reported KPIs</div></div>
+  `;
+}
+
+function renderKpi3Chart(){
+  const kpis = KPI3_DATA.filter(r=>r.type==='kpi');
+  const labels = kpis.map(r=>r.title);
+  const values = kpis.map(r=>r.pct===null ? 0 : r.pct);
+  const colors = kpis.map(r=> r.pct===null ? '#7DA39D' : r.pct>=70 ? '#4ECDA0' : r.pct>=40 ? '#F2C94C' : '#E8697A');
+  destroyChart('kpi3');
+  const opts = chartBaseOptions({ yMax:100 });
+  opts.plugins.tooltip.callbacks = {
+    label:(item)=>{
+      const r = kpis[item.dataIndex];
+      return r.pct===null ? r.execText : `${r.pct}% — ${r.execText}`;
+    }
+  };
+  chartInstances['kpi3'] = new Chart(document.getElementById('chartKpi3'), {
+    type:'bar',
+    data:{ labels: labels.map(l=>l.length>28?l.slice(0,27)+'…':l), datasets:[{ data: values, backgroundColor: colors, borderRadius:4 }] },
+    options: opts
+  });
+}
+
+function kpi3Card(r, accent){
+  const isKpi = r.type==='kpi';
+  const pctKnown = isKpi && r.pct!==null;
+  const ringPct = pctKnown ? r.pct : 0;
+  const ringLabel = isKpi ? (pctKnown ? r.pct+'%' : `<span style="font-size:9px;">${r.execText}</span>`) : `<span style="font-size:9px;">${r.execText||'—'}</span>`;
+  return `
+    <div class="audit-card" style="--acc:${accent};">
+      <div class="audit-card-head">
+        <div class="audit-card-title">${r.title}</div>
+        <span class="audit-badge" style="color:${accent};background:${accent}26;"><span class="dot-ico"></span>${isKpi?'KPI':'Initiative'}</span>
+      </div>
+      <div class="audit-body">
+        <div class="audit-ring" style="--pct:${ringPct};--acc:${accent};">
+          <div class="audit-ring-inner" style="color:${accent};text-align:center;">${ringLabel}</div>
+        </div>
+        <ul class="audit-progress-list">${r.update ? `<li>${r.update}</li>` : '<li style="opacity:.5;">No update yet</li>'}</ul>
+      </div>
+    </div>`;
+}
+
+function renderKpi3Cards(){
+  document.getElementById('kpi3KpiCards').innerHTML = KPI3_DATA.filter(r=>r.type==='kpi').map(r=>kpi3Card(r,'#F2C94C')).join('');
+  document.getElementById('kpi3InitCards').innerHTML = KPI3_DATA.filter(r=>r.type==='initiative').map(r=>kpi3Card(r,'#4DD8E6')).join('');
 }
 
 // ---------------- init ----------------
