@@ -1496,7 +1496,13 @@ onAuthStateChanged(auth, async (user)=>{
       const adminSnap = await getDoc(doc(db,'admins',user.uid));
       if(adminSnap.exists()){
         const data = adminSnap.data() || {};
-        role = data.role || 'admin'; // legacy docs with no role field = full admin
+        const rawRole = (data.role===undefined || data.role===null) ? '' : String(data.role).trim().toLowerCase();
+        console.log('[admins/'+user.uid+'] role field raw value:', JSON.stringify(data.role));
+        if(rawRole === 'dashboard2' || rawRole === 'dashboard3'){
+          role = rawRole;
+        } else {
+          role = 'admin'; // no role field, or unrecognized value → full admin (legacy accounts)
+        }
         verifiedAdmin = (role === 'admin');
       }
     }catch(err){
