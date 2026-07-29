@@ -879,6 +879,22 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
   flex-shrink:0;
 }
 .audit-badge .dot-ico{width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 6px currentColor;}
+.kpi3-vis-toggle{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10px;
+  font-weight:600;
+  color:var(--text-dim);
+  cursor:pointer;
+  user-select:none;
+  padding:4px 8px;
+  border-radius:20px;
+  background:rgba(255,255,255,.06);
+  white-space:nowrap;
+}
+.kpi3-vis-toggle input{margin:0;cursor:pointer;accent-color:var(--cyan);}
 .audit-body{display:flex;gap:16px;align-items:flex-start;}
 .audit-ring{
   width:60px;height:60px;border-radius:50%;
@@ -1111,7 +1127,7 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
   </div>
 
   <div class="view" id="view-dashboard2">
-    <h2 class="section-title">Dashboard-2 <span class="section-sub">— Key Responsibilities Tracker</span></h2>
+    <h2 class="section-title">Dashboard-2</h2>
     <div class="stats" id="auditStatStrip"></div>
 
     <div class="dash-card full" style="margin-bottom:20px;">
@@ -1123,7 +1139,7 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
   </div>
 
   <div class="view" id="view-dashboard3">
-    <h2 class="section-title">Dashboard-3 <span class="section-sub">— My KPI's along with my Initiatives</span></h2>
+    <h2 class="section-title">Dashboard-3</h2>
     <div class="stats" id="kpi3StatStrip"></div>
 
     <div class="dash-card full" style="margin-bottom:20px;">
@@ -3088,12 +3104,20 @@ function kpi3Card(r, accent, idx){
   const pctKnown = (typeof r.pct === 'number');
   const ringPct = pctKnown ? r.pct : 0;
   const ringLabel = pctKnown ? r.pct+'%' : `<span style="font-size:9px;">${r.execText||'—'}</span>`;
-  const editBtn = canEditDashboard3() ? `<button class="btn small" data-kpi3-edit="${idx}" style="margin-right:6px;">Edit</button>` : '';
+  const canEdit = canEditDashboard3();
+  const isHidden = r.visible === false;
+  const editBtn = canEdit ? `<button class="btn small" data-kpi3-edit="${idx}" style="margin-right:6px;">Edit</button>` : '';
+  const visToggle = canEdit ? `
+    <label class="kpi3-vis-toggle" title="${isHidden ? 'Hidden from the public dashboard — click to show' : 'Visible on the public dashboard — click to hide'}">
+      <input type="checkbox" data-kpi3-vis="${idx}" ${isHidden ? '' : 'checked'}>
+      <span>${isHidden ? 'Hidden' : 'Shown'}</span>
+    </label>` : '';
   return `
-    <div class="audit-card" style="--acc:${accent};">
+    <div class="audit-card" style="--acc:${accent};${isHidden ? 'opacity:.5;' : ''}">
       <div class="audit-card-head">
         <div class="audit-card-title">${r.title}</div>
-        <div style="display:flex;align-items:center;flex-shrink:0;">
+        <div style="display:flex;align-items:center;flex-shrink:0;gap:6px;">
+          ${visToggle}
           ${editBtn}
           <span class="audit-badge" style="color:${accent};background:${accent}26;"><span class="dot-ico"></span>${isKpi?'KPI':'Initiative'}</span>
         </div>
@@ -3110,9 +3134,20 @@ function kpi3Card(r, accent, idx){
 function renderKpi3Cards(){
   const kpiWrap = document.getElementById('kpi3KpiCards');
   const initWrap = document.getElementById('kpi3InitCards');
-  kpiWrap.innerHTML = KPI3_DATA.map((r,i)=> r.type==='kpi' ? kpi3Card(r,'#F2C94C',i) : '').join('');
-  initWrap.innerHTML = KPI3_DATA.map((r,i)=> r.type==='initiative' ? kpi3Card(r,'#4DD8E6',i) : '').join('');
+  const canEdit = canEditDashboard3();
+  const visibleItems = (i,r)=> canEdit || r.visible !== false;
+  kpiWrap.innerHTML = KPI3_DATA.map((r,i)=> (r.type==='kpi' && visibleItems(i,r)) ? kpi3Card(r,'#F2C94C',i) : '').join('');
+  initWrap.innerHTML = KPI3_DATA.map((r,i)=> (r.type==='initiative' && visibleItems(i,r)) ? kpi3Card(r,'#4DD8E6',i) : '').join('');
 
+  document.querySelectorAll('[data-kpi3-vis]').forEach(cb=>{
+    cb.addEventListener('change', async ()=>{
+      const idx = Number(cb.getAttribute('data-kpi3-vis'));
+      const item = KPI3_DATA[idx];
+      if(!item) return;
+      item.visible = cb.checked;
+      await saveBoardData('dashboard3', KPI3_DATA);
+    });
+  });
   document.querySelectorAll('[data-kpi3-edit]').forEach(btn=>{
     btn.addEventListener('click', ()=>{ editingKpi3Idx = Number(btn.getAttribute('data-kpi3-edit')); renderKpi3Cards(); });
   });
