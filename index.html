@@ -2588,7 +2588,11 @@ function subscribeSummaryVisibility(){
   onSnapshot(ref, (snap)=>{
     summaryVisible = snap.exists() ? (snap.data().visible !== false) : true;
     applyTabVisibility();
-    if(currentTab === 'summary') renderSummaryVisToggle();
+    if(!isAdmin && !summaryVisible && currentTab === 'summary'){
+      switchTab(scopedBoard || 'dashboard');
+    } else if(currentTab === 'summary'){
+      renderSummaryVisToggle();
+    }
   }, (err)=>{
     console.error('summaryVisibility listen error', err);
   });
