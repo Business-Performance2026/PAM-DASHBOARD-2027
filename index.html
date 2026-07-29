@@ -792,6 +792,125 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
 .mini-table-filter .seg{padding:2px;}
 .mini-table-filter .seg button{padding:6px 12px;font-size:12px;}
 
+/* ---------- Executive Summary ---------- */
+.exec-health-banner{
+  border-radius:16px;
+  padding:26px 30px;
+  margin-bottom:22px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:16px;
+  border:1px solid var(--acc, var(--cyan));
+  background:var(--surface);
+  background:linear-gradient(135deg, color-mix(in srgb, var(--acc, var(--cyan)) 16%, var(--surface)), var(--surface));
+}
+.exec-health-left{display:flex;align-items:center;gap:16px;}
+.exec-health-icon{
+  width:54px;height:54px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:26px;
+  background:var(--acc, var(--cyan));
+  box-shadow:0 0 22px var(--acc, var(--cyan));
+  flex-shrink:0;
+}
+.exec-health-title{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:20px;
+  font-weight:700;
+  color:#fff;
+}
+.exec-health-sub{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12px;
+  color:var(--text-mid);
+  margin-top:3px;
+}
+.exec-health-badge{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:13px;
+  font-weight:700;
+  padding:8px 20px;
+  border-radius:20px;
+  background:var(--acc, var(--cyan));
+  color:#04222b;
+  white-space:nowrap;
+}
+.exec-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:18px;
+}
+.exec-card{
+  background:linear-gradient(180deg, var(--surface-hi) 0%, var(--surface) 140px);
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:22px;
+  display:flex;
+  flex-direction:column;
+  transition:border-color .15s, transform .15s;
+}
+.exec-card:hover{border-color:var(--cyan-dim);transform:translateY(-2px);}
+.exec-card-head{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:16px;
+}
+.exec-card-icon{
+  width:34px;height:34px;border-radius:9px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;
+  background:rgba(255,255,255,.08);
+  flex-shrink:0;
+}
+.exec-card-title{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:16px;
+  font-weight:700;
+  color:#fff;
+}
+.exec-card-nums{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:12px;
+  margin-bottom:16px;
+  flex:1;
+}
+.exec-num-block .num{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:26px;
+  font-weight:700;
+  color:#fff;
+  line-height:1;
+}
+.exec-num-block .lbl{
+  font-size:11px;
+  color:var(--text-mid);
+  margin-top:5px;
+}
+.exec-card-link{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12px;
+  font-weight:700;
+  color:var(--cyan);
+  background:rgba(77,216,230,.1);
+  border:1px solid rgba(77,216,230,.25);
+  border-radius:9px;
+  padding:10px;
+  cursor:pointer;
+  transition:.15s;
+}
+.exec-card-link:hover{background:rgba(77,216,230,.18);}
+@media (max-width:900px){
+  .exec-grid{grid-template-columns:1fr;}
+}
+
 /* ---------- Dashboards ---------- */
 .section-sub{
   font-size:13px;
@@ -1045,14 +1164,20 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
   </div>
 
   <div class="tabsbar" id="tabsbar">
-    <button class="tab active" data-tab="dashboard">Dashboard</button>
+    <button class="tab active" data-tab="summary">Summary</button>
+    <button class="tab" data-tab="dashboard">Dashboard</button>
     <button class="tab" data-tab="dashboard2">Dashboard-2</button>
     <button class="tab" data-tab="dashboard3">Dashboard-3</button>
     <button class="tab admin-only-tab" data-tab="goals" style="display:none;">Goals (Admin)</button>
     <button class="tab admin-only-tab" data-tab="documents" style="display:none;">Documents (Admin)</button>
   </div>
 
-  <div class="view active" id="view-dashboard">
+  <div class="view active" id="view-summary">
+    <div class="exec-health-banner" id="execHealthBanner"></div>
+    <div class="exec-grid" id="execGrid"></div>
+  </div>
+
+  <div class="view" id="view-dashboard">
     <h2 class="section-title">12 Weeks Plan <span class="section-sub">— Cycle <span id="gdCycleLabel">—</span>, Sprint 1–<span id="gdSprintLabel">1</span></span></h2>
     <div class="dash-halves">
       <div class="dash-half">
@@ -1344,7 +1469,7 @@ let addingGoal = false;
 let currentFilter = 'all';
 let currentSearch = '';
 
-let currentTab = 'dashboard';
+let currentTab = 'summary';
 
 
 
@@ -1605,6 +1730,7 @@ onAuthStateChanged(auth, async (user)=>{
 
   renderAuditDashboard();
   renderKpi3Dashboard();
+  renderSummary();
   editingGoalNo = null;
   addingGoal = false;
   loadCycleList(currentCycleId);
@@ -2224,6 +2350,7 @@ function renderAll(){
   renderStats();
   renderGoals();
   if(currentTab === 'dashboard') renderDashboard();
+  if(currentTab === 'summary') renderSummary();
 }
 
 function renderGoals(){
@@ -2368,6 +2495,7 @@ function switchTab(tab){
   if(tab === 'dashboard2') renderAuditDashboard();
   if(tab === 'dashboard3') renderKpi3Dashboard();
   if(tab === 'documents') renderDocTable();
+  if(tab === 'summary') renderSummary();
 }
 
 function renderDashboard(){
@@ -2461,6 +2589,7 @@ function subscribeBoardData(boardId){
     }
     if(currentTab==='dashboard2') renderAuditDashboard();
     if(currentTab==='dashboard3') renderKpi3Dashboard();
+    if(currentTab==='summary') renderSummary();
   }, (err)=>{
     console.error('boardData listen error ('+boardId+')', err);
   });
@@ -3214,11 +3343,107 @@ function renderKpi3Cards(){
   });
 }
 
+// ---------------- Executive Summary ----------------
+function execAuditPct(item){
+  if(typeof item.percentage === 'number') return item.percentage*100;
+  return null;
+}
+
+function renderSummary(){
+  const sprintN = getSprintNumber();
+
+  // Goals / Sprint tracking
+  const goalAvgs = currentGoals.map(g=>goalDynamicAvg(g, sprintN)).filter(v=>v!==null);
+  const goalsOverall = goalAvgs.length ? goalAvgs.reduce((a,b)=>a+b,0)/goalAvgs.length : null;
+  const goalsDelayed = currentGoals.filter(g=>{ const a=goalDynamicAvg(g,sprintN); return a!==null && a<100; }).length;
+
+  // Key Responsibilities (Dashboard-2)
+  const auditPcts = AUDIT_DATA.map(execAuditPct).filter(v=>v!==null);
+  const auditOverall = auditPcts.length ? auditPcts.reduce((a,b)=>a+b,0)/auditPcts.length : null;
+  const auditCompleted = AUDIT_DATA.filter(r=>(r.status||'').toLowerCase().includes('complet')).length;
+
+  // KPIs & Initiatives (Dashboard-3)
+  const kpi3Visible = KPI3_DATA.filter(r=>r.visible!==false);
+  const kpi3Kpis = kpi3Visible.filter(r=>r.type==='kpi');
+  const kpi3Numeric = kpi3Kpis.filter(r=>typeof r.pct==='number');
+  const kpi3Overall = kpi3Numeric.length ? kpi3Numeric.reduce((s,r)=>s+r.pct,0)/kpi3Numeric.length : null;
+
+  const scores = [goalsOverall, auditOverall, kpi3Overall].filter(v=>v!==null);
+  const overallScore = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : null;
+
+  let acc, icon, label;
+  if(overallScore===null){ acc='#7DA39D'; icon='—'; label='No data yet'; }
+  else if(overallScore>=85){ acc='#4ECDA0'; icon='✓'; label='On Track'; }
+  else if(overallScore>=60){ acc='#F2C94C'; icon='!'; label='At Risk'; }
+  else { acc='#E8697A'; icon='⚠'; label='Needs Attention'; }
+
+  document.getElementById('execHealthBanner').style.setProperty('--acc', acc);
+  document.getElementById('execHealthBanner').innerHTML = `
+    <div class="exec-health-left">
+      <div class="exec-health-icon">${icon}</div>
+      <div>
+        <div class="exec-health-title">Overall Program Health: ${overallScore===null?'—':overallScore+'%'}</div>
+        <div class="exec-health-sub">Combined average across Goals, Key Responsibilities &amp; KPIs</div>
+      </div>
+    </div>
+    <div class="exec-health-badge">${label}</div>
+  `;
+
+  document.getElementById('execGrid').innerHTML = `
+    <div class="exec-card">
+      <div class="exec-card-head">
+        <div class="exec-card-icon">🎯</div>
+        <div class="exec-card-title">Goals &amp; Sprints</div>
+      </div>
+      <div class="exec-card-nums">
+        <div class="exec-num-block"><div class="num">${currentGoals.length}</div><div class="lbl">Total Goals</div></div>
+        <div class="exec-num-block"><div class="num" style="color:${goalsOverall===null?'var(--text-mid)':goalsOverall>=100?'#4ECDA0':'#F0A868'}">${goalsOverall===null?'—':Math.round(goalsOverall)+'%'}</div><div class="lbl">Overall Average</div></div>
+        <div class="exec-num-block"><div class="num" style="color:#E8697A">${goalsDelayed}</div><div class="lbl">Delayed Goals</div></div>
+        <div class="exec-num-block"><div class="num">${currentCycleId||'—'}</div><div class="lbl">Active Cycle</div></div>
+      </div>
+      <div class="exec-card-link" data-goto="dashboard">View Full Dashboard →</div>
+    </div>
+
+    <div class="exec-card">
+      <div class="exec-card-head">
+        <div class="exec-card-icon">📋</div>
+        <div class="exec-card-title">Key Responsibilities</div>
+      </div>
+      <div class="exec-card-nums">
+        <div class="exec-num-block"><div class="num">${AUDIT_DATA.length}</div><div class="lbl">Tracked Items</div></div>
+        <div class="exec-num-block"><div class="num" style="color:#4ECDA0">${auditCompleted}</div><div class="lbl">Completed</div></div>
+        <div class="exec-num-block"><div class="num" style="color:${auditOverall===null?'var(--text-mid)':auditOverall>=70?'#4ECDA0':'#F0A868'}">${auditOverall===null?'—':Math.round(auditOverall)+'%'}</div><div class="lbl">Avg Progress</div></div>
+        <div class="exec-num-block"><div class="num" style="color:#B39DDB">${AUDIT_DATA.filter(r=>(r.status||'').toLowerCase().includes('pending')).length}</div><div class="lbl">Pending Audit</div></div>
+      </div>
+      <div class="exec-card-link" data-goto="dashboard2">View Full Dashboard →</div>
+    </div>
+
+    <div class="exec-card">
+      <div class="exec-card-head">
+        <div class="exec-card-icon">📈</div>
+        <div class="exec-card-title">KPIs &amp; Initiatives</div>
+      </div>
+      <div class="exec-card-nums">
+        <div class="exec-num-block"><div class="num">${kpi3Kpis.length}</div><div class="lbl">KPIs Tracked</div></div>
+        <div class="exec-num-block"><div class="num">${kpi3Visible.filter(r=>r.type==='initiative').length}</div><div class="lbl">Initiatives</div></div>
+        <div class="exec-num-block"><div class="num" style="color:${kpi3Overall===null?'var(--text-mid)':kpi3Overall>=70?'#4ECDA0':'#F2C94C'}">${kpi3Overall===null?'—':Math.round(kpi3Overall)+'%'}</div><div class="lbl">Avg Execution</div></div>
+        <div class="exec-num-block"><div class="num">${kpi3Visible.length}</div><div class="lbl">Total Visible</div></div>
+      </div>
+      <div class="exec-card-link" data-goto="dashboard3">View Full Dashboard →</div>
+    </div>
+  `;
+
+  document.querySelectorAll('#execGrid [data-goto]').forEach(el=>{
+    el.addEventListener('click', ()=> switchTab(el.getAttribute('data-goto')));
+  });
+}
+
 // ---------------- init ----------------
 loadCycleList();
 subscribeDocStats();
 subscribeBoardData('dashboard2');
 subscribeBoardData('dashboard3');
+renderSummary();
 
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js').catch(err=>console.error('SW registration failed', err));
