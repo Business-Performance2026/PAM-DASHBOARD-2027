@@ -3028,12 +3028,13 @@ function renderKpi3Dashboard(){
 }
 
 function renderKpi3Stats(){
-  const kpis = KPI3_DATA.filter(r=>r.type==='kpi');
-  const initiatives = KPI3_DATA.filter(r=>r.type==='initiative');
+  const visibleData = KPI3_DATA.filter(r=>r.visible !== false);
+  const kpis = visibleData.filter(r=>r.type==='kpi');
+  const initiatives = visibleData.filter(r=>r.type==='initiative');
   const numericKpis = kpis.filter(r=>r.pct!==null);
   const avgPct = numericKpis.length ? Math.round(numericKpis.reduce((s,r)=>s+r.pct,0)/numericKpis.length) : '—';
   document.getElementById('kpi3StatStrip').innerHTML = `
-    <div class="stat"><div class="num">${KPI3_DATA.length}</div><div class="lbl">Total Items</div><div class="cap">KPIs and initiatives tracked</div></div>
+    <div class="stat"><div class="num">${visibleData.length}</div><div class="lbl">Total Items</div><div class="cap">KPIs and initiatives tracked</div></div>
     <div class="stat" style="--num-color:#F2C94C;"><div class="num" style="color:#F2C94C;">${kpis.length}</div><div class="lbl">KPIs</div><div class="cap">Measurable targets</div></div>
     <div class="stat avg"><div class="num">${initiatives.length}</div><div class="lbl">Initiatives</div><div class="cap">Ongoing strategic efforts</div></div>
     <div class="stat complete"><div class="num">${avgPct}${numericKpis.length?'%':''}</div><div class="lbl">Avg KPI Execution</div><div class="cap">Across reported KPIs</div></div>
@@ -3041,7 +3042,7 @@ function renderKpi3Stats(){
 }
 
 function renderKpi3Chart(){
-  const kpis = KPI3_DATA.filter(r=>r.type==='kpi');
+  const kpis = KPI3_DATA.filter(r=>r.type==='kpi' && r.visible !== false);
   const labels = kpis.map(r=>r.title);
   const values = kpis.map(r=>r.pct===null ? 0 : r.pct);
   const colors = kpis.map(r=> r.pct===null ? '#7DA39D' : r.pct>=70 ? '#4ECDA0' : r.pct>=40 ? '#F2C94C' : '#E8697A');
