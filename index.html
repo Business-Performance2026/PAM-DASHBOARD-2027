@@ -1273,6 +1273,48 @@ const firebaseConfig = {
   appId: "1:533576693120:web:1284a23ef199bfa0917d65"
 };
 
+// ---------------- Global chart styling: soft depth/shadow look applied to EVERY chart ----------------
+if(typeof Chart !== 'undefined'){
+  Chart.register({
+    id: 'depthShadow',
+    beforeDatasetsDraw(chart){
+      const ctx = chart.ctx;
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,.45)';
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 5;
+    },
+    afterDatasetsDraw(chart){
+      chart.ctx.restore();
+    }
+  });
+  Chart.defaults.elements.arc.borderWidth = 3;
+  Chart.defaults.elements.arc.borderColor = '#0B5257';
+  Chart.defaults.elements.arc.hoverOffset = 10;
+  Chart.defaults.elements.bar.borderRadius = 6;
+  Chart.defaults.elements.bar.borderSkipped = false;
+  Chart.defaults.elements.line.borderWidth = 3;
+  Chart.defaults.elements.point.radius = 4;
+  Chart.defaults.elements.point.hoverRadius = 7;
+  Chart.defaults.elements.point.borderWidth = 2;
+  Chart.defaults.animation.duration = 900;
+  Chart.defaults.animation.easing = 'easeOutQuart';
+}
+// Builds a vertical glossy gradient from a base color, giving bars a subtle raised/3D fill
+// instead of a flat color. Falls back to the flat color if the canvas context isn't ready.
+function glossyGradient(canvasOrCtx, hex){
+  try{
+    const ctx = canvasOrCtx.getContext ? canvasOrCtx.getContext('2d') : canvasOrCtx;
+    const h = hex.replace('#','');
+    const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
+    const grad = ctx.createLinearGradient(0,0,0,260);
+    grad.addColorStop(0, `rgba(${r},${g},${b},1)`);
+    grad.addColorStop(1, `rgba(${r},${g},${b},.55)`);
+    return grad;
+  }catch(e){ return hex; }
+}
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
