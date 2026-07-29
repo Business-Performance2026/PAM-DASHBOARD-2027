@@ -878,6 +878,20 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
   margin-bottom:16px;
   flex:1;
 }
+.exec-subsection-label{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10.5px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  color:var(--cyan);
+  margin-bottom:10px;
+}
+.exec-subsection-divider{
+  height:1px;
+  background:rgba(255,255,255,.1);
+  margin:4px 0 14px;
+}
 .exec-num-block .num{
   font-family:'Space Grotesk',sans-serif;
   font-size:26px;
@@ -1173,6 +1187,7 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
   </div>
 
   <div class="view active" id="view-summary">
+    <div id="summaryVisToggleWrap" style="margin-bottom:14px;"></div>
     <div class="exec-health-banner" id="execHealthBanner"></div>
     <div class="exec-grid" id="execGrid"></div>
   </div>
@@ -1470,6 +1485,7 @@ let currentFilter = 'all';
 let currentSearch = '';
 
 let currentTab = 'summary';
+let summaryVisible = true; // admin-controlled: whether the Summary tab shows for everyone
 
 
 
@@ -1717,16 +1733,10 @@ onAuthStateChanged(auth, async (user)=>{
   document.querySelectorAll('.admin-only-tab').forEach(b=> b.style.display = isAdmin ? 'inline-block' : 'none');
 
   // Scoped editors (Dashboard-2 / Dashboard-3 only): hide every other tab, lock them to their one board.
-  document.querySelectorAll('.tabsbar .tab').forEach(b=>{
-    const t = b.getAttribute('data-tab');
-    if(scopedBoard){
-      b.style.display = (t === scopedBoard) ? 'inline-block' : 'none';
-    } else {
-      b.style.display = (b.classList.contains('admin-only-tab') && !isAdmin) ? 'none' : 'inline-block';
-    }
-  });
+  applyTabVisibility();
   if(scopedBoard && currentTab !== scopedBoard) switchTab(scopedBoard);
   if(!isAdmin && (currentTab==='goals' || currentTab==='documents')) switchTab(scopedBoard || 'dashboard');
+  if(!isAdmin && !summaryVisible && currentTab==='summary') switchTab(scopedBoard || 'dashboard');
 
   renderAuditDashboard();
   renderKpi3Dashboard();
@@ -2558,6 +2568,55 @@ function renderDocTable(){
   }
 }
 
+function applyTabVisibility(){
+  document.querySelectorAll('.tabsbar .tab').forEach(b=>{
+    const t = b.getAttribute('data-tab');
+    if(scopedBoard){
+      b.style.display = (t === scopedBoard) ? 'inline-block' : 'none';
+      return;
+    }
+    if(t === 'summary'){
+      b.style.display = (summaryVisible || isAdmin) ? 'inline-block' : 'none';
+      return;
+    }
+    b.style.display = (b.classList.contains('admin-only-tab') && !isAdmin) ? 'none' : 'inline-block';
+  });
+}
+
+function subscribeSummaryVisibility(){
+  const ref = doc(db,'settings','summaryVisibility');
+  onSnapshot(ref, (snap)=>{
+    summaryVisible = snap.exists() ? (snap.data().visible !== false) : true;
+    applyTabVisibility();
+    if(currentTab === 'summary') renderSummaryVisToggle();
+  }, (err)=>{
+    console.error('summaryVisibility listen error', err);
+  });
+}
+
+async function setSummaryVisibility(visible){
+  try{
+    await setDoc(doc(db,'settings','summaryVisibility'), { visible });
+  }catch(err){
+    console.error('Failed to save summary visibility', err);
+    alert('Could not save:\n' + err.message);
+  }
+}
+
+function renderSummaryVisToggle(){
+  const el = document.getElementById('summaryVisToggleWrap');
+  if(!el) return;
+  if(!isAdmin){ el.innerHTML=''; return; }
+  el.innerHTML = `
+    <label class="kpi3-vis-toggle" style="font-size:11.5px;padding:6px 12px;" title="Only you (the full admin) can control this — other editors never see this toggle.">
+      <input type="checkbox" id="summaryVisCheckbox" ${summaryVisible ? 'checked' : ''}>
+      <span>${summaryVisible ? 'Summary tab is visible to everyone' : 'Summary tab is hidden from everyone but you'}</span>
+    </label>`;
+  document.getElementById('summaryVisCheckbox').addEventListener('change', (e)=>{
+    setSummaryVisibility(e.target.checked);
+  });
+}
+
 function subscribeDocStats(){
   const ref = doc(db,'docStats','summary');
   onSnapshot(ref, (snap)=>{
@@ -3350,6 +3409,7 @@ function execAuditPct(item){
 }
 
 function renderSummary(){
+  renderSummaryVisToggle();
   const sprintN = getSprintNumber();
 
   // Goals / Sprint tracking
@@ -3389,17 +3449,28 @@ function renderSummary(){
     <div class="exec-health-badge">${label}</div>
   `;
 
+  const docGrand = docGrandTotal();
+  const docTopDeptIdx = DOC_DEPARTMENTS.map(d=>docDeptTotal(d)).reduce((bi,v,i,arr)=> v>arr[bi] ? i : bi, 0);
+
   document.getElementById('execGrid').innerHTML = `
     <div class="exec-card">
       <div class="exec-card-head">
         <div class="exec-card-icon">🎯</div>
-        <div class="exec-card-title">Goals &amp; Sprints</div>
+        <div class="exec-card-title">12 Weeks Plan &amp; Documentation</div>
       </div>
+      <div class="exec-subsection-label">Goals</div>
       <div class="exec-card-nums">
         <div class="exec-num-block"><div class="num">${currentGoals.length}</div><div class="lbl">Total Goals</div></div>
         <div class="exec-num-block"><div class="num" style="color:${goalsOverall===null?'var(--text-mid)':goalsOverall>=100?'#4ECDA0':'#F0A868'}">${goalsOverall===null?'—':Math.round(goalsOverall)+'%'}</div><div class="lbl">Overall Average</div></div>
         <div class="exec-num-block"><div class="num" style="color:#E8697A">${goalsDelayed}</div><div class="lbl">Delayed Goals</div></div>
         <div class="exec-num-block"><div class="num">${currentCycleId||'—'}</div><div class="lbl">Active Cycle</div></div>
+      </div>
+      <div class="exec-subsection-divider"></div>
+      <div class="exec-subsection-label">📄 Documentation</div>
+      <div class="exec-card-nums">
+        <div class="exec-num-block"><div class="num">${docGrand}</div><div class="lbl">Total Documents</div></div>
+        <div class="exec-num-block"><div class="num">${DOC_DEPARTMENTS.length}</div><div class="lbl">Departments</div></div>
+        <div class="exec-num-block" style="grid-column:1 / -1;"><div class="num" style="font-size:16px;">${docGrand ? DOC_DEPARTMENTS[docTopDeptIdx] : '—'}</div><div class="lbl">Leading Department</div></div>
       </div>
       <div class="exec-card-link" data-goto="dashboard">View Full Dashboard →</div>
     </div>
@@ -3407,7 +3478,7 @@ function renderSummary(){
     <div class="exec-card">
       <div class="exec-card-head">
         <div class="exec-card-icon">📋</div>
-        <div class="exec-card-title">Key Responsibilities</div>
+        <div class="exec-card-title">PAM BSC</div>
       </div>
       <div class="exec-card-nums">
         <div class="exec-num-block"><div class="num">${AUDIT_DATA.length}</div><div class="lbl">Tracked Items</div></div>
@@ -3443,6 +3514,7 @@ loadCycleList();
 subscribeDocStats();
 subscribeBoardData('dashboard2');
 subscribeBoardData('dashboard3');
+subscribeSummaryVisibility();
 renderSummary();
 
 if('serviceWorker' in navigator){
