@@ -123,7 +123,7 @@ h1{
 }
 .btn:active{transform:scale(.97);}
 .btn:hover{border-color:var(--cyan-dim);color:var(--text);}
-.btn.primary{background:#F2C94C;color:#4A3800;border-color:#F2C94C;width:100%;margin-top:18px;padding:14px;font-size:14px;font-weight:700;}
+.btn.primary{background:#00A8A2;color:#FFFFFF;border-color:#00A8A2;width:100%;margin-top:18px;padding:14px;font-size:14px;font-weight:700;}
 .btn.primary:hover{opacity:.9;}
 
 /* ---------- Entry app ---------- */
@@ -162,7 +162,7 @@ h1{
   padding:15px;
   font-size:14px;
   border-radius:14px;
-  box-shadow:0 6px 20px rgba(242,201,76,.4);
+  box-shadow:0 6px 20px rgba(0,168,162,.4);
 }
 .validation-note{
   font-size:12px;
@@ -338,6 +338,34 @@ h1{
   color:var(--ink-dim);
   font-size:13.5px;
 }
+.modal-overlay{
+  position:fixed;inset:0;
+  background:rgba(3,20,20,.6);
+  backdrop-filter:blur(3px);
+  -webkit-backdrop-filter:blur(3px);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:100;
+  padding:20px;
+}
+.modal-card{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:20px;
+  padding:30px 26px 24px;
+  max-width:340px;
+  width:100%;
+  text-align:center;
+  box-shadow:0 24px 60px rgba(0,0,0,.4);
+  animation:modalPop .18s ease-out;
+}
+@keyframes modalPop{from{transform:scale(.92);opacity:0;}to{transform:scale(1);opacity:1;}}
+.modal-icon{font-size:34px;margin-bottom:10px;}
+.modal-title{font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;color:#fff;margin-bottom:10px;}
+.modal-text{font-size:13.5px;color:var(--text-mid);line-height:1.6;margin-bottom:22px;}
+.modal-card .btn.primary{margin-top:0;}
+
 @media (max-width:480px){
   .goal-card-fields{flex-direction:column;}
   .goal-card .field-progress{width:100%;}
@@ -383,15 +411,22 @@ h1{
       <span class="cycle-task-inline" id="whichLabel">Loading assigned Cycle &amp; Task…</span>
     </div>
 
-    <div class="validation-note">Note: If the evaluation is less than 100%, please provide a justification to complete the evaluation save process.</div>
-
     <div class="entry-wrap" id="entryWrap"></div>
   </div>
 
 </div>
 
 <div class="save-bar-fixed hidden" id="saveBarFixed">
-  <button class="btn primary" id="saveBtn">Save Progress</button>
+  <button class="btn primary" id="saveBtn">Save</button>
+</div>
+
+<div class="modal-overlay hidden" id="validationModal">
+  <div class="modal-card">
+    <div class="modal-icon">⚠️</div>
+    <div class="modal-title">Justification Required</div>
+    <div class="modal-text">Please Provide a reason why this task is not yet 100% complete before saving</div>
+    <button class="btn primary" id="modalOkBtn">Got it</button>
+  </div>
 </div>
 
 <script type="module">
@@ -417,6 +452,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 let currentCycleId = null;
+let lastInvalidCard = null;
 let currentGoals = [];
 let unsubscribeCycle = null;
 
@@ -481,6 +517,14 @@ document.getElementById('loginBtn').addEventListener('click', async ()=>{
   }
 });
 document.getElementById('logoutBtn').addEventListener('click', ()=> signOut(auth));
+
+document.getElementById('modalOkBtn').addEventListener('click', ()=>{
+  document.getElementById('validationModal').classList.add('hidden');
+  if(lastInvalidCard){
+    lastInvalidCard.querySelector('textarea').focus();
+    lastInvalidCard = null;
+  }
+});
 
 document.getElementById('forgotPwLink').addEventListener('click', async (e)=>{
   e.preventDefault();
@@ -649,8 +693,8 @@ document.getElementById('saveBtn').addEventListener('click', async ()=>{
     }
   });
   if(firstInvalid){
-    alert('Please provide a reason why this task is not yet 100% complete before saving.');
-    firstInvalid.querySelector('textarea').focus();
+    lastInvalidCard = firstInvalid;
+    document.getElementById('validationModal').classList.remove('hidden');
     firstInvalid.scrollIntoView({behavior:'smooth', block:'center'});
     return;
   }
