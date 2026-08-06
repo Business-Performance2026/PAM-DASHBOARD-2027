@@ -1362,6 +1362,34 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
     </div>
   </div>
 
+  <div id="entryPermWrap" style="display:none;margin-bottom:14px;">
+    <button class="collapsible-header" id="entryPermToggle">
+      <span>Entry Permissions (Who Can Edit Which Goals)</span>
+      <svg class="collapsible-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    </button>
+    <div class="collapsible-body" id="entryPermBody">
+      <div class="task-edit-block">
+        <div class="task-edit-label">Assign specific Goals to one person</div>
+        <div class="field" style="margin-bottom:10px;">
+          <label>Their email — must match exactly what they use to sign in on entry.html</label>
+          <input type="email" id="permEmailInput" placeholder="name@example.com">
+        </div>
+        <div class="field">
+          <label>Goals they can see &amp; edit on entry.html (leave all unchecked = sees every goal)</label>
+          <div id="permGoalChecklist" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;"></div>
+        </div>
+      </div>
+      <div class="editrow" style="padding-top:4px;">
+        <div class="actions">
+          <button class="btn" id="permClearFormBtn">Clear Form</button>
+          <button class="btn primary" id="permSaveBtn">Save Permission</button>
+        </div>
+      </div>
+      <div class="task-edit-label" style="padding:0 18px;margin-top:6px;">Current assignments</div>
+      <div id="permList" style="padding:0 18px 14px;"></div>
+    </div>
+  </div>
+
   <div id="goalsList"></div>
   <div class="empty" id="emptyState" style="display:none;">No results match the current filter or search.</div>
   </div>
@@ -1607,6 +1635,7 @@ function subscribeToCycle(cycleId){
     const savedDates = snap.exists() ? snap.data().reportDates : null;
     currentReportDates = savedDates ? { ...defaultReportDates(), ...savedDates, sprints: { ...defaultReportDates().sprints, ...(savedDates.sprints||{}) } } : defaultReportDates();
     renderReportDatesForm();
+    if(isAdmin) renderPermGoalChecklist();
     if(!hasAutoSelectedSprint){
       hasAutoSelectedSprint = true;
       let lastSprintWithData = 1;
@@ -1730,6 +1759,7 @@ onAuthStateChanged(auth, async (user)=>{
   document.getElementById('setEntryDefaultBtn').style.display = isAdmin ? 'inline-block' : 'none';
   document.getElementById('deleteCycleBtn').style.display = isAdmin ? 'inline-block' : 'none';
   document.getElementById('reportDatesWrap').style.display = isAdmin ? 'block' : 'none';
+  document.getElementById('entryPermWrap').style.display = isAdmin ? 'block' : 'none';
   document.querySelectorAll('.admin-only-tab').forEach(b=> b.style.display = isAdmin ? 'inline-block' : 'none');
 
   // Scoped editors (Dashboard-2 / Dashboard-3 only): hide every other tab, lock them to their one board.
@@ -1822,6 +1852,108 @@ document.getElementById('saveReportDatesBtn').addEventListener('click', async ()
   });
   await saveCurrentCycle();
   alert('Report dates saved.');
+});
+
+// ---------------- Entry Permissions (which Goals each entry.html user can see/edit) ----------------
+function renderPermGoalChecklist(){
+  const wrap = document.getElementById('permGoalChecklist');
+  if(!wrap) return;
+  if(currentGoals.length === 0){
+    wrap.innerHTML = `<span style="font-size:12px;color:var(--text-dim);">No goals in this cycle yet.</span>`;
+    return;
+  }
+  wrap.innerHTML = currentGoals.map(g=>`
+    <label style="display:flex;align-items:center;gap:6px;background:var(--surface-hi);border:1px solid var(--line);border-radius:8px;padding:7px 11px;cursor:pointer;font-size:12.5px;color:var(--text);">
+      <input type="checkbox" class="perm-goal-cb" value="${g.no}" style="accent-color:var(--cyan);">
+      <span style="font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--cyan);">${String(g.no).padStart(2,'0')}</span>
+      ${g.name}
+    </label>`).join('');
+}
+
+function permClearForm(){
+  document.getElementById('permEmailInput').value = '';
+  document.querySelectorAll('.perm-goal-cb').forEach(cb=> cb.checked = false);
+}
+
+async function loadPermList(){
+  const listEl = document.getElementById('permList');
+  listEl.innerHTML = `<div style="font-size:12px;color:var(--text-dim);">Loading…</div>`;
+  try{
+    const snap = await getDocs(collection(db,'entryPermissions'));
+    if(snap.empty){
+      listEl.innerHTML = `<div style="font-size:12px;color:var(--text-dim);">No one is restricted yet — everyone with an entry.html account sees every goal.</div>`;
+      return;
+    }
+    let html = '';
+    snap.forEach(d=>{
+      const goals = (d.data().goals || []).sort((a,b)=>a-b);
+      html += `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface-hi);border:1px solid var(--line);border-radius:9px;padding:9px 12px;margin-bottom:8px;">
+        <div style="font-size:12.5px;">
+          <div style="color:var(--text);font-weight:600;">${d.id}</div>
+          <div style="color:var(--text-dim);font-family:'IBM Plex Mono',monospace;font-size:11px;margin-top:2px;">Goals: ${goals.length ? goals.map(n=>String(n).padStart(2,'0')).join(', ') : '— (none set, sees all)'}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button class="btn small" data-perm-edit="${d.id}">Edit</button>
+          <button class="btn small danger" data-perm-delete="${d.id}">Remove</button>
+        </div>
+      </div>`;
+    });
+    listEl.innerHTML = html;
+    listEl.querySelectorAll('[data-perm-edit]').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        const email = btn.getAttribute('data-perm-edit');
+        const snap2 = await getDoc(doc(db,'entryPermissions',email));
+        const goals = snap2.exists() ? (snap2.data().goals || []) : [];
+        document.getElementById('permEmailInput').value = email;
+        document.querySelectorAll('.perm-goal-cb').forEach(cb=> cb.checked = goals.includes(Number(cb.value)));
+        document.getElementById('permEmailInput').scrollIntoView({behavior:'smooth', block:'center'});
+      });
+    });
+    listEl.querySelectorAll('[data-perm-delete]').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        const email = btn.getAttribute('data-perm-delete');
+        if(!confirm(`Remove goal restrictions for ${email}? They will then see every goal again.`)) return;
+        try{
+          await deleteDoc(doc(db,'entryPermissions',email));
+          loadPermList();
+        }catch(err){
+          alert('Could not remove:\n' + err.message);
+        }
+      });
+    });
+  }catch(err){
+    listEl.innerHTML = `<div style="font-size:12px;color:var(--red);">Could not load: ${err.message}</div>`;
+  }
+}
+
+document.getElementById('entryPermToggle').addEventListener('click', ()=>{
+  document.getElementById('entryPermToggle').classList.toggle('open');
+  document.getElementById('entryPermBody').classList.toggle('open');
+  if(document.getElementById('entryPermBody').classList.contains('open')){
+    renderPermGoalChecklist();
+    loadPermList();
+  }
+});
+
+document.getElementById('permClearFormBtn').addEventListener('click', permClearForm);
+
+document.getElementById('permSaveBtn').addEventListener('click', async ()=>{
+  const email = document.getElementById('permEmailInput').value.trim().toLowerCase();
+  if(!email){ alert('Enter the person\'s email first.'); return; }
+  const goals = Array.from(document.querySelectorAll('.perm-goal-cb:checked')).map(cb=>Number(cb.value));
+  try{
+    if(goals.length === 0){
+      await deleteDoc(doc(db,'entryPermissions',email)).catch(()=>{});
+      alert(`${email} now sees every goal (no restriction).`);
+    } else {
+      await setDoc(doc(db,'entryPermissions',email), { goals });
+      alert(`Saved — ${email} will only see goals: ${goals.sort((a,b)=>a-b).map(n=>String(n).padStart(2,'0')).join(', ')}`);
+    }
+    permClearForm();
+    loadPermList();
+  }catch(err){
+    alert('Could not save:\n' + err.message + '\n\nMake sure Firestore Rules also cover the "entryPermissions" collection.');
+  }
 });
 
 // ---------------- Export to Word (.docx) — same layout as the original report template ----------------

@@ -457,8 +457,8 @@ h1{
 
 <div class="modal-overlay hidden" id="successModal">
   <div class="modal-card">
-    <div class="modal-title" id="successModalText"></div>
-    <div class="modal-icon" style="margin-top:6px;margin-bottom:4px;">✅</div>
+    <div class="modal-title" id="successModalText" style="font-size:14px;font-weight:500;"></div>
+    <div class="modal-icon" style="margin-top:6px;margin-bottom:4px;">👍</div>
     <button class="btn primary" id="successModalOkBtn">Done</button>
   </div>
 </div>
@@ -594,11 +594,21 @@ document.getElementById('forgotPwLink').addEventListener('click', async (e)=>{
   }
 });
 
-onAuthStateChanged(auth, (user)=>{
+let allowedGoalNos = null; // null = unrestricted (sees every goal)
+
+onAuthStateChanged(auth, async (user)=>{
   if(user){
     document.getElementById('loginView').classList.add('hidden');
     document.getElementById('appView').classList.remove('hidden');
     document.getElementById('whoLabel').textContent = user.email || '';
+    try{
+      const permSnap = await getDoc(doc(db,'entryPermissions', (user.email||'').toLowerCase()));
+      const goals = permSnap.exists() ? (permSnap.data().goals || []) : [];
+      allowedGoalNos = goals.length ? goals : null;
+    }catch(err){
+      console.error('Could not load permissions, showing all goals', err);
+      allowedGoalNos = null;
+    }
     loadFixedView();
   } else {
     document.getElementById('appView').classList.add('hidden');
@@ -678,14 +688,15 @@ function goalBadgeStyle(goalNo){
 
 function renderEntryTable(){
   const wrap = document.getElementById('entryWrap');
-  if(!currentCycleId || currentGoals.length === 0){
-    wrap.innerHTML = `<div class="empty-msg">No goals available for this cycle yet.</div>`;
+  const visibleGoals = allowedGoalNos ? currentGoals.filter(g=>allowedGoalNos.includes(g.no)) : currentGoals;
+  if(!currentCycleId || visibleGoals.length === 0){
+    wrap.innerHTML = `<div class="empty-msg">${allowedGoalNos ? 'None of your assigned goals are in this cycle yet.' : 'No goals available for this cycle yet.'}</div>`;
     return;
   }
   const taskN = getTaskNumber();
   const idx = taskN - 1;
   let html = '';
-  currentGoals.forEach(g=>{
+  visibleGoals.forEach(g=>{
     const t = (g.tasks && g.tasks[idx]) ? g.tasks[idx] : { name:'', progress:null, note:'' };
     const progVal = (t.progress===null || t.progress===undefined) ? '' : t.progress;
     const goalNo = String(g.no).padStart(2,'0');
