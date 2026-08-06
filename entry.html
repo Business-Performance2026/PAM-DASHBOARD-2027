@@ -429,6 +429,14 @@ h1{
   </div>
 </div>
 
+<div class="modal-overlay hidden" id="successModal">
+  <div class="modal-card">
+    <div class="modal-title" id="successModalText"></div>
+    <div class="modal-icon" style="margin-top:6px;margin-bottom:4px;">🙂</div>
+    <button class="btn primary" id="successModalOkBtn">Done</button>
+  </div>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import {
@@ -524,6 +532,10 @@ document.getElementById('modalOkBtn').addEventListener('click', ()=>{
     lastInvalidCard.querySelector('textarea').focus();
     lastInvalidCard = null;
   }
+});
+
+document.getElementById('successModalOkBtn').addEventListener('click', ()=>{
+  document.getElementById('successModal').classList.add('hidden');
 });
 
 document.getElementById('forgotPwLink').addEventListener('click', async (e)=>{
@@ -726,7 +738,8 @@ document.getElementById('saveBtn').addEventListener('click', async ()=>{
   });
   try{
     await setDoc(doc(db,'cycles',currentCycleId), { goals: currentGoals });
-    alert(`Saved Task ${taskN} progress for Cycle ${currentCycleId}.`);
+    document.getElementById('successModalText').textContent = `Saved Task ${taskN} progress for Cycle ${currentCycleId}.`;
+    document.getElementById('successModal').classList.remove('hidden');
   }catch(err){
     alert('Save failed:\n' + err.message);
   }
