@@ -122,7 +122,7 @@ h1{
 }
 .btn:active{transform:scale(.97);}
 .btn:hover{border-color:var(--cyan-dim);color:var(--text);}
-.btn.primary{background:var(--cyan);color:#04222b;border-color:var(--cyan);width:100%;margin-top:18px;padding:14px;font-size:14px;font-weight:700;}
+.btn.primary{background:#F2C94C;color:#4A3800;border-color:#F2C94C;width:100%;margin-top:18px;padding:14px;font-size:14px;font-weight:700;}
 .btn.primary:hover{opacity:.9;}
 
 /* ---------- Entry app ---------- */
@@ -161,7 +161,7 @@ h1{
   padding:15px;
   font-size:14px;
   border-radius:14px;
-  box-shadow:0 6px 20px rgba(3,66,69,.35);
+  box-shadow:0 6px 20px rgba(242,201,76,.4);
 }
 .validation-note{
   font-size:12px;
@@ -238,7 +238,7 @@ h1{
   scroll-margin-top:80px;
   background:linear-gradient(160deg, var(--surface-hi) 0%, var(--surface) 100px);
   border:1px solid var(--line);
-  border-left:4px solid var(--acc, var(--cyan));
+  border-left:8px solid var(--acc, var(--cyan));
   border-radius:16px;
   padding:16px 18px 18px;
   box-shadow:0 4px 16px rgba(3,66,69,.18);
@@ -276,6 +276,20 @@ h1{
   border-radius:5px;
   padding:2px 6px;
   margin-right:6px;
+  vertical-align:middle;
+}
+.e-num-goal{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:30px;
+  height:26px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:13px;
+  font-weight:800;
+  border-radius:7px;
+  padding:0 7px;
+  margin-right:9px;
   vertical-align:middle;
 }
 .e-avg-circle{
@@ -527,6 +541,21 @@ function goalAvg(g){
   return sum / total;
 }
 
+const GOAL_BADGE_PALETTE = [
+  { bg:'#2E86AB', text:'#FFFFFF' },
+  { bg:'#4ECDA0', text:'#04382B' },
+  { bg:'#F0A868', text:'#4A2E00' },
+  { bg:'#B39DDB', text:'#2E1A4D' },
+  { bg:'#E8697A', text:'#FFFFFF' },
+  { bg:'#4DD8E6', text:'#04333A' },
+  { bg:'#F2C94C', text:'#4A3800' },
+  { bg:'#7C9CBF', text:'#FFFFFF' }
+];
+function goalBadgeStyle(goalNo){
+  const c = GOAL_BADGE_PALETTE[(Number(goalNo)-1) % GOAL_BADGE_PALETTE.length];
+  return `background:${c.bg};color:${c.text};`;
+}
+
 function renderEntryTable(){
   const wrap = document.getElementById('entryWrap');
   if(!currentCycleId || currentGoals.length === 0){
@@ -546,7 +575,7 @@ function renderEntryTable(){
     const avgColor = avg===null ? 'var(--text-dim)' : avg>=100 ? '#4ECDA0' : avg>=70 ? '#F0A868' : '#E8697A';
     html += `<div class="goal-card" data-goalno="${g.no}" style="--acc:${avgColor};">
       <div class="goal-card-top">
-        <div class="goal-card-title"><span class="e-num">${goalNo}</span>${g.name}</div>
+        <div class="goal-card-title"><span class="e-num-goal" style="${goalBadgeStyle(g.no)}">${goalNo}</span>${g.name}</div>
         <div class="e-avg-circle" style="color:${avgColor};" title="Average across all this goal's tasks">${avgLabel}</div>
       </div>
       <div class="goal-card-task"><span class="e-num">${taskId}</span>${t.name ? t.name : '<span style="color:var(--text-dim)">(no task set)</span>'}</div>
