@@ -37,16 +37,18 @@
   --ink-mid: #2C4442;
   --ink-dim: #4A5D5A;
 }
-*{box-sizing:border-box;}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html{scroll-behavior:smooth;}
 html,body{margin:0;padding:0;}
 body{
   background:var(--bg);
   color:var(--ink);
   font-family:'Inter','Segoe UI',sans-serif;
   min-height:100vh;
-  padding:24px 16px 60px;
+  padding:0 0 100px;
+  overscroll-behavior-y:contain;
 }
-.wrap{max-width:820px;margin:0 auto;}
+.wrap{max-width:820px;margin:0 auto;padding:0 16px;}
 h1{
   font-family:'Space Grotesk',sans-serif;
   font-size:24px;
@@ -59,11 +61,12 @@ h1{
 /* ---------- Login card ---------- */
 .login-card{
   max-width:360px;
-  margin:60px auto;
+  margin:15vh auto 60px;
   background:var(--surface);
   border:1px solid var(--line);
-  border-radius:16px;
-  padding:28px;
+  border-radius:20px;
+  padding:32px 28px;
+  box-shadow:0 20px 50px rgba(3,66,69,.25);
 }
 .login-card h2{
   font-family:'Space Grotesk',sans-serif;
@@ -87,11 +90,11 @@ h1{
   width:100%;
   background:var(--surface-hi);
   border:1px solid var(--line);
-  border-radius:8px;
+  border-radius:12px;
   color:var(--text);
   font-family:'Inter',sans-serif;
-  font-size:14px;
-  padding:10px 12px;
+  font-size:16px;
+  padding:14px 14px;
   outline:none;
 }
 .login-card input:focus{border-color:var(--cyan-dim);}
@@ -108,38 +111,68 @@ h1{
   font-family:'IBM Plex Mono',monospace;
   font-size:12.5px;
   font-weight:600;
-  padding:10px 16px;
-  border-radius:8px;
+  padding:11px 18px;
+  border-radius:11px;
   border:1px solid var(--line);
   background:var(--surface-hi);
   color:var(--text-mid);
   cursor:pointer;
   transition:.15s;
+  min-height:40px;
 }
+.btn:active{transform:scale(.97);}
 .btn:hover{border-color:var(--cyan-dim);color:var(--text);}
-.btn.primary{background:var(--cyan);color:#04222b;border-color:var(--cyan);width:100%;margin-top:18px;padding:11px;}
+.btn.primary{background:var(--cyan);color:#04222b;border-color:var(--cyan);width:100%;margin-top:18px;padding:14px;font-size:14px;font-weight:700;}
 .btn.primary:hover{opacity:.9;}
 
 /* ---------- Entry app ---------- */
 .hidden{display:none !important;}
 .topbar{
   display:flex;
-  align-items:flex-start;
+  align-items:center;
   justify-content:space-between;
-  margin-bottom:14px;
-  padding-bottom:16px;
+  position:sticky;
+  top:0;
+  z-index:20;
+  margin:0 -16px 14px;
+  padding:16px 16px 14px;
+  background:linear-gradient(180deg, var(--bg) 75%, transparent);
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
   border-bottom:1px solid var(--line-onbg);
 }
 .topbar-left{display:flex;align-items:center;gap:14px;}
 .topbar-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
-.topbar .who{font-size:12px;color:var(--ink-dim);font-family:'IBM Plex Mono',monospace;}
-.entry-logo{height:38px;width:auto;object-fit:contain;}
-.save-bar.top{margin-bottom:16px;}
+.topbar .who{font-size:11px;color:var(--ink-dim);font-family:'IBM Plex Mono',monospace;}
+.entry-logo{height:34px;width:auto;object-fit:contain;}
+.save-bar.top{display:none;}
+.save-bar-fixed{
+  position:fixed;
+  left:0;right:0;bottom:0;
+  z-index:30;
+  padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+  background:linear-gradient(180deg, transparent, var(--bg) 30%);
+}
+.save-bar-fixed .btn.primary{
+  width:100%;
+  max-width:820px;
+  margin:0 auto;
+  display:block;
+  padding:15px;
+  font-size:14px;
+  border-radius:14px;
+  box-shadow:0 6px 20px rgba(3,66,69,.35);
+}
 .validation-note{
-  font-size:11.5px;
+  font-size:12px;
   font-weight:700;
   color:#6B5400;
-  margin-bottom:10px;
+  background:rgba(242,201,76,.16);
+  border:1px solid rgba(242,201,76,.3);
+  border-radius:12px;
+  padding:11px 14px;
+  margin-bottom:14px;
+  line-height:1.5;
 }
 .cycle-task-inline{
   font-family:'Space Grotesk',sans-serif;
@@ -200,51 +233,54 @@ h1{
   letter-spacing:.03em;
 }
 
-.entry-wrap{
-  background:var(--surface);
+.entry-wrap{display:flex;flex-direction:column;gap:14px;margin-bottom:20px;}
+.goal-card{
+  scroll-margin-top:80px;
+  background:linear-gradient(160deg, var(--surface-hi) 0%, var(--surface) 100px);
   border:1px solid var(--line);
-  border-radius:14px;
-  overflow:hidden;
-  margin-bottom:20px;
+  border-left:4px solid var(--acc, var(--cyan));
+  border-radius:16px;
+  padding:16px 18px 18px;
+  box-shadow:0 4px 16px rgba(3,66,69,.18);
+  transition:transform .15s;
 }
-.entry-row{
-  display:grid;
-  grid-template-columns:1.4fr 1fr .7fr 1.4fr 56px;
-  gap:14px;
-  align-items:center;
-  padding:16px 20px;
-  border-bottom:1px solid rgba(255,255,255,.06);
+.goal-card.row-invalid{border-left-color:var(--red);box-shadow:0 4px 16px rgba(232,105,122,.2);}
+.goal-card-top{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:6px;
 }
-.entry-row:last-child{border-bottom:none;}
-.entry-row.row-invalid{background:rgba(232,105,122,.1);}
-.entry-row.row-invalid textarea{border-color:var(--red);}
-.entry-row.head{
+.goal-card-title{color:var(--text);font-weight:700;font-size:14.5px;line-height:1.4;}
+.goal-card-task{color:var(--text-mid);font-size:12.5px;margin-bottom:16px;line-height:1.5;}
+.goal-card-fields{display:flex;gap:12px;margin-bottom:12px;}
+.goal-card-field{display:flex;flex-direction:column;gap:6px;}
+.goal-card-field.grow{flex:1;}
+.goal-card-field label{
+  font-size:10px;
+  color:var(--text-dim);
   font-family:'IBM Plex Mono',monospace;
-  font-size:11px;
-  font-weight:700;
   text-transform:uppercase;
-  letter-spacing:.06em;
-  color:#FFFFFF;
-  background:var(--surface-hi);
-  padding:13px 20px;
+  letter-spacing:.05em;
 }
 .e-goal{color:var(--text);font-weight:600;font-size:13.5px;}
 .e-task-ro{color:var(--text-mid);font-size:12.5px;}
 .e-num{
   display:inline-block;
   font-family:'IBM Plex Mono',monospace;
-  font-size:10.5px;
+  font-size:10px;
   font-weight:700;
   color:var(--cyan);
-  background:rgba(77,216,230,.12);
+  background:rgba(77,216,230,.14);
   border-radius:5px;
   padding:2px 6px;
-  margin-right:8px;
+  margin-right:6px;
   vertical-align:middle;
 }
 .e-avg-circle{
-  width:46px;
-  height:46px;
+  width:44px;
+  height:44px;
   border-radius:50%;
   display:flex;
   align-items:center;
@@ -253,29 +289,31 @@ h1{
   font-size:11px;
   font-weight:700;
   border:2px solid currentColor;
-  background:rgba(255,255,255,.04);
-  margin:0 auto;
+  background:rgba(255,255,255,.05);
   text-align:center;
   line-height:1.1;
+  flex-shrink:0;
 }
-.entry-row input, .entry-row textarea{
+.goal-card input, .goal-card textarea{
   width:100%;
   background:var(--surface-hi);
   border:1px solid var(--line);
-  border-radius:7px;
+  border-radius:10px;
   color:var(--text);
   font-family:'Inter',sans-serif;
-  font-size:13px;
-  padding:8px 10px;
+  font-size:16px;
+  padding:11px 12px;
   outline:none;
 }
-.entry-row input:focus, .entry-row textarea:focus{border-color:var(--cyan-dim);}
-.entry-row input.progress-input{
+.goal-card input:focus, .goal-card textarea:focus{border-color:var(--cyan-dim);}
+.goal-card input.progress-input{
   font-family:'IBM Plex Mono',monospace;
   font-weight:700;
   text-align:center;
+  font-size:16px;
 }
-.entry-row textarea{resize:vertical;min-height:38px;font-family:'Inter',sans-serif;}
+.goal-card .field-progress{width:110px;flex-shrink:0;}
+.goal-card textarea{resize:vertical;min-height:44px;font-family:'Inter',sans-serif;font-size:14px;}
 
 .save-bar{display:flex;justify-content:flex-end;gap:10px;}
 .empty-msg{
@@ -284,11 +322,9 @@ h1{
   color:var(--ink-dim);
   font-size:13.5px;
 }
-@media (max-width:680px){
-  .entry-row, .entry-row.head{grid-template-columns:1fr;gap:6px;}
-  .entry-row.head{display:none;}
-  .entry-row{padding:14px;}
-  .e-goal{font-size:13px;}
+@media (max-width:480px){
+  .goal-card-fields{flex-direction:column;}
+  .goal-card .field-progress{width:100%;}
 }
 </style>
 </head>
@@ -327,15 +363,15 @@ h1{
       <span class="cycle-task-inline" id="whichLabel">Loading assigned Cycle &amp; Task…</span>
     </div>
 
-    <div class="save-bar top">
-      <button class="btn primary" id="saveBtn" style="margin-top:0;width:auto;display:none;">Save Progress</button>
-    </div>
-
     <div class="validation-note">Note: If the evaluation is less than 100%, please provide a justification to complete the evaluation save process.</div>
 
     <div class="entry-wrap" id="entryWrap"></div>
   </div>
 
+</div>
+
+<div class="save-bar-fixed hidden" id="saveBarFixed">
+  <button class="btn primary" id="saveBtn">Save Progress</button>
 </div>
 
 <script type="module">
@@ -442,13 +478,13 @@ let fixedTaskN = 1;
 
 async function loadFixedView(){
   const label = document.getElementById('whichLabel');
-  const saveBtn = document.getElementById('saveBtn');
+  const saveBar = document.getElementById('saveBarFixed');
   try{
     const snap = await getDoc(doc(db,'settings','entryDefault'));
     if(!snap.exists()){
       label.textContent = 'No Cycle/Task has been assigned yet — ask the admin to set it.';
       document.getElementById('entryWrap').innerHTML = '';
-      saveBtn.style.display = 'none';
+      saveBar.classList.add('hidden');
       return;
     }
     const data = snap.data();
@@ -456,15 +492,15 @@ async function loadFixedView(){
     fixedTaskN = data.sprint || 1;
     if(!currentCycleId){
       label.textContent = 'No Cycle/Task has been assigned yet — ask the admin to set it.';
-      saveBtn.style.display = 'none';
+      saveBar.classList.add('hidden');
       return;
     }
     label.innerHTML = `Cycle <b>${currentCycleId}</b><span class="sep">·</span>Task <b>${fixedTaskN}</b>`;
-    saveBtn.style.display = 'inline-block';
+    saveBar.classList.remove('hidden');
     subscribeToCycle(currentCycleId);
   }catch(err){
     label.textContent = 'Could not load assignment: ' + err.message;
-    saveBtn.style.display = 'none';
+    saveBar.classList.add('hidden');
   }
 }
 
@@ -499,7 +535,7 @@ function renderEntryTable(){
   }
   const taskN = getTaskNumber();
   const idx = taskN - 1;
-  let html = `<div class="entry-row head"><span>Goal</span><span>Task</span><span>Progress %</span><span>Comment</span><span style="text-align:center;">Avg</span></div>`;
+  let html = '';
   currentGoals.forEach(g=>{
     const t = (g.tasks && g.tasks[idx]) ? g.tasks[idx] : { name:'', progress:null, note:'' };
     const progVal = (t.progress===null || t.progress===undefined) ? '' : t.progress;
@@ -507,13 +543,23 @@ function renderEntryTable(){
     const taskId = t.id || `${g.no}.${taskN})`;
     const avg = goalAvg(g);
     const avgLabel = avg===null ? '—' : avg.toFixed(0)+'%';
-    const avgColor = avg===null ? 'var(--text-dim)' : avg>=100 ? 'var(--green)' : avg>=70 ? 'var(--amber)' : 'var(--red)';
-    html += `<div class="entry-row" data-goalno="${g.no}">
-      <div class="e-goal"><span class="e-num">${goalNo}</span>${g.name}</div>
-      <div class="e-task-ro"><span class="e-num">${taskId}</span>${t.name ? t.name : '<span style="color:var(--text-dim)">(no task set)</span>'}</div>
-      <input type="number" min="0" max="100" class="progress-input" value="${progVal}" placeholder="—">
-      <textarea placeholder="Required if progress is under 100%">${t.note || ''}</textarea>
-      <div class="e-avg-circle" style="color:${avgColor};" title="Average across all this goal's tasks">${avgLabel}</div>
+    const avgColor = avg===null ? 'var(--text-dim)' : avg>=100 ? '#4ECDA0' : avg>=70 ? '#F0A868' : '#E8697A';
+    html += `<div class="goal-card" data-goalno="${g.no}" style="--acc:${avgColor};">
+      <div class="goal-card-top">
+        <div class="goal-card-title"><span class="e-num">${goalNo}</span>${g.name}</div>
+        <div class="e-avg-circle" style="color:${avgColor};" title="Average across all this goal's tasks">${avgLabel}</div>
+      </div>
+      <div class="goal-card-task"><span class="e-num">${taskId}</span>${t.name ? t.name : '<span style="color:var(--text-dim)">(no task set)</span>'}</div>
+      <div class="goal-card-fields">
+        <div class="goal-card-field field-progress">
+          <label>Progress %</label>
+          <input type="number" min="0" max="100" class="progress-input" value="${progVal}" placeholder="—" inputmode="numeric">
+        </div>
+        <div class="goal-card-field grow">
+          <label>Comment</label>
+          <textarea placeholder="Required if progress is under 100%">${t.note || ''}</textarea>
+        </div>
+      </div>
     </div>`;
   });
   wrap.innerHTML = html;
@@ -526,7 +572,7 @@ document.getElementById('saveBtn').addEventListener('click', async ()=>{
 
   // Validate first: any row below 100% must have a comment explaining why.
   let firstInvalid = null;
-  document.querySelectorAll('#entryWrap .entry-row[data-goalno]').forEach(row=>{
+  document.querySelectorAll('#entryWrap .goal-card[data-goalno]').forEach(row=>{
     row.classList.remove('row-invalid');
     const progRaw = row.querySelector('.progress-input').value.trim();
     const noteVal = row.querySelector('textarea').value.trim();
@@ -544,7 +590,7 @@ document.getElementById('saveBtn').addEventListener('click', async ()=>{
     return;
   }
 
-  document.querySelectorAll('#entryWrap .entry-row[data-goalno]').forEach(row=>{
+  document.querySelectorAll('#entryWrap .goal-card[data-goalno]').forEach(row=>{
     const no = Number(row.getAttribute('data-goalno'));
     const g = currentGoals.find(x=>x.no===no);
     if(!g) return;
