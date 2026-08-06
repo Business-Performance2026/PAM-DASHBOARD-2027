@@ -1815,8 +1815,6 @@ onAuthStateChanged(auth, async (user)=>{
   document.getElementById('docAdminBar').style.display = isAdmin ? 'block' : 'none';
   document.getElementById('setEntryDefaultBtn').style.display = isAdmin ? 'inline-block' : 'none';
   document.getElementById('deleteCycleBtn').style.display = isAdmin ? 'inline-block' : 'none';
-  document.getElementById('reportDatesWrap').style.display = isAdmin ? 'block' : 'none';
-  document.getElementById('entryPermWrap').style.display = isAdmin ? 'block' : 'none';
   document.querySelectorAll('.admin-only-tab').forEach(b=> b.style.display = isAdmin ? 'inline-block' : 'none');
 
   // Scoped editors (Dashboard-2 / Dashboard-3 only): hide every other tab, lock them to their one board.
