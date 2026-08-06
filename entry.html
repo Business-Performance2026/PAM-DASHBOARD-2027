@@ -366,6 +366,32 @@ h1{
 .modal-text{font-size:13.5px;color:var(--text-mid);line-height:1.6;margin-bottom:22px;}
 .modal-card .btn.primary{margin-top:0;}
 
+.goal-card.is-locked .goal-card-fields input,
+.goal-card.is-locked .goal-card-fields textarea{
+  opacity:.55;
+  cursor:not-allowed;
+}
+.edit-card-btn{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  width:100%;
+  margin-top:12px;
+  padding:10px;
+  border-radius:11px;
+  border:1px dashed var(--cyan-dim);
+  background:rgba(77,216,230,.08);
+  color:var(--cyan);
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12px;
+  font-weight:700;
+  cursor:pointer;
+  transition:.15s;
+}
+.edit-card-btn:hover{background:rgba(77,216,230,.16);}
+.edit-card-btn:active{transform:scale(.97);}
+
 @media (max-width:480px){
   .goal-card-fields{flex-direction:column;}
   .goal-card .field-progress{width:100%;}
@@ -432,7 +458,7 @@ h1{
 <div class="modal-overlay hidden" id="successModal">
   <div class="modal-card">
     <div class="modal-title" id="successModalText"></div>
-    <div class="modal-icon" style="margin-top:6px;margin-bottom:4px;">🙂</div>
+    <div class="modal-icon" style="margin-top:6px;margin-bottom:4px;">✅</div>
     <button class="btn primary" id="successModalOkBtn">Done</button>
   </div>
 </div>
@@ -461,6 +487,8 @@ const db = getFirestore(app);
 
 let currentCycleId = null;
 let lastInvalidCard = null;
+let hasSavedOnce = false;
+let editableGoalNos = new Set();
 let currentGoals = [];
 let unsubscribeCycle = null;
 
@@ -665,7 +693,9 @@ function renderEntryTable(){
     const avg = goalAvg(g);
     const avgLabel = avg===null ? '—' : avg.toFixed(0)+'%';
     const avgColor = avg===null ? 'var(--text-dim)' : avg>=100 ? '#4ECDA0' : avg>=70 ? '#F0A868' : '#E8697A';
-    html += `<div class="goal-card" data-goalno="${g.no}" style="--acc:${avgColor};">
+    const isLocked = hasSavedOnce && !editableGoalNos.has(g.no);
+    const dis = isLocked ? 'disabled' : '';
+    html += `<div class="goal-card${isLocked ? ' is-locked' : ''}" data-goalno="${g.no}" style="--acc:${avgColor};">
       <div class="goal-card-top">
         <div class="goal-card-title"><span class="e-num-goal" style="${goalBadgeStyle(g.no)}">${goalNo}</span>${g.name}</div>
         <div class="e-avg-circle" style="color:${avgColor};" title="Average across all this goal's tasks">${avgLabel}</div>
@@ -674,16 +704,24 @@ function renderEntryTable(){
       <div class="goal-card-fields">
         <div class="goal-card-field field-progress">
           <label>Progress %</label>
-          <input type="number" min="0" max="100" class="progress-input" value="${progVal}" placeholder="—" inputmode="numeric">
+          <input type="number" min="0" max="100" class="progress-input" value="${progVal}" placeholder="—" inputmode="numeric" ${dis}>
         </div>
         <div class="goal-card-field grow">
           <label>Comment</label>
-          <textarea placeholder="Required if progress is under 100%">${t.note || ''}</textarea>
+          <textarea placeholder="Required if progress is under 100%" ${dis}>${t.note || ''}</textarea>
         </div>
       </div>
+      ${isLocked ? `<button type="button" class="edit-card-btn" data-edit-goal="${g.no}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"></path></svg>Edit</button>` : ''}
     </div>`;
   });
   wrap.innerHTML = html;
+
+  wrap.querySelectorAll('[data-edit-goal]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      editableGoalNos.add(Number(btn.getAttribute('data-edit-goal')));
+      renderEntryTable();
+    });
+  });
 
   // Only cards the person actually edits this session get the "comment required" check —
   // pre-existing values left by someone else's section must never block this person's save.
@@ -738,7 +776,10 @@ document.getElementById('saveBtn').addEventListener('click', async ()=>{
   });
   try{
     await setDoc(doc(db,'cycles',currentCycleId), { goals: currentGoals });
-    document.getElementById('successModalText').textContent = `Saved Task ${taskN} progress for Cycle ${currentCycleId}.`;
+    hasSavedOnce = true;
+    editableGoalNos.clear();
+    renderEntryTable();
+    document.getElementById('successModalText').textContent = `Saved progress for Cycle ${currentCycleId} (Task ${taskN}).`;
     document.getElementById('successModal').classList.remove('hidden');
   }catch(err){
     alert('Save failed:\n' + err.message);
