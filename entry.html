@@ -487,7 +487,6 @@ const db = getFirestore(app);
 
 let currentCycleId = null;
 let lastInvalidCard = null;
-let hasSavedOnce = false;
 let editableGoalNos = new Set();
 let currentGoals = [];
 let unsubscribeCycle = null;
@@ -704,7 +703,8 @@ function renderEntryTable(){
     const avg = goalAvg(g);
     const avgLabel = avg===null ? '—' : avg.toFixed(0)+'%';
     const avgColor = avg===null ? 'var(--text-dim)' : avg>=100 ? '#4ECDA0' : avg>=70 ? '#F0A868' : '#E8697A';
-    const isLocked = hasSavedOnce && !editableGoalNos.has(g.no);
+    const hasSavedData = t.progress !== null && t.progress !== undefined;
+    const isLocked = hasSavedData && !editableGoalNos.has(g.no);
     const dis = isLocked ? 'disabled' : '';
     html += `<div class="goal-card${isLocked ? ' is-locked' : ''}" data-goalno="${g.no}" style="--acc:${avgColor};">
       <div class="goal-card-top">
@@ -787,7 +787,6 @@ document.getElementById('saveBtn').addEventListener('click', async ()=>{
   });
   try{
     await setDoc(doc(db,'cycles',currentCycleId), { goals: currentGoals });
-    hasSavedOnce = true;
     editableGoalNos.clear();
     renderEntryTable();
     document.getElementById('successModalText').textContent = `Saved progress for Cycle ${currentCycleId} (Task ${taskN}).`;
