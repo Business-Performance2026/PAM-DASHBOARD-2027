@@ -564,10 +564,11 @@ h1 .sprint-num{color:var(--surface);}
 }
 .task-edit-block{
   border:1px solid var(--line);
-  border-radius:10px;
-  padding:12px 14px;
-  margin-bottom:10px;
-  background:rgba(255,255,255,.03);
+  border-radius:14px;
+  padding:18px 20px;
+  margin-bottom:14px;
+  background:linear-gradient(160deg, var(--surface-hi) 0%, var(--surface) 90px);
+  box-shadow:0 3px 12px rgba(3,66,69,.12);
 }
 .task-edit-block .row2{display:grid;grid-template-columns:1fr 130px;gap:10px;}
 .task-edit-label{
@@ -1462,8 +1463,10 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
         <button class="btn primary" id="permSaveBtn">Save Permission</button>
       </div>
     </div>
-    <div class="task-edit-label" style="margin-top:14px;">Current assignments</div>
-    <div id="permList"></div>
+    <div class="task-edit-block" style="margin-top:14px;">
+      <div class="task-edit-label" style="margin-bottom:12px;">Current assignments</div>
+      <div id="permList"></div>
+    </div>
   </div>
 
     </div>
