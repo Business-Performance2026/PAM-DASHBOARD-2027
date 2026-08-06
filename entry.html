@@ -244,11 +244,6 @@ h1{
   padding:16px 18px 18px;
   box-shadow:0 4px 16px rgba(3,66,69,.18);
   transition:transform .15s;
-  animation:warmGlow 2.6s ease-in-out infinite;
-}
-@keyframes warmGlow{
-  0%, 100% { box-shadow:0 4px 16px rgba(3,66,69,.18), -3px 0 8px -1px var(--acc, var(--cyan)); }
-  50% { box-shadow:0 4px 16px rgba(3,66,69,.18), -3px 0 20px 2px var(--acc, var(--cyan)); }
 }
 .goal-card.row-invalid{border-left-color:var(--red);box-shadow:0 4px 16px rgba(232,105,122,.2);}
 .goal-card-top{
@@ -677,6 +672,14 @@ function renderEntryTable(){
     </div>`;
   });
   wrap.innerHTML = html;
+
+  // Only cards the person actually edits this session get the "comment required" check —
+  // pre-existing values left by someone else's section must never block this person's save.
+  wrap.querySelectorAll('.goal-card[data-goalno]').forEach(card=>{
+    const markDirty = ()=> card.dataset.dirty = '1';
+    card.querySelector('.progress-input').addEventListener('input', markDirty);
+    card.querySelector('textarea').addEventListener('input', markDirty);
+  });
 }
 
 document.getElementById('saveBtn').addEventListener('click', async ()=>{
@@ -684,10 +687,12 @@ document.getElementById('saveBtn').addEventListener('click', async ()=>{
   const taskN = getTaskNumber();
   const idx = taskN - 1;
 
-  // Validate first: any row below 100% must have a comment explaining why.
+  // Validate: any row the person actually edited this session, if left below 100%, must have a comment.
+  // Rows nobody touched (belong to someone else's section) are saved as-is and never block the save.
   let firstInvalid = null;
   document.querySelectorAll('#entryWrap .goal-card[data-goalno]').forEach(row=>{
     row.classList.remove('row-invalid');
+    if(row.dataset.dirty !== '1') return;
     const progRaw = row.querySelector('.progress-input').value.trim();
     const noteVal = row.querySelector('textarea').value.trim();
     const progNum = progRaw === '' ? null : parseInt(progRaw, 10);
