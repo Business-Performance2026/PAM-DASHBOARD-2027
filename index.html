@@ -588,6 +588,60 @@ h1 .sprint-num{color:var(--surface);}
   .edit-goal-meta,.editrow .row2,.task-edit-block .row2{grid-template-columns:1fr;}
 }
 
+/* ---------- Admin sidebar shell ---------- */
+.admin-shell{
+  display:flex;
+  gap:22px;
+  align-items:flex-start;
+}
+.admin-sidebar{
+  flex-shrink:0;
+  width:200px;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  position:sticky;
+  top:20px;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:10px;
+}
+.admin-nav-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  width:100%;
+  text-align:left;
+  border:none;
+  background:transparent;
+  color:var(--text-mid);
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12.5px;
+  font-weight:600;
+  padding:11px 12px;
+  border-radius:9px;
+  cursor:pointer;
+  transition:.15s;
+}
+.admin-nav-item:hover{background:rgba(255,255,255,.06);color:var(--text);}
+.admin-nav-item.active{background:var(--cyan);color:#04222b;font-weight:700;}
+.admin-shell-content{flex:1;min-width:0;}
+@media (max-width:820px){
+  .admin-shell{flex-direction:column;}
+  .admin-sidebar{
+    width:100%;
+    flex-direction:row;
+    overflow-x:auto;
+    position:static;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .admin-sidebar::-webkit-scrollbar{display:none;}
+  .admin-nav-item{width:auto;white-space:nowrap;flex-shrink:0;}
+  .admin-shell-content{width:100%;}
+}
+
 /* ---------- Tabs ---------- */
 .tabsbar{
   display:flex;
@@ -1183,8 +1237,7 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
     <button class="tab" data-tab="dashboard">Dashboard</button>
     <button class="tab" data-tab="dashboard2">Dashboard-2</button>
     <button class="tab" data-tab="dashboard3">Dashboard-3</button>
-    <button class="tab admin-only-tab" data-tab="goals" style="display:none;">Goals (Admin)</button>
-    <button class="tab admin-only-tab" data-tab="documents" style="display:none;">Documents (Admin)</button>
+    <button class="tab admin-only-tab" data-tab="goals" data-admin-entry="1" style="display:none;">⚙ Admin Panel</button>
   </div>
 
   <div class="view active" id="view-summary">
@@ -1295,6 +1348,15 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
     <div class="audit-grid" id="kpi3InitCards"></div>
   </div>
 
+  <div class="admin-shell" id="adminShell" style="display:none;">
+    <nav class="admin-sidebar" id="adminSidebar">
+      <button class="admin-nav-item" data-admin-tab="goals">🎯<span>Goals</span></button>
+      <button class="admin-nav-item" data-admin-tab="documents">📄<span>Documents</span></button>
+      <button class="admin-nav-item" data-admin-tab="reportdates">📅<span>Report Dates</span></button>
+      <button class="admin-nav-item" data-admin-tab="entrypermissions">🔐<span>Entry Permissions</span></button>
+    </nav>
+    <div class="admin-shell-content">
+
   <div class="view" id="view-goals">
   <header>
     <h1><span class="sprint-num" id="sprintTitleNum">Sprint 1</span></h1>
@@ -1328,69 +1390,6 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
     </div>
   </div>
 
-  <div id="reportDatesWrap" style="display:none;margin-bottom:14px;">
-    <button class="collapsible-header" id="reportDatesToggle">
-      <span>Report Dates (Title &amp; Submission Info)</span>
-      <svg class="collapsible-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-    </button>
-    <div class="collapsible-body" id="reportDatesBody">
-      <div class="task-edit-block">
-        <div class="task-edit-label">Cycle date range — fixed from Sprint 1 through Sprint 6</div>
-        <div class="field">
-          <label>Shown in the title, e.g. "From 12th April 2026 – 9th July 2026"</label>
-          <input type="text" id="cycleDateRange" placeholder="From 12th April 2026 – 9th July 2026">
-        </div>
-      </div>
-      <div class="task-edit-block">
-        <div class="task-edit-label">Names — update whenever they change</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          <div class="field">
-            <label>GM In Charge</label>
-            <input type="text" id="gmInChargeInput" placeholder="e.g. Suhaila Al Balushi">
-          </div>
-          <div class="field">
-            <label>Focal Point</label>
-            <input type="text" id="focalPointInput" placeholder="e.g. Badar Al Mamari">
-          </div>
-        </div>
-      </div>
-      <div id="sprintDatesList"></div>
-      <div class="editrow" style="padding-top:4px;">
-        <div class="actions">
-          <button class="btn primary" id="saveReportDatesBtn">Save Report Dates</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div id="entryPermWrap" style="display:none;margin-bottom:14px;">
-    <button class="collapsible-header" id="entryPermToggle">
-      <span>Entry Permissions (Who Can Edit Which Goals)</span>
-      <svg class="collapsible-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-    </button>
-    <div class="collapsible-body" id="entryPermBody">
-      <div class="task-edit-block">
-        <div class="task-edit-label">Assign specific Goals to one person</div>
-        <div class="field" style="margin-bottom:10px;">
-          <label>Their email — must match exactly what they use to sign in on entry.html</label>
-          <input type="email" id="permEmailInput" placeholder="name@example.com">
-        </div>
-        <div class="field">
-          <label>Goals they can see &amp; edit on entry.html (leave all unchecked = sees every goal)</label>
-          <div id="permGoalChecklist" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;"></div>
-        </div>
-      </div>
-      <div class="editrow" style="padding-top:4px;">
-        <div class="actions">
-          <button class="btn" id="permClearFormBtn">Clear Form</button>
-          <button class="btn primary" id="permSaveBtn">Save Permission</button>
-        </div>
-      </div>
-      <div class="task-edit-label" style="padding:0 18px;margin-top:6px;">Current assignments</div>
-      <div id="permList" style="padding:0 18px 14px;"></div>
-    </div>
-  </div>
-
   <div id="goalsList"></div>
   <div class="empty" id="emptyState" style="display:none;">No results match the current filter or search.</div>
   </div>
@@ -1411,6 +1410,62 @@ table.mini-goaltable tr.mt-newgoal:first-child td{border-top:none;}
     </div>
     <div class="doctable-wrap">
       <table class="doctable" id="docTable"></table>
+    </div>
+  </div>
+
+  <div class="view" id="view-reportdates">
+    <h2 class="section-title">Report Dates <span class="section-sub">— Title &amp; Submission Info</span></h2>
+    <div class="task-edit-block">
+      <div class="task-edit-label">Cycle date range — fixed from Sprint 1 through Sprint 6</div>
+      <div class="field">
+        <label>Shown in the title, e.g. "From 12th April 2026 – 9th July 2026"</label>
+        <input type="text" id="cycleDateRange" placeholder="From 12th April 2026 – 9th July 2026">
+      </div>
+    </div>
+    <div class="task-edit-block">
+      <div class="task-edit-label">Names — update whenever they change</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="field">
+          <label>GM In Charge</label>
+          <input type="text" id="gmInChargeInput" placeholder="e.g. Suhaila Al Balushi">
+        </div>
+        <div class="field">
+          <label>Focal Point</label>
+          <input type="text" id="focalPointInput" placeholder="e.g. Badar Al Mamari">
+        </div>
+      </div>
+    </div>
+    <div id="sprintDatesList"></div>
+    <div class="editrow" style="padding-top:4px;">
+      <div class="actions">
+        <button class="btn primary" id="saveReportDatesBtn">Save Report Dates</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="view" id="view-entrypermissions">
+    <h2 class="section-title">Entry Permissions <span class="section-sub">— Who Can Edit Which Goals</span></h2>
+    <div class="task-edit-block">
+      <div class="task-edit-label">Assign specific Goals to one person</div>
+      <div class="field" style="margin-bottom:10px;">
+        <label>Their email — must match exactly what they use to sign in on entry.html</label>
+        <input type="email" id="permEmailInput" placeholder="name@example.com">
+      </div>
+      <div class="field">
+        <label>Goals they can see &amp; edit on entry.html (leave all unchecked = sees every goal)</label>
+        <div id="permGoalChecklist" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;"></div>
+      </div>
+    </div>
+    <div class="editrow" style="padding-top:4px;">
+      <div class="actions">
+        <button class="btn" id="permClearFormBtn">Clear Form</button>
+        <button class="btn primary" id="permSaveBtn">Save Permission</button>
+      </div>
+    </div>
+    <div class="task-edit-label" style="margin-top:14px;">Current assignments</div>
+    <div id="permList"></div>
+  </div>
+
     </div>
   </div>
 
@@ -1514,6 +1569,7 @@ let currentFilter = 'all';
 let currentSearch = '';
 
 let currentTab = 'summary';
+const ADMIN_SUBTABS = ['goals','documents','reportdates','entrypermissions'];
 let summaryVisible = true; // admin-controlled: whether the Summary tab shows for everyone
 
 
@@ -1766,7 +1822,7 @@ onAuthStateChanged(auth, async (user)=>{
   // Scoped editors (Dashboard-2 / Dashboard-3 only): hide every other tab, lock them to their one board.
   applyTabVisibility();
   if(scopedBoard && currentTab !== scopedBoard) switchTab(scopedBoard);
-  if(!isAdmin && (currentTab==='goals' || currentTab==='documents')) switchTab(scopedBoard || 'dashboard');
+  if(!isAdmin && ADMIN_SUBTABS.includes(currentTab)) switchTab(scopedBoard || 'dashboard');
   if(!isAdmin && !summaryVisible && currentTab==='summary') switchTab(scopedBoard || 'dashboard');
 
   renderAuditDashboard();
@@ -1833,11 +1889,6 @@ function renderReportDatesForm(){
       </div>`;
   }).join('');
 }
-
-document.getElementById('reportDatesToggle').addEventListener('click', ()=>{
-  document.getElementById('reportDatesToggle').classList.toggle('open');
-  document.getElementById('reportDatesBody').classList.toggle('open');
-});
 
 document.getElementById('saveReportDatesBtn').addEventListener('click', async ()=>{
   if(!currentCycleId){ alert('Select a Cycle first.'); return; }
@@ -1926,15 +1977,6 @@ async function loadPermList(){
     listEl.innerHTML = `<div style="font-size:12px;color:var(--red);">Could not load: ${err.message}</div>`;
   }
 }
-
-document.getElementById('entryPermToggle').addEventListener('click', ()=>{
-  document.getElementById('entryPermToggle').classList.toggle('open');
-  document.getElementById('entryPermBody').classList.toggle('open');
-  if(document.getElementById('entryPermBody').classList.contains('open')){
-    renderPermGoalChecklist();
-    loadPermList();
-  }
-});
 
 document.getElementById('permClearFormBtn').addEventListener('click', permClearForm);
 
@@ -2630,7 +2672,14 @@ document.getElementById('tabsbar').addEventListener('click', (e)=>{
 
 function switchTab(tab){
   currentTab = tab;
-  document.querySelectorAll('.tabsbar .tab').forEach(b=>b.classList.toggle('active', b.getAttribute('data-tab')===tab));
+  const isAdminSub = ADMIN_SUBTABS.includes(tab);
+  document.querySelectorAll('.tabsbar .tab').forEach(b=>{
+    const t = b.getAttribute('data-tab');
+    const isEntry = b.hasAttribute('data-admin-entry');
+    b.classList.toggle('active', isEntry ? isAdminSub : t===tab);
+  });
+  document.querySelectorAll('.admin-nav-item').forEach(b=>b.classList.toggle('active', b.getAttribute('data-admin-tab')===tab));
+  document.getElementById('adminShell').style.display = isAdminSub ? 'flex' : 'none';
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+tab).classList.add('active');
   document.getElementById('cycleSprintGroup').style.display = (tab==='goals' || tab==='dashboard') ? 'flex' : 'none';
@@ -2639,7 +2688,13 @@ function switchTab(tab){
   if(tab === 'dashboard3') renderKpi3Dashboard();
   if(tab === 'documents') renderDocTable();
   if(tab === 'summary') renderSummary();
+  if(tab === 'reportdates') renderReportDatesForm();
+  if(tab === 'entrypermissions'){ renderPermGoalChecklist(); loadPermList(); }
 }
+
+document.querySelectorAll('.admin-nav-item').forEach(btn=>{
+  btn.addEventListener('click', ()=> switchTab(btn.getAttribute('data-admin-tab')));
+});
 
 function renderDashboard(){
   renderGoalsDashboard();
