@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="12 Weeks Plan">
 <meta name="mobile-web-app-capable" content="yes">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&family=Archivo+Black&display=swap');
 
 :root{
   --bg: #DBCEC5;
@@ -176,9 +176,9 @@ h1{
   line-height:1.5;
 }
 .cycle-task-inline{
-  font-family:'Space Grotesk',sans-serif;
-  font-size:15px;
-  font-weight:700;
+  font-family:'Archivo Black',sans-serif;
+  font-size:14px;
+  font-weight:400;
   color:var(--ink);
 }
 .cycle-task-inline b{color:var(--surface);font-weight:700;}
@@ -226,12 +226,12 @@ h1{
   border-bottom:1px solid var(--line-onbg);
 }
 .plan-title{
-  font-family:'Space Grotesk',sans-serif;
-  font-size:19px;
-  font-weight:700;
+  font-family:'Archivo Black',sans-serif;
+  font-size:18px;
+  font-weight:400;
   color:var(--ink);
   margin:0;
-  letter-spacing:.03em;
+  letter-spacing:.02em;
 }
 
 .entry-wrap{display:flex;flex-direction:column;gap:14px;margin-bottom:20px;}
@@ -244,6 +244,11 @@ h1{
   padding:16px 18px 18px;
   box-shadow:0 4px 16px rgba(3,66,69,.18);
   transition:transform .15s;
+  animation:warmGlow 2.6s ease-in-out infinite;
+}
+@keyframes warmGlow{
+  0%, 100% { box-shadow:0 4px 16px rgba(3,66,69,.18), -3px 0 8px -1px var(--acc, var(--cyan)); }
+  50% { box-shadow:0 4px 16px rgba(3,66,69,.18), -3px 0 20px 2px var(--acc, var(--cyan)); }
 }
 .goal-card.row-invalid{border-left-color:var(--red);box-shadow:0 4px 16px rgba(232,105,122,.2);}
 .goal-card-top{
@@ -377,8 +382,8 @@ h1{
 
   <div id="loginView">
     <div class="login-card">
-      <h2 id="authTitle">Data Entry</h2>
-      <p id="authSubtitle">Sign in to fill in progress updates.</p>
+      <h2 id="authTitle" style="display:none;">Data Entry</h2>
+      <p id="authSubtitle" style="display:none;">Sign in to fill in progress updates.</p>
       <label>Email</label>
       <input type="email" id="email" autocomplete="username">
       <label>Password</label>
