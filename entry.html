@@ -2,10 +2,9 @@
 <html lang="en" dir="ltr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>12 Weeks Plan</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>12 Weeks Plan — Entry</title>
 
-<!-- App icon / "Add to Home Screen" support -->
 <link rel="manifest" href="entry-manifest.json">
 <link rel="icon" type="image/x-icon" href="entry-favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="entry-favicon-32.png">
@@ -16,399 +15,839 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="12 Weeks Plan">
 <meta name="mobile-web-app-capable" content="yes">
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&family=Archivo+Black&display=swap');
 
-:root{
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&family=Archivo+Black&display=swap');
+
+:root {
   --bg: #DBCEC5;
+  --bg-elevated: #E8DDD5;
   --surface: #034245;
   --surface-hi: #0B5257;
-  --line: rgba(255,255,255,.14);
-  --line-onbg: rgba(3,66,69,.22);
+  --surface-deep: #023638;
+  --line: rgba(255,255,255,.12);
+  --line-onbg: rgba(3,66,69,.18);
   --cyan: #4DD8E6;
   --cyan-dim: #2E8C99;
+  --cyan-glow: rgba(77,216,230,.35);
   --amber: #F0A868;
+  --amber-glow: rgba(240,168,104,.35);
   --green: #4ECDA0;
+  --green-glow: rgba(78,205,160,.35);
   --red: #E8697A;
+  --red-glow: rgba(232,105,122,.35);
+  --gold: #F2C94C;
   --text: #F5F1EA;
   --text-mid: #B9CFC9;
   --text-dim: #7DA39D;
   --ink: #073B3D;
   --ink-mid: #2C4442;
   --ink-dim: #4A5D5A;
-}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-html{scroll-behavior:smooth;}
-html,body{margin:0;padding:0;}
-body{
-  background:var(--bg);
-  color:var(--ink);
-  font-family:'Inter','Segoe UI',sans-serif;
-  min-height:100vh;
-  padding:0 0 100px;
-  overscroll-behavior-y:contain;
-}
-.wrap{max-width:820px;margin:0 auto;padding:0 16px;}
-h1{
-  font-family:'Space Grotesk',sans-serif;
-  font-size:24px;
-  font-weight:700;
-  color:var(--ink);
-  margin:0 0 4px;
-}
-.sub{font-size:13px;color:var(--ink-dim);margin-bottom:26px;}
-
-/* ---------- Login card ---------- */
-.login-card{
-  max-width:360px;
-  margin:15vh auto 60px;
-  background:var(--surface);
-  border:1px solid var(--line);
-  border-radius:20px;
-  padding:32px 28px;
-  box-shadow:0 20px 50px rgba(3,66,69,.25);
-}
-.login-card h2{
-  font-family:'Space Grotesk',sans-serif;
-  font-size:19px;
-  color:#fff;
-  margin:0 0 6px;
-}
-.login-card p{font-size:12.5px;color:var(--text-dim);margin:0 0 20px;}
-.login-card label{
-  display:block;
-  font-size:10.5px;
-  color:var(--text-dim);
-  font-family:'IBM Plex Mono',monospace;
-  text-transform:uppercase;
-  letter-spacing:.05em;
-  margin-bottom:5px;
-  margin-top:14px;
-}
-.login-card label:first-of-type{margin-top:0;}
-.login-card input{
-  width:100%;
-  background:var(--surface-hi);
-  border:1px solid var(--line);
-  border-radius:12px;
-  color:var(--text);
-  font-family:'Inter',sans-serif;
-  font-size:16px;
-  padding:14px 14px;
-  outline:none;
-}
-.login-card input:focus{border-color:var(--cyan-dim);}
-.login-card .err{color:var(--red);font-size:12px;margin-top:10px;display:none;}
-.login-card .ok-msg{color:var(--green);font-size:12px;margin-top:10px;display:none;}
-.auth-switch{
-  text-align:center;
-  font-size:12px;
-  color:var(--text-dim);
-  margin-top:16px;
-}
-.auth-switch a{color:var(--cyan);text-decoration:none;font-weight:600;cursor:pointer;}
-.auth-switch a:hover{text-decoration:underline;}
-.btn{
-  font-family:'IBM Plex Mono',monospace;
-  font-size:12.5px;
-  font-weight:600;
-  padding:11px 18px;
-  border-radius:11px;
-  border:1px solid var(--line);
-  background:var(--surface-hi);
-  color:var(--text-mid);
-  cursor:pointer;
-  transition:.15s;
-  min-height:40px;
-}
-.btn:active{transform:scale(.97);}
-.btn:hover{border-color:var(--cyan-dim);color:var(--text);}
-.btn.primary{background:#00A8A2;color:#FFFFFF;border-color:#00A8A2;width:100%;margin-top:18px;padding:14px;font-size:14px;font-weight:700;}
-.btn.primary:hover{opacity:.9;}
-
-/* ---------- Entry app ---------- */
-.hidden{display:none !important;}
-.topbar{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  position:sticky;
-  top:0;
-  z-index:20;
-  margin:0 -16px 14px;
-  padding:16px 16px 14px;
-  background:linear-gradient(180deg, var(--bg) 75%, transparent);
-  backdrop-filter:blur(6px);
-  -webkit-backdrop-filter:blur(6px);
-  border-bottom:1px solid var(--line-onbg);
-}
-.topbar-left{display:flex;align-items:center;gap:14px;}
-.topbar-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
-.topbar .who{font-size:11px;color:var(--ink-dim);font-family:'IBM Plex Mono',monospace;}
-.entry-logo{height:34px;width:auto;object-fit:contain;}
-.save-bar.top{display:none;}
-.save-bar-fixed{
-  position:fixed;
-  left:0;right:0;bottom:0;
-  z-index:30;
-  padding:12px 16px calc(12px + env(safe-area-inset-bottom));
-  background:linear-gradient(180deg, transparent, var(--bg) 30%);
-}
-.save-bar-fixed .btn.primary{
-  width:100%;
-  max-width:820px;
-  margin:0 auto;
-  display:block;
-  padding:15px;
-  font-size:14px;
-  border-radius:14px;
-  box-shadow:0 6px 20px rgba(0,168,162,.4);
-}
-.validation-note{
-  font-size:12px;
-  font-weight:700;
-  color:#6B5400;
-  background:rgba(242,201,76,.16);
-  border:1px solid rgba(242,201,76,.3);
-  border-radius:12px;
-  padding:11px 14px;
-  margin-bottom:14px;
-  line-height:1.5;
-}
-.cycle-task-inline{
-  font-family:'Archivo Black',sans-serif;
-  font-size:14px;
-  font-weight:400;
-  color:var(--ink);
-}
-.cycle-task-inline b{color:var(--surface);font-weight:700;}
-.cycle-task-inline .sep{color:var(--ink-dim);font-weight:400;margin:0 8px;font-size:13px;}
-
-.controls-card{
-  background:var(--surface);
-  border:1px solid var(--line);
-  border-radius:14px;
-  padding:18px 20px;
-  margin-bottom:18px;
-  display:flex;
-  align-items:center;
-  gap:14px;
-  flex-wrap:wrap;
-}
-.controls-card .fld{display:flex;align-items:center;gap:8px;}
-.controls-card label{
-  font-size:11px;
-  color:var(--text-dim);
-  font-family:'IBM Plex Mono',monospace;
-  text-transform:uppercase;
-  letter-spacing:.06em;
-}
-.controls-card select{
-  background:var(--surface-hi);
-  border:1px solid var(--line);
-  border-radius:7px;
-  color:var(--cyan);
-  font-family:'IBM Plex Mono',monospace;
-  font-size:13px;
-  font-weight:600;
-  padding:6px 10px;
-  outline:none;
-}
-.controls-card .hint{font-size:11.5px;color:var(--text-dim);}
-.plan-row{
-  display:flex;
-  align-items:baseline;
-  justify-content:space-between;
-  flex-wrap:wrap;
-  gap:10px;
-  margin-bottom:20px;
-  padding-bottom:16px;
-  border-bottom:1px solid var(--line-onbg);
-}
-.plan-title{
-  font-family:'Archivo Black',sans-serif;
-  font-size:18px;
-  font-weight:400;
-  color:var(--ink);
-  margin:0;
-  letter-spacing:.02em;
+  --glass: rgba(3,66,69,.65);
+  --glass-border: rgba(255,255,255,.08);
+  --shadow-sm: 0 2px 8px rgba(3,66,69,.12);
+  --shadow-md: 0 8px 24px rgba(3,66,69,.18);
+  --shadow-lg: 0 16px 48px rgba(3,66,69,.25);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
 }
 
-.entry-wrap{display:flex;flex-direction:column;gap:14px;margin-bottom:20px;}
-.goal-card{
-  scroll-margin-top:80px;
-  background:linear-gradient(160deg, var(--surface-hi) 0%, var(--surface) 100px);
-  border:1px solid var(--line);
-  border-left:8px solid var(--acc, var(--cyan));
-  border-radius:16px;
-  padding:16px 18px 18px;
-  box-shadow:0 4px 16px rgba(3,66,69,.18);
-  transition:transform .15s;
-}
-.goal-card.row-invalid{border-left-color:var(--red);box-shadow:0 4px 16px rgba(232,105,122,.2);}
-.goal-card-top{
-  display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
-  gap:12px;
-  margin-bottom:6px;
-}
-.goal-card-title{color:var(--text);font-weight:700;font-size:14.5px;line-height:1.4;}
-.goal-card-task{color:#FFFFFF;font-size:13.5px;font-weight:700;margin-bottom:16px;line-height:1.5;}
-.goal-card-fields{display:flex;gap:12px;margin-bottom:12px;}
-.goal-card-field{display:flex;flex-direction:column;gap:6px;}
-.goal-card-field.grow{flex:1;}
-.goal-card-field label{
-  font-size:10.5px;
-  color:#F5D68A;
-  font-family:'IBM Plex Mono',monospace;
-  text-transform:uppercase;
-  letter-spacing:.05em;
-  font-weight:700;
-}
-.e-goal{color:var(--text);font-weight:600;font-size:13.5px;}
-.e-task-ro{color:var(--text-mid);font-size:12.5px;}
-.e-num{
-  display:inline-block;
-  font-family:'IBM Plex Mono',monospace;
-  font-size:10.5px;
-  font-weight:800;
-  color:#000000;
-  background:#FFFFFF;
-  border-radius:5px;
-  padding:2px 7px;
-  margin-right:6px;
-  vertical-align:middle;
-}
-.e-num-goal{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  min-width:30px;
-  height:26px;
-  font-family:'IBM Plex Mono',monospace;
-  font-size:13px;
-  font-weight:800;
-  border-radius:7px;
-  padding:0 7px;
-  margin-right:9px;
-  vertical-align:middle;
-}
-.e-avg-circle{
-  width:52px;
-  height:52px;
-  border-radius:50%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-family:'IBM Plex Mono',monospace;
-  font-size:15px;
-  font-weight:800;
-  border:2px solid currentColor;
-  background:rgba(255,255,255,.05);
-  text-align:center;
-  line-height:1.1;
-  flex-shrink:0;
-}
-.goal-card input, .goal-card textarea{
-  width:100%;
-  background:var(--surface-hi);
-  border:1px solid var(--line);
-  border-radius:10px;
-  color:var(--text);
-  font-family:'Inter',sans-serif;
-  font-size:16px;
-  padding:11px 12px;
-  outline:none;
-}
-.goal-card input:focus, .goal-card textarea:focus{border-color:var(--cyan-dim);}
-.goal-card input.progress-input{
-  font-family:'IBM Plex Mono',monospace;
-  font-weight:700;
-  text-align:center;
-  font-size:16px;
-}
-.goal-card .field-progress{width:110px;flex-shrink:0;}
-.goal-card textarea{resize:vertical;min-height:44px;font-family:'Inter',sans-serif;font-size:14px;}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html { scroll-behavior: smooth; }
+html, body { margin: 0; padding: 0; }
 
-.save-bar{display:flex;justify-content:flex-end;gap:10px;}
-.empty-msg{
-  text-align:center;
-  padding:50px 20px;
-  color:var(--ink-dim);
-  font-size:13.5px;
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  min-height: 100vh;
+  padding: 0 0 100px;
+  overscroll-behavior-y: contain;
+  transition: background 0.4s var(--ease-out);
 }
-.modal-overlay{
-  position:fixed;inset:0;
-  background:rgba(3,20,20,.6);
-  backdrop-filter:blur(3px);
-  -webkit-backdrop-filter:blur(3px);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  z-index:100;
-  padding:20px;
-}
-.modal-card{
-  background:var(--surface);
-  border:1px solid var(--line);
-  border-radius:20px;
-  padding:30px 26px 24px;
-  max-width:340px;
-  width:100%;
-  text-align:center;
-  box-shadow:0 24px 60px rgba(0,0,0,.4);
-  animation:modalPop .18s ease-out;
-}
-@keyframes modalPop{from{transform:scale(.92);opacity:0;}to{transform:scale(1);opacity:1;}}
-.modal-icon{font-size:34px;margin-bottom:10px;}
-.modal-title{font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;color:#fff;margin-bottom:10px;}
-.modal-text{font-size:13.5px;color:var(--text-mid);line-height:1.6;margin-bottom:22px;}
-.modal-card .btn.primary{margin-top:0;}
 
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 40% at 30% 20%, rgba(77,216,230,.05) 0%, transparent 50%),
+    radial-gradient(ellipse 50% 30% at 70% 80%, rgba(240,168,104,.04) 0%, transparent 50%);
+  animation: meshMove 20s ease-in-out infinite alternate;
+}
+
+@keyframes meshMove {
+  0% { transform: translate(0,0) scale(1); }
+  50% { transform: translate(-1%, 1%) scale(1.01); }
+  100% { transform: translate(1%, -1%) scale(0.99); }
+}
+
+.wrap { max-width: 820px; margin: 0 auto; padding: 0 16px; position: relative; z-index: 1; }
+
+/* ═══════ Toast System ═══════ */
+#toastContainer {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  left: 16px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  background: var(--glass);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 12px 16px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: var(--shadow-lg), 0 0 0 1px rgba(255,255,255,.04);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transform: translateY(-20px);
+  opacity: 0;
+  transition: all 0.4s var(--ease-spring);
+  pointer-events: all;
+  cursor: pointer;
+  max-width: 100%;
+}
+
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.hiding { transform: translateY(-20px); opacity: 0; }
+
+.toast-icon { font-size: 18px; flex-shrink: 0; }
+.toast-success { border-left: 3px solid var(--green); }
+.toast-error { border-left: 3px solid var(--red); }
+.toast-warning { border-left: 3px solid var(--amber); }
+.toast-info { border-left: 3px solid var(--cyan); }
+
+/* ═══════ Loading Skeleton ═══════ */
+.skeleton {
+  background: linear-gradient(90deg, var(--surface) 25%, var(--surface-hi) 50%, var(--surface) 75%);
+  background-size: 200% 100%;
+  animation: skeletonPulse 1.5s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes skeletonPulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ═══════ Login Card ═══════ */
+.login-card {
+  max-width: 380px;
+  margin: 12vh auto 60px;
+  background: var(--glass);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  padding: 36px 32px;
+  box-shadow: var(--shadow-lg), 0 0 40px rgba(3,66,69,.15);
+  animation: cardEnter 0.6s var(--ease-out) both;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--cyan), var(--cyan-dim), var(--green));
+  opacity: 0.8;
+}
+
+@keyframes cardEnter {
+  from { opacity: 0; transform: translateY(30px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.login-card h2 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 22px;
+  color: #fff;
+  margin: 0 0 8px;
+  text-shadow: 0 2px 8px rgba(0,0,0,.2);
+}
+
+.login-card p { font-size: 13px; color: var(--text-dim); margin: 0 0 24px; line-height: 1.5; }
+
+.login-card label {
+  display: block;
+  font-size: 10px;
+  color: var(--text-dim);
+  font-family: 'IBM Plex Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: 6px;
+  margin-top: 16px;
+  font-weight: 600;
+}
+
+.login-card label:first-of-type { margin-top: 0; }
+
+.login-card input {
+  width: 100%;
+  background: var(--surface-deep);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  padding: 14px 16px;
+  outline: none;
+  transition: all 0.3s;
+}
+
+.login-card input:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px var(--cyan-glow), 0 4px 12px rgba(0,0,0,.1);
+  transform: translateY(-1px);
+}
+
+.login-card .err { color: var(--red); font-size: 12px; margin-top: 12px; display: none; padding: 8px 12px; background: rgba(232,105,122,.1); border-radius: var(--radius-sm); border-left: 2px solid var(--red); }
+.login-card .ok-msg { color: var(--green); font-size: 12px; margin-top: 12px; display: none; padding: 8px 12px; background: rgba(78,205,160,.1); border-radius: var(--radius-sm); border-left: 2px solid var(--green); }
+
+.auth-switch {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 18px;
+}
+
+.auth-switch a { color: var(--cyan); text-decoration: none; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.auth-switch a:hover { color: #fff; text-decoration: underline; }
+
+.btn {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 12px 20px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface-hi);
+  color: var(--text-mid);
+  cursor: pointer;
+  transition: all 0.25s var(--ease-out);
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,.06), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.btn:hover::before { opacity: 1; }
+.btn:hover { border-color: var(--cyan-dim); color: var(--text); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.btn:active { transform: scale(0.97); }
+
+.btn.primary {
+  background: linear-gradient(135deg, #00A8A2, #008B86);
+  color: #FFFFFF;
+  border-color: transparent;
+  width: 100%;
+  margin-top: 20px;
+  padding: 16px;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 4px 16px rgba(0,168,162,.3);
+}
+
+.btn.primary:hover { opacity: 0.95; box-shadow: 0 6px 24px rgba(0,168,162,.4); transform: translateY(-2px); }
+
+/* ═══════ Top Bar ═══════ */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  margin: 0 -16px 16px;
+  padding: 16px 16px 14px;
+  background: linear-gradient(180deg, var(--bg) 75%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line-onbg);
+  animation: fadeSlideDown 0.5s var(--ease-out);
+}
+
+@keyframes fadeSlideDown {
+  from { opacity: 0; transform: translateY(-15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.topbar-left { display: flex; align-items: center; gap: 14px; }
+.topbar-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.topbar .who { font-size: 10px; color: var(--ink-dim); font-family: 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: .05em; }
+.entry-logo { height: 36px; width: auto; object-fit: contain; filter: drop-shadow(0 4px 12px rgba(77,216,230,.2)); transition: all 0.3s; animation: floatLogo 6s ease-in-out infinite; }
+.entry-logo:hover { transform: scale(1.08); }
+
+@keyframes floatLogo {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+.save-bar-fixed {
+  position: fixed;
+  left: 0; right: 0;
+  bottom: 0;
+  z-index: 30;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, transparent, var(--bg) 30%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.save-bar-fixed .btn.primary {
+  width: 100%;
+  max-width: 820px;
+  margin: 0 auto;
+  display: block;
+  padding: 16px;
+  font-size: 15px;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 6px 24px rgba(0,168,162,.4);
+  animation: pulseSave 3s ease-in-out infinite;
+}
+
+@keyframes pulseSave {
+  0%, 100% { box-shadow: 0 6px 24px rgba(0,168,162,.4); }
+  50% { box-shadow: 0 6px 32px rgba(0,168,162,.6), 0 0 0 2px rgba(0,168,162,.1); }
+}
+
+/* ═══════ Validation Note ═══════ */
+.validation-note {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6B5400;
+  background: rgba(242,201,76,.12);
+  border: 1px solid rgba(242,201,76,.25);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  line-height: 1.6;
+  animation: fadeSlideDown 0.4s var(--ease-out);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.validation-note::before { content: '⚠️'; font-size: 16px; }
+
+/* ═══════ Cycle/Task Label ═══════ */
+.cycle-task-inline {
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--ink);
+  animation: fadeIn 0.6s var(--ease-out);
+}
+
+.cycle-task-inline b { color: var(--surface); font-weight: 700; }
+.cycle-task-inline .sep { color: var(--ink-dim); font-weight: 400; margin: 0 8px; font-size: 12px; }
+
+/* ═══════ Plan Row ═══════ */
+.plan-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 24px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line-onbg);
+  animation: fadeSlideDown 0.5s 0.1s both;
+}
+
+.plan-title {
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--ink);
+  margin: 0;
+  letter-spacing: .02em;
+}
+
+/* ═══════ Entry Wrap ═══════ */
+.entry-wrap { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
+
+/* ═══════ Goal Card ═══════ */
+.goal-card {
+  scroll-margin-top: 90px;
+  background: var(--glass);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid var(--glass-border);
+  border-left: 6px solid var(--acc, var(--cyan));
+  border-radius: var(--radius-xl);
+  padding: 20px 22px 22px;
+  box-shadow: var(--shadow-md), 0 0 0 1px rgba(255,255,255,.02);
+  transition: all 0.4s var(--ease-out);
+  animation: cardEnter 0.5s var(--ease-out) both;
+  position: relative;
+  overflow: hidden;
+}
+
+.goal-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--acc, var(--cyan)), transparent);
+  opacity: 0.6;
+}
+
+.goal-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg), 0 0 30px color-mix(in srgb, var(--acc, var(--cyan)) 10%, transparent);
+  border-color: var(--cyan-dim);
+}
+
+.goal-card.row-invalid {
+  border-left-color: var(--red);
+  box-shadow: var(--shadow-md), 0 0 20px var(--red-glow);
+  animation: shake 0.5s var(--ease-out);
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
+
+.goal-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+
+.goal-card-title { color: var(--text); font-weight: 700; font-size: 15px; line-height: 1.4; }
+.goal-card-task { color: #FFFFFF; font-size: 14px; font-weight: 700; margin-bottom: 18px; line-height: 1.5; }
+
+.goal-card-fields { display: flex; gap: 14px; margin-bottom: 14px; }
+.goal-card-field { display: flex; flex-direction: column; gap: 8px; }
+.goal-card-field.grow { flex: 1; }
+
+.goal-card-field label {
+  font-size: 10px;
+  color: #F5D68A;
+  font-family: 'IBM Plex Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.goal-card-field label::before {
+  content: '';
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.e-goal { color: var(--text); font-weight: 600; font-size: 14px; }
+.e-task-ro { color: var(--text-mid); font-size: 13px; }
+
+.e-num {
+  display: inline-block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  font-weight: 800;
+  color: #000000;
+  background: #FFFFFF;
+  border-radius: 5px;
+  padding: 2px 8px;
+  margin-right: 8px;
+  vertical-align: middle;
+  box-shadow: 0 2px 4px rgba(0,0,0,.2);
+}
+
+.e-num-goal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 28px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  font-weight: 800;
+  border-radius: 8px;
+  padding: 0 8px;
+  margin-right: 10px;
+  vertical-align: middle;
+  box-shadow: 0 2px 8px rgba(0,0,0,.2);
+}
+
+.e-avg-circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 16px;
+  font-weight: 800;
+  border: 2px solid currentColor;
+  background: rgba(255,255,255,.06);
+  text-align: center;
+  line-height: 1.1;
+  flex-shrink: 0;
+  box-shadow: 0 0 16px currentColor;
+  transition: all 0.4s var(--ease-out);
+  animation: statusPulse 3s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+  0%, 100% { box-shadow: 0 0 16px currentColor; }
+  50% { box-shadow: 0 0 24px currentColor; }
+}
+
+.goal-card input, .goal-card textarea {
+  width: 100%;
+  background: var(--surface-deep);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  padding: 12px 14px;
+  outline: none;
+  transition: all 0.3s;
+}
+
+.goal-card input:focus, .goal-card textarea:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px var(--cyan-glow), 0 4px 12px rgba(0,0,0,.1);
+  transform: translateY(-1px);
+}
+
+.goal-card input.progress-input {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 700;
+  text-align: center;
+  font-size: 18px;
+  padding: 14px;
+}
+
+.goal-card .field-progress { width: 120px; flex-shrink: 0; }
+.goal-card textarea { resize: vertical; min-height: 52px; font-family: 'Inter', sans-serif; font-size: 14px; }
+
+/* Voice Input Button */
+.voice-btn {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  background: var(--surface-hi);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--cyan);
+  font-size: 14px;
+  transition: all 0.3s;
+  z-index: 5;
+}
+
+.voice-btn:hover { background: var(--cyan); color: var(--surface); transform: scale(1.1); }
+.voice-btn.recording { animation: recordingPulse 1s ease-in-out infinite; background: var(--red); color: #fff; border-color: var(--red); }
+
+@keyframes recordingPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232,105,122,.4); }
+  50% { box-shadow: 0 0 0 8px rgba(232,105,122,0); }
+}
+
+/* Auto-save Indicator */
+.auto-save-indicator {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  background: var(--glass);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 50px;
+  padding: 6px 16px;
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--text-mid);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  transition: all 0.4s;
+  pointer-events: none;
+}
+
+.auto-save-indicator.show { opacity: 1; }
+.auto-save-indicator.saving .dot { animation: dotPulse 1s ease-in-out infinite; }
+.auto-save-indicator.saved { color: var(--green); border-color: rgba(78,205,160,.3); }
+.auto-save-indicator.saved .dot { background: var(--green); }
+
+.dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--amber);
+}
+
+@keyframes dotPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+/* Edit Card Button */
+.edit-card-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--cyan-dim);
+  background: rgba(77,216,230,.08);
+  color: var(--cyan);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.edit-card-btn:hover { background: rgba(77,216,230,.16); border-style: solid; transform: translateY(-1px); box-shadow: 0 4px 12px var(--cyan-glow); }
+.edit-card-btn:active { transform: scale(0.97); }
+
+/* Locked State */
 .goal-card.is-locked .goal-card-fields input,
-.goal-card.is-locked .goal-card-fields textarea{
-  opacity:.55;
-  cursor:not-allowed;
+.goal-card.is-locked .goal-card-fields textarea {
+  opacity: .5;
+  cursor: not-allowed;
 }
-.edit-card-btn{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:7px;
-  width:100%;
-  margin-top:12px;
-  padding:10px;
-  border-radius:11px;
-  border:1px dashed var(--cyan-dim);
-  background:rgba(77,216,230,.08);
-  color:var(--cyan);
-  font-family:'IBM Plex Mono',monospace;
-  font-size:12px;
-  font-weight:700;
-  cursor:pointer;
-  transition:.15s;
-}
-.edit-card-btn:hover{background:rgba(77,216,230,.16);}
-.edit-card-btn:active{transform:scale(.97);}
 
-@media (max-width:480px){
-  .goal-card-fields{flex-direction:column;}
-  .goal-card .field-progress{width:100%;}
+/* Empty Message */
+.empty-msg {
+  text-align: center;
+  padding: 60px 24px;
+  color: var(--ink-dim);
+  font-size: 14px;
+  animation: fadeIn 0.6s var(--ease-out);
 }
+
+.empty-msg-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; display: block; }
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(3,20,20,.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+
+.modal-card {
+  background: var(--glass);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  padding: 32px 28px 28px;
+  max-width: 360px;
+  width: 100%;
+  text-align: center;
+  box-shadow: var(--shadow-lg), 0 0 40px rgba(0,0,0,.3);
+  transform: scale(0.9) translateY(20px);
+  transition: transform 0.4s var(--ease-spring);
+}
+
+.modal-overlay.open .modal-card { transform: scale(1) translateY(0); }
+
+.modal-icon { font-size: 40px; margin-bottom: 12px; animation: popIn 0.5s var(--ease-spring); }
+.modal-title { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 12px; text-shadow: 0 2px 8px rgba(0,0,0,.2); }
+.modal-text { font-size: 14px; color: var(--text-mid); line-height: 1.7; margin-bottom: 24px; }
+.modal-card .btn.primary { margin-top: 0; justify-content: center; }
+
+@keyframes popIn {
+  from { transform: scale(0.5); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Bottom Sheet (Mobile) */
+.bottom-sheet {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 200;
+  background: var(--glass);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  padding: 24px 20px calc(24px + env(safe-area-inset-bottom));
+  box-shadow: 0 -8px 32px rgba(0,0,0,.3);
+  transform: translateY(100%);
+  transition: transform 0.4s var(--ease-spring);
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.bottom-sheet.open { transform: translateY(0); }
+
+.bottom-sheet-handle {
+  width: 40px; height: 4px;
+  background: var(--line);
+  border-radius: 2px;
+  margin: 0 auto 16px;
+}
+
+/* Pull to Refresh */
+.ptr-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.ptr-indicator {
+  position: absolute;
+  top: -50px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ink-dim);
+  font-family: 'IBM Plex Mono', monospace;
+  transition: all 0.3s;
+}
+
+.ptr-indicator.pulling { top: 16px; }
+.ptr-indicator.refreshing .spinner { animation: spin 1s linear infinite; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Offline Banner */
+.offline-banner {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  background: var(--amber);
+  color: #4A2E00;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 16px;
+  text-align: center;
+  transform: translateY(-100%);
+  transition: transform 0.3s var(--ease-out);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.offline-banner.show { transform: translateY(0); }
+
+/* Animations */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.3s; }
+
+@media (max-width: 480px) {
+  .goal-card-fields { flex-direction: column; }
+  .goal-card .field-progress { width: 100%; }
+  .login-card { margin: 8vh 16px 40px; padding: 28px 24px; }
+  .plan-title { font-size: 16px; }
+  .cycle-task-inline { font-size: 11px; }
+  .goal-card { padding: 16px 18px 18px; }
+  .goal-card-title { font-size: 13px; }
+  .goal-card-task { font-size: 12px; }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--cyan-dim); border-radius: 2px; }
+
+::selection { background: rgba(77,216,230,.3); color: #fff; }
+
+:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; border-radius: 4px; }
 </style>
 </head>
 <body>
+
+<!-- Offline Banner -->
+<div class="offline-banner" id="offlineBanner">📡 You're offline — changes will sync when you reconnect</div>
+
+<!-- Auto-save Indicator -->
+<div class="auto-save-indicator" id="autoSaveIndicator">
+  <span class="dot"></span>
+  <span id="autoSaveText">Auto-saving…</span>
+</div>
+
+<!-- Toast Container -->
+<div id="toastContainer"></div>
+
 <div class="wrap">
 
+  <!-- Login View -->
   <div id="loginView">
     <div class="login-card">
       <h2 id="authTitle" style="display:none;">Data Entry</h2>
       <p id="authSubtitle" style="display:none;">Sign in to fill in progress updates.</p>
       <label>Email</label>
-      <input type="email" id="email" autocomplete="username">
+      <input type="email" id="email" autocomplete="username" placeholder="your@email.com">
       <label>Password</label>
-      <input type="password" id="password" autocomplete="current-password">
+      <input type="password" id="password" autocomplete="current-password" placeholder="••••••">
       <button class="btn primary" id="loginBtn">Sign in</button>
       <div class="err" id="loginErr"></div>
       <div class="ok-msg" id="loginOk"></div>
@@ -421,6 +860,7 @@ h1{
     </div>
   </div>
 
+  <!-- App View -->
   <div id="appView" class="hidden">
     <div class="topbar">
       <div class="topbar-left">
@@ -434,7 +874,7 @@ h1{
 
     <div class="plan-row">
       <h1 class="plan-title">12 WEEKS PLAN</h1>
-      <span class="cycle-task-inline" id="whichLabel">Loading assigned Cycle &amp; Task…</span>
+      <span class="cycle-task-inline" id="whichLabel">Loading assigned Cycle & Task…</span>
     </div>
 
     <div class="entry-wrap" id="entryWrap"></div>
@@ -442,35 +882,40 @@ h1{
 
 </div>
 
+<!-- Save Bar -->
 <div class="save-bar-fixed hidden" id="saveBarFixed">
-  <button class="btn primary" id="saveBtn">Save</button>
+  <button class="btn primary" id="saveBtn">💾 Save Progress</button>
 </div>
 
-<div class="modal-overlay hidden" id="validationModal">
+<!-- Validation Modal -->
+<div class="modal-overlay" id="validationModal">
   <div class="modal-card">
     <div class="modal-icon">⚠️</div>
     <div class="modal-title">Justification Required</div>
-    <div class="modal-text">Please Provide a reason why this task is not yet 100% complete before saving</div>
+    <div class="modal-text">Please provide a reason why this task is not yet 100% complete before saving.</div>
     <button class="btn primary" id="modalOkBtn">Got it</button>
   </div>
 </div>
 
-<div class="modal-overlay hidden" id="successModal">
+<!-- Success Modal -->
+<div class="modal-overlay" id="successModal">
   <div class="modal-card">
-    <div class="modal-title" id="successModalText" style="font-size:14px;font-weight:500;"></div>
-    <div class="modal-icon" style="margin-top:6px;margin-bottom:4px;">👍</div>
+    <div class="modal-title" id="successModalText" style="font-size:15px;font-weight:500;"></div>
+    <div class="modal-icon" style="margin-top:8px;margin-bottom:6px;font-size:36px;">👍</div>
     <button class="btn primary" id="successModalOkBtn">Done</button>
   </div>
 </div>
 
+<!-- Bottom Sheet (Mobile) -->
+<div class="bottom-sheet" id="bottomSheet">
+  <div class="bottom-sheet-handle"></div>
+  <div id="bottomSheetContent"></div>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-import {
-  getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-import {
-  getFirestore, collection, getDocs, doc, setDoc, getDoc, onSnapshot
-} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import { getFirestore, collection, getDocs, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCObXXRAlgfajndVIz8eDsSF--F3x8FJUU",
@@ -490,11 +935,154 @@ let lastInvalidCard = null;
 let editableGoalNos = new Set();
 let currentGoals = [];
 let unsubscribeCycle = null;
+let autoSaveTimer = null;
+let isOffline = false;
+let pendingChanges = {};
 
-// ---------------- Auth ----------------
-let authMode = 'signin'; // 'signin' | 'signup'
+// ═══════════════════════════════════════
+// TOAST SYSTEM
+// ═══════════════════════════════════════
+const toastContainer = document.getElementById('toastContainer');
+function toast(message, type='info', duration=4000) {
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+  el.innerHTML = `<span class="toast-icon">${icons[type]}</span><span>${message}</span>`;
+  toastContainer.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  const timer = setTimeout(() => hideToast(el), duration);
+  el.addEventListener('click', () => { clearTimeout(timer); hideToast(el); });
+}
+function hideToast(el) {
+  el.classList.add('hiding');
+  setTimeout(() => el.remove(), 400);
+}
 
-function renderAuthMode(){
+// ═══════════════════════════════════════
+// OFFLINE SUPPORT
+// ═══════════════════════════════════════
+const offlineBanner = document.getElementById('offlineBanner');
+
+function updateOnlineStatus() {
+  isOffline = !navigator.onLine;
+  offlineBanner.classList.toggle('show', isOffline);
+  if (!isOffline && Object.keys(pendingChanges).length > 0) {
+    toast('Back online! Syncing changes…', 'info');
+    syncPendingChanges();
+  }
+}
+
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+updateOnlineStatus();
+
+function saveToLocal(cycleId, goals) {
+  localStorage.setItem(`pam-entry-${cycleId}`, JSON.stringify({ goals, timestamp: Date.now() }));
+}
+
+function loadFromLocal(cycleId) {
+  try {
+    const data = localStorage.getItem(`pam-entry-${cycleId}`);
+    return data ? JSON.parse(data) : null;
+  } catch (e) { return null; }
+}
+
+function queuePendingChange(cycleId, goalNo, taskIdx, progress, note) {
+  if (!pendingChanges[cycleId]) pendingChanges[cycleId] = {};
+  pendingChanges[cycleId][goalNo] = { taskIdx, progress, note, timestamp: Date.now() };
+  localStorage.setItem('pam-pending-changes', JSON.stringify(pendingChanges));
+}
+
+async function syncPendingChanges() {
+  if (!currentCycleId || !Object.keys(pendingChanges[currentCycleId] || {}).length) return;
+  try {
+    const changes = pendingChanges[currentCycleId];
+    Object.entries(changes).forEach(([goalNo, change]) => {
+      const g = currentGoals.find(x => x.no === Number(goalNo));
+      if (!g) return;
+      if (!g.tasks) g.tasks = [];
+      while (g.tasks.length <= change.taskIdx) g.tasks.push({ id: `${g.no}.${g.tasks.length + 1})`, name: '', progress: null, note: '' });
+      g.tasks[change.taskIdx] = { ...g.tasks[change.taskIdx], progress: change.progress, note: change.note };
+    });
+    await setDoc(doc(db, 'cycles', currentCycleId), { goals: currentGoals });
+    delete pendingChanges[currentCycleId];
+    localStorage.setItem('pam-pending-changes', JSON.stringify(pendingChanges));
+    toast('Changes synced successfully!', 'success');
+  } catch (err) {
+    toast('Sync failed — will retry later', 'warning');
+  }
+}
+
+// ═══════════════════════════════════════
+// AUTO-SAVE INDICATOR
+// ═══════════════════════════════════════
+const autoSaveIndicator = document.getElementById('autoSaveIndicator');
+const autoSaveText = document.getElementById('autoSaveText');
+
+function showAutoSave(status) {
+  autoSaveIndicator.classList.add('show');
+  autoSaveIndicator.classList.remove('saving', 'saved');
+  if (status === 'saving') {
+    autoSaveIndicator.classList.add('saving');
+    autoSaveText.textContent = 'Auto-saving…';
+  } else if (status === 'saved') {
+    autoSaveIndicator.classList.add('saved');
+    autoSaveText.textContent = 'All changes saved';
+    setTimeout(() => autoSaveIndicator.classList.remove('show'), 2000);
+  }
+}
+
+// ═══════════════════════════════════════
+// VOICE INPUT
+// ═══════════════════════════════════════
+let recognition = null;
+if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.lang = 'en-US';
+}
+
+function setupVoiceInput(btn, textarea) {
+  if (!recognition) { btn.style.display = 'none'; return; }
+  btn.addEventListener('click', () => {
+    if (btn.classList.contains('recording')) {
+      recognition.stop();
+      btn.classList.remove('recording');
+      btn.innerHTML = '🎤';
+    } else {
+      recognition.start();
+      btn.classList.add('recording');
+      btn.innerHTML = '⏹️';
+      toast('Listening…', 'info', 2000);
+    }
+  });
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    textarea.value = (textarea.value ? textarea.value + ' ' : '') + transcript;
+    textarea.dispatchEvent(new Event('input'));
+    btn.classList.remove('recording');
+    btn.innerHTML = '🎤';
+    toast('Voice input added', 'success', 2000);
+  };
+  recognition.onerror = () => {
+    btn.classList.remove('recording');
+    btn.innerHTML = '🎤';
+    toast('Voice input failed', 'warning');
+  };
+  recognition.onend = () => {
+    btn.classList.remove('recording');
+    btn.innerHTML = '🎤';
+  };
+}
+
+// ═══════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════
+let authMode = 'signin';
+
+function renderAuthMode() {
   const isSignup = authMode === 'signup';
   document.getElementById('authTitle').textContent = isSignup ? 'Create Account' : 'Data Entry';
   document.getElementById('authSubtitle').textContent = isSignup
@@ -507,7 +1095,7 @@ function renderAuthMode(){
   document.getElementById('loginErr').style.display = 'none';
   document.getElementById('loginOk').style.display = 'none';
   document.getElementById('forgotPwWrap').style.display = isSignup ? 'none' : 'block';
-  document.getElementById('showSignupLink').addEventListener('click', (e)=>{
+  document.getElementById('showSignupLink').addEventListener('click', (e) => {
     e.preventDefault();
     authMode = isSignup ? 'signin' : 'signup';
     renderAuthMode();
@@ -515,96 +1103,85 @@ function renderAuthMode(){
 }
 renderAuthMode();
 
-document.getElementById('loginBtn').addEventListener('click', async ()=>{
+document.getElementById('loginBtn').addEventListener('click', async () => {
   const email = document.getElementById('email').value.trim();
   const pw = document.getElementById('password').value;
   const errEl = document.getElementById('loginErr');
   errEl.style.display = 'none';
-  if(!email || !pw){
+  if (!email || !pw) {
     errEl.textContent = 'Enter an email and password.';
     errEl.style.display = 'block';
     return;
   }
-  try{
-    if(authMode === 'signup'){
-      if(pw.length < 6){
-        errEl.textContent = 'Password must be at least 6 characters.';
-        errEl.style.display = 'block';
-        return;
-      }
+  try {
+    if (authMode === 'signup') {
+      if (pw.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; errEl.style.display = 'block'; return; }
       await createUserWithEmailAndPassword(auth, email, pw);
+      toast('Account created successfully!', 'success');
     } else {
       await signInWithEmailAndPassword(auth, email, pw);
+      toast('Signed in successfully!', 'success');
     }
-  }catch(err){
-    if(err.code === 'auth/email-already-in-use'){
-      errEl.textContent = 'An account with this email already exists — sign in instead.';
-    } else if(err.code === 'auth/weak-password'){
-      errEl.textContent = 'Password is too weak — use at least 6 characters.';
-    } else if(err.code === 'auth/invalid-email'){
-      errEl.textContent = 'Enter a valid email address.';
-    } else if(authMode === 'signup'){
-      errEl.textContent = 'Could not create account: ' + err.message;
-    } else {
-      errEl.textContent = 'Sign-in failed — check your email and password.';
-    }
+  } catch (err) {
+    if (err.code === 'auth/email-already-in-use') errEl.textContent = 'An account with this email already exists — sign in instead.';
+    else if (err.code === 'auth/weak-password') errEl.textContent = 'Password is too weak — use at least 6 characters.';
+    else if (err.code === 'auth/invalid-email') errEl.textContent = 'Enter a valid email address.';
+    else if (authMode === 'signup') errEl.textContent = 'Could not create account: ' + err.message;
+    else errEl.textContent = 'Sign-in failed — check your email and password.';
     errEl.style.display = 'block';
+    toast('Authentication failed', 'error');
   }
 });
-document.getElementById('logoutBtn').addEventListener('click', ()=> signOut(auth));
 
-document.getElementById('modalOkBtn').addEventListener('click', ()=>{
-  document.getElementById('validationModal').classList.add('hidden');
-  if(lastInvalidCard){
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  signOut(auth);
+  toast('Signed out', 'info');
+});
+
+document.getElementById('modalOkBtn').addEventListener('click', () => {
+  document.getElementById('validationModal').classList.remove('open');
+  if (lastInvalidCard) {
     lastInvalidCard.querySelector('textarea').focus();
     lastInvalidCard = null;
   }
 });
 
-document.getElementById('successModalOkBtn').addEventListener('click', ()=>{
-  document.getElementById('successModal').classList.add('hidden');
+document.getElementById('successModalOkBtn').addEventListener('click', () => {
+  document.getElementById('successModal').classList.remove('open');
 });
 
-document.getElementById('forgotPwLink').addEventListener('click', async (e)=>{
+document.getElementById('forgotPwLink').addEventListener('click', async (e) => {
   e.preventDefault();
   const email = document.getElementById('email').value.trim();
   const errEl = document.getElementById('loginErr');
   const okEl = document.getElementById('loginOk');
-  errEl.style.display = 'none';
-  okEl.style.display = 'none';
-  if(!email){
-    errEl.textContent = 'Type your email above first, then tap "Forgot password?".';
-    errEl.style.display = 'block';
-    return;
-  }
-  try{
+  errEl.style.display = 'none'; okEl.style.display = 'none';
+  if (!email) { errEl.textContent = 'Type your email above first, then tap "Forgot password?".'; errEl.style.display = 'block'; return; }
+  try {
     await sendPasswordResetEmail(auth, email);
     okEl.textContent = 'Password reset email sent — check your inbox.';
     okEl.style.display = 'block';
-  }catch(err){
-    if(err.code === 'auth/invalid-email'){
-      errEl.textContent = 'Enter a valid email address.';
-    } else if(err.code === 'auth/user-not-found'){
-      errEl.textContent = 'No account found with this email.';
-    } else {
-      errEl.textContent = 'Could not send reset email: ' + err.message;
-    }
+    toast('Reset email sent', 'success');
+  } catch (err) {
+    if (err.code === 'auth/invalid-email') errEl.textContent = 'Enter a valid email address.';
+    else if (err.code === 'auth/user-not-found') errEl.textContent = 'No account found with this email.';
+    else errEl.textContent = 'Could not send reset email: ' + err.message;
     errEl.style.display = 'block';
   }
 });
 
-let allowedGoalNos = null; // null = unrestricted (sees every goal)
+let allowedGoalNos = null;
 
-onAuthStateChanged(auth, async (user)=>{
-  if(user){
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
     document.getElementById('loginView').classList.add('hidden');
     document.getElementById('appView').classList.remove('hidden');
     document.getElementById('whoLabel').textContent = user.email || '';
-    try{
-      const permSnap = await getDoc(doc(db,'entryPermissions', (user.email||'').toLowerCase()));
+    try {
+      const permSnap = await getDoc(doc(db, 'entryPermissions', (user.email || '').toLowerCase()));
       const goals = permSnap.exists() ? (permSnap.data().goals || []) : [];
       allowedGoalNos = goals.length ? goals : null;
-    }catch(err){
+    } catch (err) {
       console.error('Could not load permissions, showing all goals', err);
       allowedGoalNos = null;
     }
@@ -612,28 +1189,30 @@ onAuthStateChanged(auth, async (user)=>{
   } else {
     document.getElementById('appView').classList.add('hidden');
     document.getElementById('loginView').classList.remove('hidden');
-    if(unsubscribeCycle){ unsubscribeCycle(); unsubscribeCycle = null; }
+    if (unsubscribeCycle) { unsubscribeCycle(); unsubscribeCycle = null; }
   }
 });
 
-// ---------------- Fixed Cycle/Task (set by the admin, no picker shown here) ----------------
+// ═══════════════════════════════════════
+// FIXED CYCLE/TASK
+// ═══════════════════════════════════════
 let fixedTaskN = 1;
 
-async function loadFixedView(){
+async function loadFixedView() {
   const label = document.getElementById('whichLabel');
   const saveBar = document.getElementById('saveBarFixed');
-  try{
-    const snap = await getDoc(doc(db,'settings','entryDefault'));
-    if(!snap.exists()){
+  try {
+    const snap = await getDoc(doc(db, 'settings', 'entryDefault'));
+    if (!snap.exists()) {
       label.textContent = 'No Cycle/Task has been assigned yet — ask the admin to set it.';
-      document.getElementById('entryWrap').innerHTML = '';
+      document.getElementById('entryWrap').innerHTML = '<div class="empty-msg"><span class="empty-msg-icon">📋</span>No assignment yet. Contact your admin.</div>';
       saveBar.classList.add('hidden');
       return;
     }
     const data = snap.data();
     currentCycleId = data.cycle ? String(data.cycle) : null;
     fixedTaskN = data.sprint || 1;
-    if(!currentCycleId){
+    if (!currentCycleId) {
       label.textContent = 'No Cycle/Task has been assigned yet — ask the admin to set it.';
       saveBar.classList.add('hidden');
       return;
@@ -641,72 +1220,81 @@ async function loadFixedView(){
     label.innerHTML = `Cycle <b>${currentCycleId}</b><span class="sep">·</span>Task <b>${fixedTaskN}</b>`;
     saveBar.classList.remove('hidden');
     subscribeToCycle(currentCycleId);
-  }catch(err){
+  } catch (err) {
     label.textContent = 'Could not load assignment: ' + err.message;
     saveBar.classList.add('hidden');
   }
 }
 
-function subscribeToCycle(cycleId){
-  if(unsubscribeCycle) unsubscribeCycle();
-  const ref = doc(db,'cycles',cycleId);
-  unsubscribeCycle = onSnapshot(ref, (snap)=>{
+function subscribeToCycle(cycleId) {
+  if (unsubscribeCycle) unsubscribeCycle();
+  const ref = doc(db, 'cycles', cycleId);
+  unsubscribeCycle = onSnapshot(ref, (snap) => {
     currentGoals = snap.exists() ? (snap.data().goals || []) : [];
+    // Merge with local cache if offline
+    if (isOffline) {
+      const local = loadFromLocal(cycleId);
+      if (local && local.goals) {
+        currentGoals = local.goals;
+      }
+    }
     renderEntryTable();
-  }, (err)=>{
+  }, (err) => {
     console.error('Firestore listen error', err);
+    // Fallback to local cache
+    const local = loadFromLocal(cycleId);
+    if (local && local.goals) {
+      currentGoals = local.goals;
+      renderEntryTable();
+      toast('Using offline data', 'warning');
+    }
   });
 }
 
-// ---------------- Entry table ----------------
-function getTaskNumber(){
-  return fixedTaskN;
-}
+function getTaskNumber() { return fixedTaskN; }
 
-function goalAvg(g){
+function goalAvg(g) {
   const total = (g.tasks && g.tasks.length) ? g.tasks.length : 6;
-  if(total === 0) return null;
-  const sum = (g.tasks||[]).reduce((s,t)=> s + ((t && t.progress!==null && t.progress!==undefined) ? t.progress : 0), 0);
+  if (total === 0) return null;
+  const sum = (g.tasks || []).reduce((s, t) => s + ((t && t.progress !== null && t.progress !== undefined) ? t.progress : 0), 0);
   return sum / total;
 }
 
 const GOAL_BADGE_PALETTE = [
-  { bg:'#2E86AB', text:'#FFFFFF' },
-  { bg:'#4ECDA0', text:'#04382B' },
-  { bg:'#F0A868', text:'#4A2E00' },
-  { bg:'#B39DDB', text:'#2E1A4D' },
-  { bg:'#E8697A', text:'#FFFFFF' },
-  { bg:'#4DD8E6', text:'#04333A' },
-  { bg:'#F2C94C', text:'#4A3800' },
-  { bg:'#7C9CBF', text:'#FFFFFF' }
+  { bg: '#2E86AB', text: '#FFFFFF' }, { bg: '#4ECDA0', text: '#04382B' },
+  { bg: '#F0A868', text: '#4A2E00' }, { bg: '#B39DDB', text: '#2E1A4D' },
+  { bg: '#E8697A', text: '#FFFFFF' }, { bg: '#4DD8E6', text: '#04333A' },
+  { bg: '#F2C94C', text: '#4A3800' }, { bg: '#7C9CBF', text: '#FFFFFF' }
 ];
-function goalBadgeStyle(goalNo){
-  const c = GOAL_BADGE_PALETTE[(Number(goalNo)-1) % GOAL_BADGE_PALETTE.length];
+
+function goalBadgeStyle(goalNo) {
+  const c = GOAL_BADGE_PALETTE[(Number(goalNo) - 1) % GOAL_BADGE_PALETTE.length];
   return `background:${c.bg};color:${c.text};`;
 }
 
-function renderEntryTable(){
+function renderEntryTable() {
   const wrap = document.getElementById('entryWrap');
-  const visibleGoals = allowedGoalNos ? currentGoals.filter(g=>allowedGoalNos.includes(g.no)) : currentGoals;
-  if(!currentCycleId || visibleGoals.length === 0){
-    wrap.innerHTML = `<div class="empty-msg">${allowedGoalNos ? 'None of your assigned goals are in this cycle yet.' : 'No goals available for this cycle yet.'}</div>`;
+  const visibleGoals = allowedGoalNos ? currentGoals.filter(g => allowedGoalNos.includes(g.no)) : currentGoals;
+  if (!currentCycleId || visibleGoals.length === 0) {
+    wrap.innerHTML = `<div class="empty-msg"><span class="empty-msg-icon">📋</span>${allowedGoalNos ? 'None of your assigned goals are in this cycle yet.' : 'No goals available for this cycle yet.'}</div>`;
     return;
   }
   const taskN = getTaskNumber();
   const idx = taskN - 1;
   let html = '';
-  visibleGoals.forEach(g=>{
-    const t = (g.tasks && g.tasks[idx]) ? g.tasks[idx] : { name:'', progress:null, note:'' };
-    const progVal = (t.progress===null || t.progress===undefined) ? '' : t.progress;
-    const goalNo = String(g.no).padStart(2,'0');
+  visibleGoals.forEach((g, i) => {
+    const t = (g.tasks && g.tasks[idx]) ? g.tasks[idx] : { name: '', progress: null, note: '' };
+    const progVal = (t.progress === null || t.progress === undefined) ? '' : t.progress;
+    const goalNo = String(g.no).padStart(2, '0');
     const taskId = t.id || `${g.no}.${taskN})`;
     const avg = goalAvg(g);
-    const avgLabel = avg===null ? '—' : avg.toFixed(0)+'%';
-    const avgColor = avg===null ? 'var(--text-dim)' : avg>=100 ? '#4ECDA0' : avg>=70 ? '#F0A868' : '#E8697A';
+    const avgLabel = avg === null ? '—' : avg.toFixed(0) + '%';
+    const avgColor = avg === null ? 'var(--text-dim)' : avg >= 100 ? '#4ECDA0' : avg >= 70 ? '#F0A868' : '#E8697A';
     const hasSavedData = t.progress !== null && t.progress !== undefined;
     const isLocked = hasSavedData && !editableGoalNos.has(g.no);
     const dis = isLocked ? 'disabled' : '';
-    html += `<div class="goal-card${isLocked ? ' is-locked' : ''}" data-goalno="${g.no}" style="--acc:${avgColor};">
+    const staggerClass = `stagger-${Math.min(i + 1, 6)}`;
+    html += `<div class="goal-card${isLocked ? ' is-locked' : ''} ${staggerClass}" data-goalno="${g.no}" style="--acc:${avgColor};animation-delay:${i * 0.05}s">
       <div class="goal-card-top">
         <div class="goal-card-title"><span class="e-num-goal" style="${goalBadgeStyle(g.no)}">${goalNo}</span>${g.name}</div>
         <div class="e-avg-circle" style="color:${avgColor};" title="Average across all this goal's tasks">${avgLabel}</div>
@@ -717,9 +1305,10 @@ function renderEntryTable(){
           <label>Progress %</label>
           <input type="number" min="0" max="100" class="progress-input" value="${progVal}" placeholder="—" inputmode="numeric" ${dis}>
         </div>
-        <div class="goal-card-field grow">
+        <div class="goal-card-field grow" style="position:relative;">
           <label>Comment</label>
           <textarea placeholder="Required if progress is under 100%" ${dis}>${t.note || ''}</textarea>
+          ${!isLocked ? `<button class="voice-btn" title="Voice input">🎤</button>` : ''}
         </div>
       </div>
       ${isLocked ? `<button type="button" class="edit-card-btn" data-edit-goal="${g.no}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"></path></svg>Edit</button>` : ''}
@@ -727,77 +1316,199 @@ function renderEntryTable(){
   });
   wrap.innerHTML = html;
 
-  wrap.querySelectorAll('[data-edit-goal]').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
+  // Setup voice input buttons
+  wrap.querySelectorAll('.voice-btn').forEach(btn => {
+    const textarea = btn.parentElement.querySelector('textarea');
+    setupVoiceInput(btn, textarea);
+  });
+
+  wrap.querySelectorAll('[data-edit-goal]').forEach(btn => {
+    btn.addEventListener('click', () => {
       editableGoalNos.add(Number(btn.getAttribute('data-edit-goal')));
       renderEntryTable();
     });
   });
 
-  // Only cards the person actually edits this session get the "comment required" check —
-  // pre-existing values left by someone else's section must never block this person's save.
-  wrap.querySelectorAll('.goal-card[data-goalno]').forEach(card=>{
-    const markDirty = ()=> card.dataset.dirty = '1';
+  wrap.querySelectorAll('.goal-card[data-goalno]').forEach(card => {
+    const markDirty = () => {
+      card.dataset.dirty = '1';
+      scheduleAutoSave();
+    };
     card.querySelector('.progress-input').addEventListener('input', markDirty);
     card.querySelector('textarea').addEventListener('input', markDirty);
   });
 }
 
-document.getElementById('saveBtn').addEventListener('click', async ()=>{
-  if(!currentCycleId){ alert('No cycle selected.'); return; }
+// ═══════════════════════════════════════
+// AUTO-SAVE
+// ═══════════════════════════════════════
+function scheduleAutoSave() {
+  showAutoSave('saving');
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => {
+    performAutoSave();
+  }, 3000);
+}
+
+async function performAutoSave() {
+  if (!currentCycleId) return;
   const taskN = getTaskNumber();
   const idx = taskN - 1;
 
-  // Validate: any row the person actually edited this session, if left below 100%, must have a comment.
-  // Rows nobody touched (belong to someone else's section) are saved as-is and never block the save.
+  let hasChanges = false;
+  document.querySelectorAll('#entryWrap .goal-card[data-goalno]').forEach(row => {
+    if (row.dataset.dirty !== '1') return;
+    const no = Number(row.getAttribute('data-goalno'));
+    const g = currentGoals.find(x => x.no === no);
+    if (!g) return;
+    if (!g.tasks) g.tasks = [];
+    while (g.tasks.length <= idx) g.tasks.push({ id: `${g.no}.${g.tasks.length + 1})`, name: '', progress: null, note: '' });
+    const progRaw = row.querySelector('.progress-input').value.trim();
+    const noteVal = row.querySelector('textarea').value.trim();
+    g.tasks[idx] = { ...g.tasks[idx], progress: progRaw === '' ? null : Math.max(0, Math.min(100, parseInt(progRaw, 10))), note: noteVal };
+    row.dataset.dirty = '';
+    hasChanges = true;
+
+    if (isOffline) {
+      queuePendingChange(currentCycleId, no, idx, g.tasks[idx].progress, g.tasks[idx].note);
+    }
+  });
+
+  if (!hasChanges) { showAutoSave('saved'); return; }
+
+  saveToLocal(currentCycleId, currentGoals);
+
+  if (!isOffline) {
+    try {
+      await setDoc(doc(db, 'cycles', currentCycleId), { goals: currentGoals });
+      showAutoSave('saved');
+      toast('Auto-saved', 'success', 2000);
+    } catch (err) {
+      showAutoSave('saved');
+      toast('Saved locally — will sync when online', 'warning');
+    }
+  } else {
+    showAutoSave('saved');
+    toast('Saved offline — will sync when online', 'info');
+  }
+}
+
+// ═══════════════════════════════════════
+// SAVE BUTTON
+// ═══════════════════════════════════════
+document.getElementById('saveBtn').addEventListener('click', async () => {
+  if (!currentCycleId) { toast('No cycle selected', 'warning'); return; }
+  const taskN = getTaskNumber();
+  const idx = taskN - 1;
+
   let firstInvalid = null;
-  document.querySelectorAll('#entryWrap .goal-card[data-goalno]').forEach(row=>{
+  document.querySelectorAll('#entryWrap .goal-card[data-goalno]').forEach(row => {
     row.classList.remove('row-invalid');
-    if(row.dataset.dirty !== '1') return;
+    if (row.dataset.dirty !== '1') return;
     const progRaw = row.querySelector('.progress-input').value.trim();
     const noteVal = row.querySelector('textarea').value.trim();
     const progNum = progRaw === '' ? null : parseInt(progRaw, 10);
     const isIncomplete = progNum === null || progNum < 100;
-    if(isIncomplete && noteVal === ''){
+    if (isIncomplete && noteVal === '') {
       row.classList.add('row-invalid');
-      if(!firstInvalid) firstInvalid = row;
+      if (!firstInvalid) firstInvalid = row;
     }
   });
-  if(firstInvalid){
+
+  if (firstInvalid) {
     lastInvalidCard = firstInvalid;
-    document.getElementById('validationModal').classList.remove('hidden');
-    firstInvalid.scrollIntoView({behavior:'smooth', block:'center'});
+    document.getElementById('validationModal').classList.add('open');
+    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
 
-  document.querySelectorAll('#entryWrap .goal-card[data-goalno]').forEach(row=>{
+  document.querySelectorAll('#entryWrap .goal-card[data-goalno]').forEach(row => {
     const no = Number(row.getAttribute('data-goalno'));
-    const g = currentGoals.find(x=>x.no===no);
-    if(!g) return;
-    if(!g.tasks) g.tasks = [];
-    while(g.tasks.length <= idx) g.tasks.push({ id:`${g.no}.${g.tasks.length+1})`, name:'', progress:null, note:'' });
+    const g = currentGoals.find(x => x.no === no);
+    if (!g) return;
+    if (!g.tasks) g.tasks = [];
+    while (g.tasks.length <= idx) g.tasks.push({ id: `${g.no}.${g.tasks.length + 1})`, name: '', progress: null, note: '' });
     const progRaw = row.querySelector('.progress-input').value.trim();
     const noteVal = row.querySelector('textarea').value.trim();
-    // Only progress + comment are ever changed — name/id stay exactly as they are.
-    g.tasks[idx] = {
-      ...g.tasks[idx],
-      progress: progRaw==='' ? null : Math.max(0, Math.min(100, parseInt(progRaw,10))),
-      note: noteVal
-    };
+    g.tasks[idx] = { ...g.tasks[idx], progress: progRaw === '' ? null : Math.max(0, Math.min(100, parseInt(progRaw, 10))), note: noteVal };
+    row.dataset.dirty = '';
   });
-  try{
-    await setDoc(doc(db,'cycles',currentCycleId), { goals: currentGoals });
+
+  saveToLocal(currentCycleId, currentGoals);
+
+  if (!isOffline) {
+    try {
+      await setDoc(doc(db, 'cycles', currentCycleId), { goals: currentGoals });
+      editableGoalNos.clear();
+      renderEntryTable();
+      document.getElementById('successModalText').textContent = `✅ Saved progress for Cycle ${currentCycleId} (Task ${taskN}).`;
+      document.getElementById('successModal').classList.add('open');
+      toast('Progress saved!', 'success');
+    } catch (err) {
+      toast('Save failed: ' + err.message, 'error');
+    }
+  } else {
     editableGoalNos.clear();
     renderEntryTable();
-    document.getElementById('successModalText').textContent = `Saved progress for Cycle ${currentCycleId} (Task ${taskN}).`;
-    document.getElementById('successModal').classList.remove('hidden');
-  }catch(err){
-    alert('Save failed:\n' + err.message);
+    document.getElementById('successModalText').textContent = `💾 Saved locally for Cycle ${currentCycleId} (Task ${taskN}). Will sync when online.`;
+    document.getElementById('successModal').classList.add('open');
+    toast('Saved offline — will sync later', 'info');
   }
 });
 
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js').catch(err=>console.error('SW registration failed', err));
+// ═══════════════════════════════════════
+// KEYBOARD SHORTCUTS
+// ═══════════════════════════════════════
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && e.key === 's') {
+    e.preventDefault();
+    document.getElementById('saveBtn').click();
+  }
+  if (e.key === 'Escape') {
+    document.getElementById('validationModal').classList.remove('open');
+    document.getElementById('successModal').classList.remove('open');
+  }
+});
+
+// ═══════════════════════════════════════
+// PULL TO REFRESH (Mobile)
+// ═══════════════════════════════════════
+let touchStartY = 0;
+let isPulling = false;
+
+document.addEventListener('touchstart', (e) => {
+  if (window.scrollY === 0) {
+    touchStartY = e.touches[0].clientY;
+    isPulling = true;
+  }
+}, { passive: true });
+
+document.addEventListener('touchmove', (e) => {
+  if (!isPulling) return;
+  const touchY = e.touches[0].clientY;
+  const diff = touchY - touchStartY;
+  if (diff > 80 && window.scrollY === 0) {
+    toast('Refreshing…', 'info', 1500);
+    if (unsubscribeCycle && currentCycleId) {
+      subscribeToCycle(currentCycleId);
+    }
+    isPulling = false;
+  }
+}, { passive: true });
+
+document.addEventListener('touchend', () => { isPulling = false; });
+
+// ═══════════════════════════════════════
+// SERVICE WORKER
+// ═══════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(err => console.error('SW registration failed', err));
+}
+
+// Load pending changes on init
+const savedPending = localStorage.getItem('pam-pending-changes');
+if (savedPending) {
+  try { pendingChanges = JSON.parse(savedPending); } catch (e) { pendingChanges = {}; }
 }
 </script>
 </body>
