@@ -609,6 +609,26 @@ body {
   border-radius: var(--radius-sm); padding: 10px 16px; font-size: 12.5px; font-weight: 600;
   margin-bottom: 16px; display: flex; align-items: center; gap: 9px;
 }
+
+/* ============ Access Denied ============ */
+.denied { text-align: center; padding: 80px 24px; }
+.denied-lock {
+  width: 72px; height: 72px; margin: 0 auto 20px; border-radius: 20px;
+  background: var(--red-bg); display: flex; align-items: center; justify-content: center;
+}
+.denied-lock svg { width: 32px; height: 32px; color: var(--red); }
+.denied-title { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+.denied-text { font-size: 13.5px; color: var(--text-mid); line-height: 1.6; }
+
+/* ============ Restricted nav hint ============ */
+.nav-btn.locked, .bottom-nav-item.locked { opacity: .45; }
+
+/* ============ Report buttons ============ */
+.report-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+.report-btns .btn { flex: 1; min-width: 140px; }
+.import-preview { max-height: 240px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; margin-top: 12px; background: var(--input); font-size: 12.5px; }
+.import-preview .ip-goal { font-weight: 700; margin-bottom: 4px; }
+.import-preview .ip-task { color: var(--text-mid); padding-left: 14px; }
 </style>
 </head>
 <body>
@@ -879,6 +899,32 @@ body {
 
       <div class="admin-block">
         <div class="admin-block-title">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          Reports &amp; Data
+        </div>
+        <div class="admin-block-sub">Export a formatted report, or import goals from a Word file.</div>
+        <div class="report-btns">
+          <button class="btn" id="exportWordBtn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export Word
+          </button>
+          <button class="btn" id="exportExcelBtn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export Excel
+          </button>
+          <button class="btn btn-primary" id="importWordBtn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Import Word
+          </button>
+          <input type="file" id="importWordInput" accept=".docx" class="hidden">
+        </div>
+        <div style="font-size:11.5px; color:var(--text-dim); margin-top:12px; line-height:1.6;">
+          Word format: a table with columns <b>Goal · Task · Progress · Comment</b> — or rows numbered like <b>1) Goal</b> and <b>1.1) Task — 80%</b>.
+        </div>
+      </div>
+
+      <div class="admin-block">
+        <div class="admin-block-title">
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
           Goals &amp; Tasks
         </div>
@@ -903,6 +949,38 @@ body {
         <div class="perm-goal-checks" id="permGoalChecks"></div>
         <button class="btn btn-primary" id="savePermBtn">Save Permissions</button>
         <div style="margin-top:20px;" id="permList"></div>
+      </div>
+
+      <div class="admin-block">
+        <div class="admin-block-title">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Page Access
+        </div>
+        <div class="admin-block-sub">Choose which pages a user can open. Leave all unchecked = full access to everything.</div>
+        <div class="field">
+          <label>User Email</label>
+          <input type="email" id="paEmail" placeholder="user@email.com" inputmode="email">
+        </div>
+        <div class="perm-goal-checks" id="pageChecks">
+          <label class="perm-check" data-page="summary"><input type="checkbox" value="summary"><span>Summary</span></label>
+          <label class="perm-check" data-page="plan"><input type="checkbox" value="plan"><span>12-Week Plan</span></label>
+          <label class="perm-check" data-page="entry"><input type="checkbox" value="entry"><span>Data Entry</span></label>
+          <label class="perm-check" data-page="bsc"><input type="checkbox" value="bsc"><span>BSC</span></label>
+          <label class="perm-check" data-page="kpis"><input type="checkbox" value="kpis"><span>KPIs</span></label>
+        </div>
+        <button class="btn btn-primary" id="savePagePermBtn">Save Page Access</button>
+        <div style="margin-top:20px;" id="pagePermList"></div>
+      </div>
+    </section>
+
+    <!-- ===== ACCESS DENIED ===== -->
+    <section class="view" id="view-denied">
+      <div class="denied">
+        <div class="denied-lock">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <div class="denied-title">Access Restricted</div>
+        <div class="denied-text">You don't have permission to view this page.<br>Please contact your administrator.</div>
       </div>
     </section>
 
@@ -956,6 +1034,10 @@ body {
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
@@ -965,9 +1047,9 @@ import { getFirestore, collection, getDocs, doc, setDoc, getDoc, onSnapshot } fr
 /* ============================================================
    ★ ADMIN SETUP — ضع إيميل المدير هنا ليظهر له تبويب Admin
    Add admin email(s) below so the Admin tab appears for them.
-   Example: const ADMIN_EMAILS = ["m.alhinai11@gmail.com"];
+   Example: const ADMIN_EMAILS = ["manager@company.com"];
 ============================================================ */
-const ADMIN_EMAILS = ["m.alhinai11@gmail.com"];
+const ADMIN_EMAILS = [];
 
 const firebaseConfig = {
   apiKey: "AIzaSyCObXXRAlgfajndVIz8eDsSF--F3x8FJUU",
@@ -998,6 +1080,7 @@ const S = {
   bsc: [],
   kpis: [],
   allowedGoalNos: null,
+  allowedPages: null,
   editableGoalNos: new Set(),
   pendingChanges: {},
   autoSaveTimer: null,
@@ -1120,9 +1203,10 @@ function toast(msg, type = 'info', dur = 3200) {
 }
 
 /* Generic modal */
-function showModal({ title, text, actions }) {
+function showModal({ title, text, html, actions }) {
   $('modalTitle').textContent = title;
-  $('modalText').textContent = text;
+  if (html) $('modalText').innerHTML = html;
+  else $('modalText').textContent = text;
   const wrap = $('modalActions');
   wrap.innerHTML = '';
   actions.forEach(a => {
@@ -1391,20 +1475,37 @@ function enterApp() {
 
   document.querySelectorAll('.admin-only').forEach(el => el.classList.toggle('hidden', !S.isAdmin));
 
-  // Regular users land on entry page; admins & guests on summary
-  switchTab((S.isAdmin || S.isGuest) ? 'summary' : 'entry');
+  // Landing: admins & guests → summary; users → entry (or first allowed page)
+  let landing = (S.isAdmin || S.isGuest) ? 'summary' : 'entry';
+  if (!canAccess(landing)) landing = ['summary', 'plan', 'entry', 'bsc', 'kpis'].find(t => canAccess(t)) || 'summary';
+  markLockedNav();
+  switchTab(landing);
   renderAll();
 }
 
-/* ===================== Tabs ===================== */
+/* ===================== Tabs & page access ===================== */
 let currentTab = 'summary';
+
+function canAccess(tab) {
+  if (S.isAdmin || S.isGuest) return true;
+  if (!S.allowedPages) return true;
+  return S.allowedPages.includes(tab);
+}
+
+function markLockedNav() {
+  document.querySelectorAll('.nav-btn, .bottom-nav-item').forEach(b => {
+    b.classList.toggle('locked', !canAccess(b.dataset.tab) && !b.classList.contains('admin-only'));
+  });
+}
+
 function switchTab(tab) {
   currentTab = tab;
+  const allowed = canAccess(tab);
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  const view = $('view-' + tab);
+  const view = allowed ? $('view-' + tab) : $('view-denied');
   if (view) view.classList.add('active');
   document.querySelectorAll('.nav-btn, .bottom-nav-item').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-  $('saveBar').classList.toggle('hidden', tab !== 'entry' || S.isGuest);
+  $('saveBar').classList.toggle('hidden', tab !== 'entry' || S.isGuest || !allowed);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 document.querySelectorAll('.nav-btn, .bottom-nav-item').forEach(btn => {
@@ -1910,6 +2011,7 @@ function renderAdmin() {
   renderAdminGoals();
   renderPermChecks();
   loadPermList();
+  loadPagePermList();
 }
 
 function renderAdminGoals() {
@@ -2065,6 +2167,309 @@ async function loadPermList() {
   } catch (e) { wrap.innerHTML = ''; }
 }
 
+/* ---------- Page access ---------- */
+$('pageChecks').querySelectorAll('.perm-check input').forEach(cb => {
+  cb.addEventListener('change', () => cb.closest('.perm-check').classList.toggle('checked', cb.checked));
+});
+
+const PAGE_NAMES = { summary: 'Summary', plan: 'Plan', entry: 'Entry', bsc: 'BSC', kpis: 'KPIs' };
+
+$('paEmail').addEventListener('change', async () => {
+  const email = $('paEmail').value.trim().toLowerCase();
+  if (!email) return;
+  try {
+    const snap = await getDoc(doc(db, 'pagePermissions', email));
+    const pages = snap.exists() ? (snap.data().pages || []).map(String) : [];
+    $('pageChecks').querySelectorAll('input').forEach(cb => {
+      cb.checked = pages.includes(cb.value);
+      cb.closest('.perm-check').classList.toggle('checked', cb.checked);
+    });
+  } catch (e) {}
+});
+
+$('savePagePermBtn').addEventListener('click', async () => {
+  const email = $('paEmail').value.trim().toLowerCase();
+  if (!email) { toast('Enter a user email first', 'warning'); return; }
+  const pages = [...$('pageChecks').querySelectorAll('input:checked')].map(cb => cb.value);
+  try {
+    await setDoc(doc(db, 'pagePermissions', email), { pages });
+    toast(`Page access saved for ${email}`, 'success');
+    loadPagePermList();
+  } catch (err) {
+    toast('Could not save: ' + (err.code || err.message), 'error', 5000);
+  }
+});
+
+async function loadPagePermList() {
+  const wrap = $('pagePermList');
+  try {
+    const snap = await getDocs(collection(db, 'pagePermissions'));
+    if (snap.empty) { wrap.innerHTML = ''; return; }
+    wrap.innerHTML = '<div class="field"><label>Current page restrictions</label></div>' + snap.docs.map(d => {
+      const pages = (d.data().pages || []).map(p => PAGE_NAMES[p] || p);
+      return `<div class="perm-list-item">
+        <span style="font-weight:600;">${esc(d.id)}</span>
+        <span class="pill ${pages.length ? 'amber' : 'cyan'}">${pages.length ? esc(pages.join(' · ')) : 'Full access'}</span>
+      </div>`;
+    }).join('');
+  } catch (e) { wrap.innerHTML = ''; }
+}
+
+/* ===================== Export: Word ===================== */
+async function exportWord() {
+  if (typeof docx === 'undefined') { toast('Word library failed to load — check your connection', 'error'); return; }
+  toast('Building Word report...', 'info', 1800);
+  const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, ShadingType } = docx;
+  const TEAL = '0E7C86', GRAY = '546B75', BORDER = { style: 'single', size: 4, color: 'D5DEE3' };
+  const borders = { top: BORDER, bottom: BORDER, left: BORDER, right: BORDER };
+
+  const hCell = t => new TableCell({
+    shading: { type: ShadingType.CLEAR, fill: TEAL },
+    margins: { top: 90, bottom: 90, left: 120, right: 120 },
+    children: [new Paragraph({ children: [new TextRun({ text: t, bold: true, color: 'FFFFFF', size: 19, font: 'Calibri' })] })]
+  });
+  const cell = (t, o = {}) => new TableCell({
+    margins: { top: 80, bottom: 80, left: 120, right: 120 },
+    children: [new Paragraph({ children: [new TextRun({ text: String(t ?? ''), size: 19, font: 'Calibri', ...o })] })]
+  });
+
+  const avgs = S.goals.map(goalAvg);
+  const health = avgs.filter(a => a !== null).length
+    ? Math.round(avgs.filter(a => a !== null).reduce((a, b) => a + b, 0) / avgs.filter(a => a !== null).length) : 0;
+
+  const children = [
+    new Paragraph({ spacing: { after: 80 }, children: [new TextRun({ text: 'PAM Performance Report', bold: true, size: 44, color: TEAL, font: 'Calibri' })] }),
+    new Paragraph({ spacing: { after: 240 }, children: [new TextRun({ text: `${cycleLabel()}  ·  Overall Health ${health}%  ·  Generated ${new Date().toLocaleDateString('en-GB')}`, size: 20, color: GRAY, font: 'Calibri' })] }),
+
+    new Paragraph({ spacing: { after: 120 }, children: [new TextRun({ text: 'Goals Summary', bold: true, size: 26, font: 'Calibri' })] }),
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders,
+      rows: [
+        new TableRow({ tableHeader: true, children: ['No', 'Goal', 'Dependency', 'Avg %', 'Status'].map(hCell) }),
+        ...S.goals.map(g => {
+          const a = goalAvg(g), st = statusOf(a);
+          return new TableRow({ children: [
+            cell(String(g.no).padStart(2, '0'), { bold: true, color: TEAL }),
+            cell(g.name || ''),
+            cell(g.dependency || '—'),
+            cell(a === null ? '—' : Math.round(a) + '%', { bold: true }),
+            cell(st.label)
+          ]});
+        })
+      ]
+    })
+  ];
+
+  S.goals.forEach(g => {
+    const a = goalAvg(g), st = statusOf(a);
+    children.push(
+      new Paragraph({ spacing: { before: 320, after: 120 }, children: [
+        new TextRun({ text: `${String(g.no).padStart(2, '0')} — ${g.name || ''}  `, bold: true, size: 24, font: 'Calibri' }),
+        new TextRun({ text: `(${a === null ? 'no data' : Math.round(a) + '% · ' + st.label})`, size: 20, color: GRAY, font: 'Calibri' })
+      ]}),
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        borders,
+        rows: [
+          new TableRow({ tableHeader: true, children: ['Task', 'Name', 'Progress', 'Comment'].map(hCell) }),
+          ...(g.tasks || []).map(t => new TableRow({ children: [
+            cell(t.id || '', { color: TEAL }),
+            cell(t.name || ''),
+            cell(t.progress === null || t.progress === undefined ? '—' : t.progress + '%', { bold: true }),
+            cell(t.note || '')
+          ]}))
+        ]
+      })
+    );
+  });
+
+  const document = new Document({ sections: [{ children }] });
+  const blob = await Packer.toBlob(document);
+  downloadBlob(blob, `PAM-Report-Cycle-${S.cycleId || 'demo'}.docx`);
+  toast('Word report downloaded', 'success');
+}
+
+/* ===================== Export: Excel ===================== */
+function exportExcel() {
+  if (typeof XLSX === 'undefined') { toast('Excel library failed to load — check your connection', 'error'); return; }
+  const wb = XLSX.utils.book_new();
+
+  const gRows = [['No', 'Goal', 'Dependency', 'Average %', 'Status']];
+  S.goals.forEach(g => {
+    const a = goalAvg(g);
+    gRows.push([g.no, g.name || '', g.dependency || '', a === null ? '' : Math.round(a), statusOf(a).label]);
+  });
+  const ws1 = XLSX.utils.aoa_to_sheet(gRows);
+  ws1['!cols'] = [{ wch: 5 }, { wch: 48 }, { wch: 18 }, { wch: 11 }, { wch: 12 }];
+  XLSX.utils.book_append_sheet(wb, ws1, 'Goals Summary');
+
+  const tRows = [['Goal No', 'Goal', 'Task ID', 'Task', 'Progress %', 'Comment']];
+  S.goals.forEach(g => (g.tasks || []).forEach(t => {
+    tRows.push([g.no, g.name || '', t.id || '', t.name || '', t.progress === null || t.progress === undefined ? '' : t.progress, t.note || '']);
+  }));
+  const ws2 = XLSX.utils.aoa_to_sheet(tRows);
+  ws2['!cols'] = [{ wch: 8 }, { wch: 38 }, { wch: 9 }, { wch: 30 }, { wch: 11 }, { wch: 42 }];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Tasks Detail');
+
+  const bRows = [['No', 'Responsibility', 'Scope', 'Progress %', 'Status', 'Updates']];
+  S.bsc.forEach(b => bRows.push([b.no, b.title || '', b.scope || '', b.pct === null || b.pct === undefined ? '' : b.pct, b.status || '', (b.progress || []).join(' | ')]));
+  const ws3 = XLSX.utils.aoa_to_sheet(bRows);
+  ws3['!cols'] = [{ wch: 5 }, { wch: 32 }, { wch: 30 }, { wch: 11 }, { wch: 15 }, { wch: 55 }];
+  XLSX.utils.book_append_sheet(wb, ws3, 'BSC');
+
+  const kRows = [['Type', 'Title', 'Execution %', 'Status', 'Update']];
+  S.kpis.forEach(k => kRows.push([k.type === 'kpi' ? 'KPI' : 'Initiative', k.title || '', k.pct === null || k.pct === undefined ? '' : k.pct, k.exec || '', k.update || '']));
+  const ws4 = XLSX.utils.aoa_to_sheet(kRows);
+  ws4['!cols'] = [{ wch: 11 }, { wch: 34 }, { wch: 12 }, { wch: 38 }, { wch: 28 }];
+  XLSX.utils.book_append_sheet(wb, ws4, 'KPIs');
+
+  XLSX.writeFile(wb, `PAM-Report-Cycle-${S.cycleId || 'demo'}.xlsx`);
+  toast('Excel report downloaded', 'success');
+}
+
+function downloadBlob(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+
+$('exportWordBtn').addEventListener('click', () => { exportWord().catch(e => toast('Export failed: ' + e.message, 'error')); });
+$('exportExcelBtn').addEventListener('click', () => { try { exportExcel(); } catch (e) { toast('Export failed: ' + e.message, 'error'); } });
+
+/* ===================== Import: Word ===================== */
+$('importWordBtn').addEventListener('click', () => $('importWordInput').click());
+$('importWordInput').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  if (typeof mammoth === 'undefined') { toast('Import library failed to load — check your connection', 'error'); return; }
+  toast('Reading Word file...', 'info', 1800);
+  try {
+    const buf = await file.arrayBuffer();
+    const res = await mammoth.convertToHtml({ arrayBuffer: buf });
+    const dom = new DOMParser().parseFromString(res.value, 'text/html');
+    let goals = [];
+    for (const table of dom.querySelectorAll('table')) {
+      const parsed = parseGoalsTable(table);
+      if (parsed.length) { goals = parsed; break; }
+    }
+    if (!goals.length) goals = parseGoalsFromText(dom.body.textContent || '');
+    if (!goals.length) {
+      showModal({
+        title: 'No data found',
+        text: 'Could not find a goals/tasks table in this file. Expected columns: Goal · Task · Progress · Comment — or rows like "1) Goal" and "1.1) Task — 80%".',
+        actions: [{ label: 'OK', kind: 'primary' }]
+      });
+      return;
+    }
+    previewImport(goals);
+  } catch (err) {
+    toast('Could not read file: ' + err.message, 'error', 4500);
+  }
+});
+
+function cellText(row) { return [...row.querySelectorAll('td, th')].map(c => (c.textContent || '').trim()); }
+
+function parseGoalsTable(table) {
+  const rows = [...table.querySelectorAll('tr')].map(cellText).filter(r => r.some(x => x));
+  if (rows.length < 2) return [];
+
+  // Locate columns via header row
+  let gi = 0, ti = 1, pi = 2, ci = 3, start = 0;
+  const head = rows[0].map(x => x.toLowerCase());
+  const hasHeader = head.some(x => /goal|task|progress|الهدف|المهمة|النسبة/.test(x));
+  if (hasHeader) {
+    start = 1;
+    const find = (re, def) => { const i = head.findIndex(x => re.test(x)); return i === -1 ? def : i; };
+    gi = find(/goal|الهدف/, 0);
+    ti = find(/task|المهمة/, 1);
+    pi = find(/progress|%|النسبة|التقدم/, 2);
+    ci = find(/comment|note|تعليق|ملاحظ/, 3);
+  }
+
+  const goals = [];
+  let cur = null;
+  for (let r = start; r < rows.length; r++) {
+    const row = rows[r];
+    const goalCell = row[gi] || '', taskCell = row[ti] || '';
+    const progRaw = (row[pi] || '').replace(/[^\d]/g, '');
+    const prog = progRaw === '' ? null : clamp(parseInt(progRaw, 10));
+    const note = row[ci] || '';
+
+    const goalKey = goalCell.replace(/^\d+\s*[\)\.\-:]?\s*/, '').trim();
+    if (goalKey && !/^\d+\.\d+/.test(goalCell)) {
+      // New goal (same name repeating = same goal)
+      if (!cur || cur._key !== goalKey) {
+        cur = { _key: goalKey, no: goals.length + 1, name: goalKey, dependency: 'Internal', tasks: [] };
+        goals.push(cur);
+      }
+    }
+    const taskIdMatch = taskCell.match(/^(\d+)\.(\d+)\s*\)?\s*(.*)$/);
+    const taskName = (taskIdMatch ? taskIdMatch[3] : taskCell).trim();
+    if (taskName && cur) {
+      cur.tasks.push({ id: `${cur.no}.${cur.tasks.length + 1})`, name: taskName, progress: prog, note });
+    } else if (taskName && !cur) {
+      cur = { _key: goalKey || 'Goal 1', no: goals.length + 1, name: goalKey || 'Goal 1', dependency: 'Internal', tasks: [{ id: '1.1)', name: taskName, progress: prog, note }] };
+      goals.push(cur);
+    }
+  }
+  return goals.filter(g => g.tasks.length);
+}
+
+function parseGoalsFromText(text) {
+  const lines = text.split(/\n+/).map(l => l.trim()).filter(Boolean);
+  const goals = [];
+  let cur = null;
+  for (const line of lines) {
+    const taskM = line.match(/^(\d+)\.(\d+)\s*[\)\.\-:]?\s+(.+?)(?:\s*[-–|]\s*(\d{1,3})\s*%)?(?:\s*[-–|]\s*(.*))?$/);
+    const goalM = line.match(/^(\d+)\s*[\)\.\-:]\s+(.+)$/);
+    if (taskM) {
+      if (!cur) { cur = { no: goals.length + 1, name: 'Goal ' + (goals.length + 1), dependency: 'Internal', tasks: [] }; goals.push(cur); }
+      cur.tasks.push({ id: `${cur.no}.${cur.tasks.length + 1})`, name: taskM[3].trim(), progress: taskM[4] ? clamp(parseInt(taskM[4], 10)) : null, note: (taskM[5] || '').trim() });
+    } else if (goalM && !/\d\.\d/.test(line.slice(0, 6))) {
+      cur = { no: goals.length + 1, name: goalM[2].trim(), dependency: 'Internal', tasks: [] };
+      goals.push(cur);
+    }
+  }
+  return goals.filter(g => g.tasks.length);
+}
+
+function previewImport(goals) {
+  const taskCount = goals.reduce((a, g) => a + g.tasks.length, 0);
+  const cycleId = $('adminCycle').value || S.cycleId || '12';
+  const previewHtml = `
+    <div>Found <b>${goals.length} goals</b> and <b>${taskCount} tasks</b>:</div>
+    <div class="import-preview">
+      ${goals.map(g => `
+        <div class="ip-goal">${String(g.no).padStart(2, '0')} · ${esc(g.name)} <span style="color:var(--text-dim); font-weight:500;">(${g.tasks.length} tasks)</span></div>
+        ${g.tasks.slice(0, 3).map(t => `<div class="ip-task">↳ ${esc(t.name)} — ${t.progress === null ? '—' : t.progress + '%'}</div>`).join('')}
+        ${g.tasks.length > 3 ? `<div class="ip-task" style="color:var(--text-dim);">… and ${g.tasks.length - 3} more</div>` : ''}
+      `).join('')}
+    </div>
+    <div style="margin-top:12px; color:var(--amber); font-weight:600;">This will replace the goals currently stored in Cycle ${esc(cycleId)}.</div>`;
+  showModal({
+    title: 'Import preview',
+    html: previewHtml,
+    actions: [
+      { label: 'Cancel' },
+      { label: `Import to Cycle ${cycleId}`, kind: 'primary', onClick: async () => {
+        try {
+          await setDoc(doc(db, 'cycles', String(cycleId)), { goals });
+          if (String(cycleId) === String(S.cycleId)) { S.adminGoalsDraft = null; subscribeCycle(S.cycleId); }
+          toast(`Imported ${goals.length} goals to Cycle ${cycleId}`, 'success', 4000);
+        } catch (err) {
+          toast('Import failed: ' + (err.code || err.message), 'error', 5000);
+        }
+      } }
+    ]
+  });
+}
+
+
 /* ===================== Keyboard & init ===================== */
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeModal();
@@ -2073,6 +2478,9 @@ document.addEventListener('keydown', e => {
     if (currentTab === 'entry' && !S.isGuest) $('saveBtn').click();
   }
 });
+
+// Console helpers (also used for diagnostics)
+window.PAM = { exportWord, exportExcel, _restrict: p => { S.allowedPages = p; markLockedNav(); }, _test: p => { S.isGuest = false; S.isAdmin = false; S.allowedPages = p; markLockedNav(); } };
 
 // Splash safety: hide after 6s no matter what
 setTimeout(() => $('splash').classList.add('hide'), 6000);
