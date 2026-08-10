@@ -919,7 +919,30 @@ body {
           <input type="file" id="importWordInput" accept=".docx" class="hidden">
         </div>
         <div style="font-size:11.5px; color:var(--text-dim); margin-top:12px; line-height:1.6;">
-          Word format: a table with columns <b>Goal · Task · Progress · Comment</b> — or rows numbered like <b>1) Goal</b> and <b>1.1) Task — 80%</b>.
+          Import reads the official template (<b>Goals · Tasks · Dependencies · Progress · Average · Justifications</b>) — including the red report info (GM, focal point, dates, sprint). After importing you can edit everything here — no need to re-upload.
+        </div>
+      </div>
+
+      <div class="admin-block">
+        <div class="admin-block-title">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Report Info
+        </div>
+        <div class="admin-block-sub">The red fields in the Word report — set them once per cycle, they are used in every export.</div>
+        <div class="admin-row">
+          <div class="field"><label>GM In Charge</label><input type="text" id="riGm" placeholder="Suhaila Al Balushi"></div>
+          <div class="field"><label>Focal Point</label><input type="text" id="riFocal" placeholder="Badar Al Mamari"></div>
+        </div>
+        <div class="admin-row" style="margin-top:10px;">
+          <div class="field"><label>Plan Period (title)</label><input type="text" id="riPlanPeriod" placeholder="16th August 2026 – 12th November 2026"></div>
+        </div>
+        <div class="admin-row" style="margin-top:10px;">
+          <div class="field"><label>Sprint Period</label><input type="text" id="riSprintPeriod" placeholder="Sun 16th Aug 2026 – 27th Aug 2026"></div>
+          <div class="field"><label>Submission Deadline</label><input type="text" id="riDeadline" placeholder="Sun 30th Aug 2026"></div>
+          <div class="field"><label>Submission To CEO</label><input type="text" id="riCeo" placeholder="3rd Sep 26"></div>
+        </div>
+        <div class="modal-actions" style="flex-direction:row;">
+          <button class="btn btn-primary" id="saveReportInfoBtn" style="flex:1;">Save Report Info</button>
         </div>
       </div>
 
@@ -1081,6 +1104,7 @@ const S = {
   kpis: [],
   allowedGoalNos: null,
   allowedPages: null,
+  reportInfo: {},
   editableGoalNos: new Set(),
   pendingChanges: {},
   autoSaveTimer: null,
@@ -1177,6 +1201,9 @@ function goalAvg(g) {
   if (!tasks.length) return null;
   const sum = tasks.reduce((s, t) => s + ((t && t.progress !== null && t.progress !== undefined) ? Number(t.progress) : 0), 0);
   return sum / tasks.length;
+}
+function goalAvgDisp(g) {
+  return (g.avgOverride !== null && g.avgOverride !== undefined) ? Number(g.avgOverride) : goalAvg(g);
 }
 function statusOf(avg) {
   if (avg === null) return { key: 'pending', label: 'No Data', color: '#8CA0A9' };
@@ -1868,8 +1895,8 @@ function renderEntry() {
             ${[0, 25, 50, 75, 100].map(v => `<button type="button" class="pq-btn" data-pq="${v}" ${dis}>${v}%</button>`).join('')}
           </div>
           <div class="field">
-            <label>Comment ${'<span style="color:var(--red);">*</span>'}</label>
-            <textarea placeholder="Required if progress is below 100%" ${dis}>${esc(t.note || '')}</textarea>
+            <label>Justification ${'<span style="color:var(--red);">*</span>'}</label>
+            <textarea placeholder="Justification of delay — required if progress is below 100%" ${dis}>${esc(t.note || '')}</textarea>
           </div>
           ${isLocked && !S.isGuest ? `<button type="button" class="edit-btn" data-edit-goal="${g.no}">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -2012,6 +2039,7 @@ function renderAdmin() {
   renderPermChecks();
   loadPermList();
   loadPagePermList();
+  loadReportInfo();
 }
 
 function renderAdminGoals() {
@@ -2032,7 +2060,10 @@ function renderAdminGoals() {
       </div>
       <div class="goal-edit-body">
         <div class="field"><label>Goal name</label><input type="text" data-gname="${gi}" value="${esc(g.name)}"></div>
-        <div class="field"><label>Dependency</label><input type="text" data-gdep="${gi}" value="${esc(g.dependency || '')}" placeholder="Internal / External / SCM"></div>
+        <div class="admin-row">
+          <div class="field"><label>Dependency</label><input type="text" data-gdep="${gi}" value="${esc(g.dependency || '')}" placeholder="Internal / External / SCM"></div>
+          <div class="field" style="max-width:130px;"><label>Average %</label><input type="number" min="0" max="100" data-gavg="${gi}" value="${g.avgOverride ?? ''}" placeholder="auto" inputmode="numeric"></div>
+        </div>
         <div class="field"><label>Tasks (one per sprint)</label></div>
         ${(g.tasks || []).map((t, ti) => `
           <div class="task-edit-row">
@@ -2215,78 +2246,151 @@ async function loadPagePermList() {
   } catch (e) { wrap.innerHTML = ''; }
 }
 
-/* ===================== Export: Word ===================== */
+/* ---------- Report info ---------- */
+async function loadReportInfo() {
+  try {
+    const snap = await getDoc(doc(db, 'settings', 'reportInfo'));
+    S.reportInfo = snap.exists() ? snap.data() : {};
+  } catch (e) { S.reportInfo = {}; }
+  $('riGm').value = S.reportInfo.gmName || '';
+  $('riFocal').value = S.reportInfo.focalName || '';
+  $('riPlanPeriod').value = S.reportInfo.planPeriod || '';
+  $('riSprintPeriod').value = S.reportInfo.sprintPeriod || '';
+  $('riDeadline').value = S.reportInfo.deadline || '';
+  $('riCeo').value = S.reportInfo.ceo || '';
+}
+
+$('saveReportInfoBtn').addEventListener('click', async () => {
+  S.reportInfo = {
+    gmName: $('riGm').value.trim(),
+    focalName: $('riFocal').value.trim(),
+    planPeriod: $('riPlanPeriod').value.trim(),
+    sprintPeriod: $('riSprintPeriod').value.trim(),
+    deadline: $('riDeadline').value.trim(),
+    ceo: $('riCeo').value.trim()
+  };
+  try {
+    await setDoc(doc(db, 'settings', 'reportInfo'), S.reportInfo);
+    toast('Report info saved', 'success');
+  } catch (err) {
+    toast('Could not save: ' + (err.code || err.message), 'error', 5000);
+  }
+});
+
+/* ===================== Export: Word (exact template replica) ===================== */
 async function exportWord() {
   if (typeof docx === 'undefined') { toast('Word library failed to load — check your connection', 'error'); return; }
   toast('Building Word report...', 'info', 1800);
-  const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, ShadingType } = docx;
-  const TEAL = '0E7C86', GRAY = '546B75', BORDER = { style: 'single', size: 4, color: 'D5DEE3' };
-  const borders = { top: BORDER, bottom: BORDER, left: BORDER, right: BORDER };
+  const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, VerticalAlign, ShadingType } = docx;
 
-  const hCell = t => new TableCell({
-    shading: { type: ShadingType.CLEAR, fill: TEAL },
-    margins: { top: 90, bottom: 90, left: 120, right: 120 },
-    children: [new Paragraph({ children: [new TextRun({ text: t, bold: true, color: 'FFFFFF', size: 19, font: 'Calibri' })] })]
+  const RED = 'FF0000', NAVY = '153D63', TEAL = '006666', BLUE = '0B769F', GRAY = 'D1D1D1';
+  const B = { style: 'single', size: 4, color: '000000' };
+  const borders = { top: B, bottom: B, left: B, right: B };
+  const COLS = [485, 1997, 3180, 1629, 1396, 1319, 2954]; // dxa — matches original proportions
+
+  const ri = S.reportInfo || {};
+  const cycleNo = String(S.cycleId || '?');
+  const sprintNo = String(S.sprint || 1);
+
+  const run = (text, o = {}) => new TextRun({ text, bold: true, font: 'Calibri', size: 24, ...o });
+  const para = (runs, align) => new Paragraph({ alignment: align, children: Array.isArray(runs) ? runs : [runs] });
+  const shade = fill => ({ type: ShadingType.CLEAR, fill });
+  const CELL_M = { top: 60, bottom: 60, left: 100, right: 100 };
+
+  const infoCell = (runs, columnSpan, fill) => new TableCell({
+    columnSpan, shading: shade(fill), margins: CELL_M, verticalAlign: VerticalAlign.CENTER, borders,
+    children: [para(runs)]
   });
-  const cell = (t, o = {}) => new TableCell({
-    margins: { top: 80, bottom: 80, left: 120, right: 120 },
-    children: [new Paragraph({ children: [new TextRun({ text: String(t ?? ''), size: 19, font: 'Calibri', ...o })] })]
+
+  // ===== Title =====
+  const title = new Paragraph({
+    spacing: { after: 120 },
+    children: [
+      run('The 12 Weeks-Year Plan – Cycle-'),
+      run(cycleNo, { color: RED }),
+      run(' (Muscat) From '),
+      run(ri.planPeriod || '—', { color: RED }),
+      run(' Sprints’ Progress Reporting Form')
+    ]
   });
 
-  const avgs = S.goals.map(goalAvg);
-  const health = avgs.filter(a => a !== null).length
-    ? Math.round(avgs.filter(a => a !== null).reduce((a, b) => a + b, 0) / avgs.filter(a => a !== null).length) : 0;
+  // ===== Info rows =====
+  const row0 = new TableRow({ children: [
+    infoCell([], 2, 'FFFFFF'),
+    infoCell([
+      run('Sprint -', { color: NAVY }),
+      run(sprintNo, { color: RED }),
+      run(' Execution Progress Report', { color: NAVY })
+    ], 5, 'FFFFFF')
+  ]});
+  const row1 = new TableRow({ children: [
+    infoCell([run('Division: ', { color: 'FFFFFF' }), run('Planning & Asset Management', { color: 'FFFFFF' })], 3, TEAL),
+    infoCell([run('GM In Charge: ', { color: 'FFFFFF' }), run(ri.gmName || '—', { color: RED })], 2, TEAL),
+    infoCell([run('Focal Point : ', { color: 'FFFFFF' }), run(ri.focalName || '—', { color: RED })], 2, TEAL)
+  ]});
+  const row2 = new TableRow({ children: [
+    infoCell([run('Sprint-'), run(sprintNo, { color: RED }), run(' Period: '), run(ri.sprintPeriod || '—', { color: RED })], 3, GRAY),
+    infoCell([run('Submission Deadline: '), run(ri.deadline || '—', { color: RED })], 2, GRAY),
+    infoCell([run('Submission To CEO: '), run(ri.ceo || '—', { color: RED })], 2, GRAY)
+  ]});
 
-  const children = [
-    new Paragraph({ spacing: { after: 80 }, children: [new TextRun({ text: 'PAM Performance Report', bold: true, size: 44, color: TEAL, font: 'Calibri' })] }),
-    new Paragraph({ spacing: { after: 240 }, children: [new TextRun({ text: `${cycleLabel()}  ·  Overall Health ${health}%  ·  Generated ${new Date().toLocaleDateString('en-GB')}`, size: 20, color: GRAY, font: 'Calibri' })] }),
+  // ===== Header row =====
+  const headCell = t => new TableCell({
+    shading: shade(BLUE), margins: CELL_M, verticalAlign: VerticalAlign.CENTER, borders,
+    children: [para(new TextRun({ text: t, bold: true, color: 'FFFFFF', font: 'Calibri', size: 22 }), AlignmentType.CENTER)]
+  });
+  const rowHead = new TableRow({
+    tableHeader: true,
+    children: ['No.', 'Goals', 'Tasks', 'Dependencies', 'Progress (%)', 'Average %', 'Justifications Of Delay (If Any)'].map(headCell)
+  });
 
-    new Paragraph({ spacing: { after: 120 }, children: [new TextRun({ text: 'Goals Summary', bold: true, size: 26, font: 'Calibri' })] }),
-    new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      borders,
-      rows: [
-        new TableRow({ tableHeader: true, children: ['No', 'Goal', 'Dependency', 'Avg %', 'Status'].map(hCell) }),
-        ...S.goals.map(g => {
-          const a = goalAvg(g), st = statusOf(a);
-          return new TableRow({ children: [
-            cell(String(g.no).padStart(2, '0'), { bold: true, color: TEAL }),
-            cell(g.name || ''),
-            cell(g.dependency || '—'),
-            cell(a === null ? '—' : Math.round(a) + '%', { bold: true }),
-            cell(st.label)
-          ]});
-        })
-      ]
-    })
-  ];
+  // ===== Data rows (No / Goal / Dependencies / Average merged per goal) =====
+  const dataCell = (text, o = {}) => new TableCell({
+    margins: CELL_M, borders, verticalAlign: o.va || VerticalAlign.TOP, rowSpan: o.rowSpan,
+    children: [para(new TextRun({ text: String(text ?? ''), font: 'Calibri', size: 22, bold: !!o.bold }), o.align)]
+  });
 
+  const dataRows = [];
   S.goals.forEach(g => {
-    const a = goalAvg(g), st = statusOf(a);
-    children.push(
-      new Paragraph({ spacing: { before: 320, after: 120 }, children: [
-        new TextRun({ text: `${String(g.no).padStart(2, '0')} — ${g.name || ''}  `, bold: true, size: 24, font: 'Calibri' }),
-        new TextRun({ text: `(${a === null ? 'no data' : Math.round(a) + '% · ' + st.label})`, size: 20, color: GRAY, font: 'Calibri' })
-      ]}),
-      new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        borders,
-        rows: [
-          new TableRow({ tableHeader: true, children: ['Task', 'Name', 'Progress', 'Comment'].map(hCell) }),
-          ...(g.tasks || []).map(t => new TableRow({ children: [
-            cell(t.id || '', { color: TEAL }),
-            cell(t.name || ''),
-            cell(t.progress === null || t.progress === undefined ? '—' : t.progress + '%', { bold: true }),
-            cell(t.note || '')
-          ]}))
-        ]
-      })
-    );
+    const tasks = (g.tasks && g.tasks.length) ? g.tasks : [{ id: `${g.no}.1`, name: '', progress: null, note: '' }];
+    const n = tasks.length;
+    const avg = goalAvgDisp(g);
+    tasks.forEach((t, i) => {
+      const taskText = `${(t.id || `${g.no}.${i + 1}`).replace(/\)$/, '')}  ${t.name || ''}`;
+      const prog = (t.progress === null || t.progress === undefined) ? '' : t.progress + '%';
+      const cells = [];
+      if (i === 0) {
+        cells.push(dataCell(String(g.no), { bold: true, align: AlignmentType.CENTER, va: VerticalAlign.CENTER, rowSpan: n }));
+        cells.push(dataCell(g.name || '', { bold: true, va: VerticalAlign.CENTER, rowSpan: n }));
+        cells.push(dataCell(taskText, { bold: true }));
+        cells.push(dataCell(g.dependency || '', { va: VerticalAlign.CENTER, rowSpan: n }));
+        cells.push(dataCell(prog, { bold: true, align: AlignmentType.CENTER }));
+        cells.push(dataCell(avg === null ? '' : Math.round(avg) + '%', { bold: true, align: AlignmentType.CENTER, va: VerticalAlign.CENTER, rowSpan: n }));
+        cells.push(dataCell(t.note || ''));
+      } else {
+        cells.push(dataCell(taskText, { bold: true }));
+        cells.push(dataCell(prog, { bold: true, align: AlignmentType.CENTER }));
+        cells.push(dataCell(t.note || ''));
+      }
+      dataRows.push(new TableRow({ children: cells }));
+    });
   });
 
-  const document = new Document({ sections: [{ children }] });
+  const table = new Table({ columnWidths: COLS, borders, rows: [row0, row1, row2, rowHead, ...dataRows] });
+
+  const document = new Document({
+    sections: [{
+      properties: {
+        page: {
+          size: { width: 15840, height: 12240, orientation: 'landscape' }, // Letter landscape
+          margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 }
+        }
+      },
+      children: [title, table]
+    }]
+  });
   const blob = await Packer.toBlob(document);
-  downloadBlob(blob, `PAM-Report-Cycle-${S.cycleId || 'demo'}.docx`);
+  downloadBlob(blob, `12 Weeks Plan Cycle ${cycleNo} sprint ${sprintNo}-${new Date().getFullYear()}.docx`);
   toast('Word report downloaded', 'success');
 }
 
@@ -2352,21 +2456,24 @@ $('importWordInput').addEventListener('change', async e => {
     const buf = await file.arrayBuffer();
     const res = await mammoth.convertToHtml({ arrayBuffer: buf });
     const dom = new DOMParser().parseFromString(res.value, 'text/html');
-    let goals = [];
+    let goals = [], info = {};
     for (const table of dom.querySelectorAll('table')) {
       const parsed = parseGoalsTable(table);
-      if (parsed.length) { goals = parsed; break; }
+      if (parsed.goals.length) { goals = parsed.goals; info = parsed.info || {}; break; }
     }
+    // Plan period lives in the document title (outside the table)
+    const titleM = (dom.body.textContent || '').match(/From\s+(.+?)\s*Sprints/i);
+    if (titleM && !info.planPeriod) info.planPeriod = titleM[1].trim();
     if (!goals.length) goals = parseGoalsFromText(dom.body.textContent || '');
     if (!goals.length) {
       showModal({
         title: 'No data found',
-        text: 'Could not find a goals/tasks table in this file. Expected columns: Goal · Task · Progress · Comment — or rows like "1) Goal" and "1.1) Task — 80%".',
+        text: 'Could not find a goals/tasks table in this file. Use the official template (Goals · Tasks · Dependencies · Progress · Average · Justifications).',
         actions: [{ label: 'OK', kind: 'primary' }]
       });
       return;
     }
-    previewImport(goals);
+    previewImport(goals, info);
   } catch (err) {
     toast('Could not read file: ' + err.message, 'error', 4500);
   }
@@ -2376,48 +2483,82 @@ function cellText(row) { return [...row.querySelectorAll('td, th')].map(c => (c.
 
 function parseGoalsTable(table) {
   const rows = [...table.querySelectorAll('tr')].map(cellText).filter(r => r.some(x => x));
-  if (rows.length < 2) return [];
+  if (rows.length < 2) return { goals: [], info: {} };
 
-  // Locate columns via header row
-  let gi = 0, ti = 1, pi = 2, ci = 3, start = 0;
-  const head = rows[0].map(x => x.toLowerCase());
-  const hasHeader = head.some(x => /goal|task|progress|الهدف|المهمة|النسبة/.test(x));
-  if (hasHeader) {
-    start = 1;
-    const find = (re, def) => { const i = head.findIndex(x => re.test(x)); return i === -1 ? def : i; };
-    gi = find(/goal|الهدف/, 0);
-    ti = find(/task|المهمة/, 1);
-    pi = find(/progress|%|النسبة|التقدم/, 2);
-    ci = find(/comment|note|تعليق|ملاحظ/, 3);
+  // Find the column-header row (contains Goals + Tasks)
+  let hi = rows.findIndex(r => {
+    const j = r.join(' ').toLowerCase();
+    return /goals?/.test(j) && /tasks?/.test(j) && /progress|justif/.test(j);
+  });
+  if (hi === -1) {
+    // Simple table without official template: Goal | Task | Progress | Comment
+    hi = rows.findIndex(r => r.join(' ').toLowerCase().match(/goal|task/)) ;
+    if (hi === -1) return { goals: [], info: {} };
   }
 
+  const head = rows[hi].map(x => x.toLowerCase());
+  const find = (re) => head.findIndex(x => re.test(x));
+  const ni = find(/^no/), gi = find(/goal/), ti = find(/task/), di = find(/dependen/),
+        pi = find(/progress/), ai = find(/average/), ji = find(/justif|comment|note/);
+
+  // ===== Extract report info from rows above the header =====
+  const info = {};
+  const infoText = rows.slice(0, hi).map(r => r.filter(Boolean).join(' | ')).join('\n');
+  const grab = re => { const m = infoText.match(re); return m ? m[1].trim() : ''; };
+  info.sprint = parseInt(grab(/Sprint\s*-\s*(\d+)/i), 10) || null;
+  info.gmName = grab(/GM In Charge:\s*([^|\n]+)/i);
+  info.focalName = grab(/Focal Point\s*:\s*([^|\n]+)/i);
+  info.sprintPeriod = grab(/Period:\s*([^|\n]+)/i);
+  info.deadline = grab(/Submission Deadline:\s*([^|\n]+)/i);
+  info.ceo = grab(/Submission To CEO:\s*([^|\n]+)/i);
+
+  // ===== Parse data rows =====
+  // Note: vertically-merged cells (No/Goal/Dependencies/Average) are DROPPED by mammoth,
+  // so continuation rows arrive with only 3 cells: [Tasks, Progress, Justifications]
   const goals = [];
   let cur = null;
-  for (let r = start; r < rows.length; r++) {
+  for (let r = hi + 1; r < rows.length; r++) {
     const row = rows[r];
-    const goalCell = row[gi] || '', taskCell = row[ti] || '';
-    const progRaw = (row[pi] || '').replace(/[^\d]/g, '');
-    const prog = progRaw === '' ? null : clamp(parseInt(progRaw, 10));
-    const note = row[ci] || '';
+    const getF = i => (i >= 0 && row[i]) ? row[i].trim() : '';
+    const isContinuation = row.length <= 3 && cur !== null;
+
+    let noCell = '', goalCell = '', taskCell = '', depCell = '', progCell = '', avgCell = '', justCell = '';
+    if (isContinuation) {
+      [taskCell, progCell, justCell] = [row[0] || '', row[1] || '', row[2] || ''];
+      [taskCell, progCell, justCell] = [taskCell.trim(), progCell.trim(), justCell.trim()];
+    } else {
+      noCell = getF(ni); goalCell = getF(gi); taskCell = getF(ti);
+      depCell = getF(di); progCell = getF(pi); avgCell = getF(ai); justCell = getF(ji);
+    }
 
     const goalKey = goalCell.replace(/^\d+\s*[\)\.\-:]?\s*/, '').trim();
-    if (goalKey && !/^\d+\.\d+/.test(goalCell)) {
-      // New goal (same name repeating = same goal)
-      if (!cur || cur._key !== goalKey) {
-        cur = { _key: goalKey, no: goals.length + 1, name: goalKey, dependency: 'Internal', tasks: [] };
-        goals.push(cur);
-      }
-    }
-    const taskIdMatch = taskCell.match(/^(\d+)\.(\d+)\s*\)?\s*(.*)$/);
-    const taskName = (taskIdMatch ? taskIdMatch[3] : taskCell).trim();
-    if (taskName && cur) {
-      cur.tasks.push({ id: `${cur.no}.${cur.tasks.length + 1})`, name: taskName, progress: prog, note });
-    } else if (taskName && !cur) {
-      cur = { _key: goalKey || 'Goal 1', no: goals.length + 1, name: goalKey || 'Goal 1', dependency: 'Internal', tasks: [{ id: '1.1)', name: taskName, progress: prog, note }] };
+    if (goalKey && !/^\d+\.\d+/.test(goalCell) && (!cur || cur._key !== goalKey)) {
+      cur = { _key: goalKey, no: noCell ? parseInt(noCell, 10) || goals.length + 1 : goals.length + 1,
+              name: goalKey, dependency: depCell || 'Internal', avgOverride: null, tasks: [] };
       goals.push(cur);
     }
+    if (cur && !isContinuation) {
+      if (depCell) cur.dependency = depCell;
+      const avgRaw = avgCell.replace(/[^\d]/g, '');
+      if (avgRaw !== '') cur.avgOverride = clamp(parseInt(avgRaw, 10));
+    }
+    const tm = taskCell.match(/^(\d+)\.(\d+)\s*\)?\s*(.*)$/);
+    const taskName = (tm ? tm[3] : taskCell).trim();
+    if (taskName) {
+      if (!cur) {
+        cur = { _key: goalKey || 'Goal 1', no: goals.length + 1, name: goalKey || 'Goal 1', dependency: 'Internal', avgOverride: null, tasks: [] };
+        goals.push(cur);
+      }
+      const progRaw = progCell.replace(/[^\d]/g, '');
+      cur.tasks.push({
+        id: `${cur.no}.${cur.tasks.length + 1})`,
+        name: taskName,
+        progress: progRaw === '' ? null : clamp(parseInt(progRaw, 10)),
+        note: justCell
+      });
+    }
   }
-  return goals.filter(g => g.tasks.length);
+  return { goals: goals.filter(g => g.tasks.length), info };
 }
 
 function parseGoalsFromText(text) {
@@ -2438,19 +2579,28 @@ function parseGoalsFromText(text) {
   return goals.filter(g => g.tasks.length);
 }
 
-function previewImport(goals) {
+function previewImport(goals, info = {}) {
   const taskCount = goals.reduce((a, g) => a + g.tasks.length, 0);
   const cycleId = $('adminCycle').value || S.cycleId || '12';
+  const hasInfo = info.sprint || info.gmName || info.sprintPeriod || info.deadline;
+  const infoHtml = hasInfo ? `
+    <div style="margin-top:12px; padding:11px 13px; background:var(--primary-bg); border-radius:10px; font-size:12.5px;">
+      <b>Report info found:</b>
+      ${info.sprint ? `Sprint ${info.sprint} · ` : ''}${esc(info.gmName || '')}${info.gmName && info.focalName ? ' · ' : ''}${esc(info.focalName || '')}
+      ${info.sprintPeriod ? `<br>Period: ${esc(info.sprintPeriod)}` : ''}
+      ${info.deadline ? `<br>Deadline: ${esc(info.deadline)}${info.ceo ? ' · CEO: ' + esc(info.ceo) : ''}` : ''}
+    </div>` : '';
   const previewHtml = `
     <div>Found <b>${goals.length} goals</b> and <b>${taskCount} tasks</b>:</div>
     <div class="import-preview">
       ${goals.map(g => `
-        <div class="ip-goal">${String(g.no).padStart(2, '0')} · ${esc(g.name)} <span style="color:var(--text-dim); font-weight:500;">(${g.tasks.length} tasks)</span></div>
+        <div class="ip-goal">${String(g.no).padStart(2, '0')} · ${esc(g.name)} <span style="color:var(--text-dim); font-weight:500;">(${g.tasks.length} tasks${g.avgOverride !== null && g.avgOverride !== undefined ? ' · avg ' + g.avgOverride + '%' : ''})</span></div>
         ${g.tasks.slice(0, 3).map(t => `<div class="ip-task">↳ ${esc(t.name)} — ${t.progress === null ? '—' : t.progress + '%'}</div>`).join('')}
         ${g.tasks.length > 3 ? `<div class="ip-task" style="color:var(--text-dim);">… and ${g.tasks.length - 3} more</div>` : ''}
       `).join('')}
     </div>
-    <div style="margin-top:12px; color:var(--amber); font-weight:600;">This will replace the goals currently stored in Cycle ${esc(cycleId)}.</div>`;
+    ${infoHtml}
+    <div style="margin-top:12px; color:var(--amber); font-weight:600;">This will replace the goals currently stored in Cycle ${esc(cycleId)}${hasInfo ? ' and update the report info' : ''}.</div>`;
   showModal({
     title: 'Import preview',
     html: previewHtml,
@@ -2459,7 +2609,24 @@ function previewImport(goals) {
       { label: `Import to Cycle ${cycleId}`, kind: 'primary', onClick: async () => {
         try {
           await setDoc(doc(db, 'cycles', String(cycleId)), { goals });
-          if (String(cycleId) === String(S.cycleId)) { S.adminGoalsDraft = null; subscribeCycle(S.cycleId); }
+          if (hasInfo) {
+            const ri = { ...S.reportInfo };
+            if (info.gmName) ri.gmName = info.gmName;
+            if (info.focalName) ri.focalName = info.focalName;
+            if (info.sprintPeriod) ri.sprintPeriod = info.sprintPeriod;
+            if (info.deadline) ri.deadline = info.deadline;
+            if (info.ceo) ri.ceo = info.ceo;
+            if (info.planPeriod) ri.planPeriod = info.planPeriod;
+            await setDoc(doc(db, 'settings', 'reportInfo'), ri, { merge: true });
+            S.reportInfo = ri;
+            if (info.sprint) {
+              await setDoc(doc(db, 'settings', 'entryDefault'), { cycle: String(cycleId), sprint: info.sprint });
+              S.cycleId = String(cycleId); S.sprint = info.sprint;
+            }
+          }
+          S.adminGoalsDraft = null;
+          if (String(cycleId) === String(S.cycleId)) subscribeCycle(S.cycleId);
+          renderAdmin();
           toast(`Imported ${goals.length} goals to Cycle ${cycleId}`, 'success', 4000);
         } catch (err) {
           toast('Import failed: ' + (err.code || err.message), 'error', 5000);
