@@ -2650,106 +2650,129 @@ $('saveReportInfoBtn').addEventListener('click', async () => {
   }
 });
 
-/* ===================== Export: Word (exact template replica) ===================== */
+/* ===================== Export: Word (100% template replica, cumulative sprint tables) ===================== */
 async function exportWord() {
   if (typeof docx === 'undefined') { toast('Word library failed to load — check your connection', 'error'); return; }
   toast('Building Word report...', 'info', 1800);
-  const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, VerticalAlign, ShadingType, PageOrientation } = docx;
+  const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, VerticalAlign, ShadingType, PageOrientation, PageBreak, LineRuleType } = docx;
 
   const NAVY = '153D63', SPRINT = '156082', TEAL = '006666', BLUE = '0B769F', GRAY = 'D1D1D1';
   const B = { style: 'single', size: 4, color: '000000' };
-  const borders = { top: B, bottom: B, left: B, right: B };
-  const COLS = [485, 1997, 3180, 1629, 1396, 1319, 2954]; // dxa — matches original proportions
+  const borders = { top: B, bottom: B, left: B, right: B, insideHorizontal: B, insideVertical: B };
+  // EXACT template grid: 11 columns incl. narrow gutters — total 15038 dxa, indent -995, centered
+  const GRID = [563, 2317, 202, 3488, 8, 1882, 1620, 1530, 8, 3412, 8];
+  const SPANS = [1, 1, 2, 2, 1, 1, 2]; // No | Goals | Tasks | Dependencies | Progress | Average | Justifications
+  const PSP = { after: 160, line: 259, lineRule: LineRuleType.AUTO }; // template default paragraph spacing
 
   const ri = S.reportInfo || {};
   const cycleNo = String(S.cycleId || '?');
-  const sprintNo = String(S.sprint || 1);
+  const curSprint = Math.max(1, Number(S.sprint) || 1);
 
-  const run = (text, o = {}) => new TextRun({ text, bold: true, font: 'Calibri', size: 24, ...o });
-  const para = (runs, align) => new Paragraph({ alignment: align, children: Array.isArray(runs) ? runs : [runs] });
+  const run = (text, o = {}) => new TextRun({ text, bold: true, font: 'Calibri', ...o }); // default 11pt like template
+  const para = (runs, align) => new Paragraph({ alignment: align, spacing: PSP, children: Array.isArray(runs) ? runs : [runs] });
   const shade = fill => ({ type: ShadingType.CLEAR, fill });
-  const CELL_M = { top: 60, bottom: 60, left: 100, right: 100 };
 
-  const infoCell = (runs, columnSpan, fill) => new TableCell({
-    columnSpan, shading: shade(fill), margins: CELL_M, verticalAlign: VerticalAlign.CENTER, borders,
-    children: [para(runs)]
+  const infoCell = (runs, columnSpan, fill, align) => new TableCell({
+    columnSpan, shading: shade(fill), borders,
+    children: [para(runs, align)]
   });
 
-  // ===== Title =====
+  // ===== Document title (12pt, bold italic, centered, indent -270) =====
   const title = new Paragraph({
-    spacing: { after: 120 },
+    alignment: AlignmentType.CENTER,
+    indent: { left: -270 },
+    spacing: PSP,
     children: [
-      run('The 12 Weeks-Year Plan – Cycle-'),
-      run(cycleNo),
-      run(' (Muscat) From '),
-      run(ri.planPeriod || '—'),
-      run(' Sprints’ Progress Reporting Form')
+      run('The  12 Weeks-Year Plan – Cycle-', { italics: true, size: 24 }),
+      run(cycleNo, { italics: true, size: 24 }),
+      run(' (Muscat) From ', { italics: true, size: 24 }),
+      run(ri.planPeriod || '—', { italics: true, size: 24 }),
+      run(' Sprints’ Progress Reporting Form', { italics: true, size: 24 })
     ]
   });
 
-  // ===== Info rows =====
-  const row0 = new TableRow({ children: [
-    infoCell([], 2, 'FFFFFF'),
-    infoCell([
-      run('Sprint -', { color: NAVY }),
-      run(sprintNo, { color: SPRINT }),
-      run(' Execution Progress Report', { color: NAVY })
-    ], 5, 'FFFFFF')
-  ]});
-  const row1 = new TableRow({ children: [
-    infoCell([run('Division: ', { color: 'FFFFFF' }), run('Planning & Asset Management', { color: 'FFFFFF' })], 3, TEAL),
-    infoCell([run('GM In Charge: ', { color: 'FFFFFF' }), run(ri.gmName || '—', { color: 'FFFFFF' })], 2, TEAL),
-    infoCell([run('Focal Point : ', { color: 'FFFFFF' }), run(ri.focalName || '—', { color: 'FFFFFF' })], 2, TEAL)
-  ]});
-  const row2 = new TableRow({ children: [
-    infoCell([run('Sprint-'), run(sprintNo), run(' Period: '), run(ri.sprintPeriod || '—')], 3, GRAY),
-    infoCell([run('Submission Deadline: '), run(ri.deadline || '—')], 2, GRAY),
-    infoCell([run('Submission To CEO: '), run(ri.ceo || '—')], 2, GRAY)
-  ]});
+  // ===== Build one table per sprint (cumulative: table N shows tasks of sprints 1..N) =====
+  function sprintTable(n) {
+    const sn = String(n);
 
-  // ===== Header row =====
-  const headCell = t => new TableCell({
-    shading: shade(BLUE), margins: CELL_M, verticalAlign: VerticalAlign.CENTER, borders,
-    children: [para(new TextRun({ text: t, bold: true, color: 'FFFFFF', font: 'Calibri', size: 22 }), AlignmentType.CENTER)]
-  });
-  const rowHead = new TableRow({
-    tableHeader: true,
-    children: ['No.', 'Goals', 'Tasks', 'Dependencies', 'Progress (%)', 'Average %', 'Justifications Of Delay (If Any)'].map(headCell)
-  });
+    const row0 = new TableRow({ children: [
+      infoCell([], 3, 'FFFFFF'),
+      infoCell([
+        run('Sprint -', { color: NAVY, italics: true, size: 24 }),
+        run(sn, { color: SPRINT, italics: true, size: 24 }),
+        run(' Execution Progress Report', { color: NAVY, italics: true, size: 24 })
+      ], 8, 'FFFFFF', AlignmentType.CENTER)
+    ]});
+    const row1 = new TableRow({ children: [
+      infoCell([run('Division: ', { color: 'FFFFFF', italics: true }), run('Planning & Asset Management', { color: 'FFFFFF', italics: true })], 5, TEAL),
+      infoCell([run('GM In Charge: ', { color: 'FFFFFF', italics: true }), run(ri.gmName || '—', { color: 'FFFFFF', italics: true })], 4, TEAL),
+      infoCell([run('Focal Point : ', { color: 'FFFFFF', italics: true }), run(ri.focalName || '—', { color: 'FFFFFF', italics: true })], 2, TEAL)
+    ]});
+    const row2 = new TableRow({ children: [
+      infoCell([run('Sprint-', { italics: true }), run(sn, { italics: true }), run(' Period: ', { italics: true }), run(ri.sprintPeriod || '—', { italics: true })], 5, GRAY, AlignmentType.CENTER),
+      infoCell([run('Submission Deadline: ', { italics: true }), run(ri.deadline || '—', { italics: true })], 4, GRAY, AlignmentType.CENTER),
+      infoCell([run('Submission To CEO: ', { italics: true }), run(ri.ceo || '—', { italics: true })], 2, GRAY, AlignmentType.CENTER)
+    ]});
 
-  // ===== Data rows (No / Goal / Dependencies / Average merged per goal) =====
-  const dataCell = (text, o = {}) => new TableCell({
-    margins: CELL_M, borders, verticalAlign: o.va || VerticalAlign.TOP, rowSpan: o.rowSpan,
-    children: [para(new TextRun({ text: String(text ?? ''), font: 'Calibri', size: 22, bold: !!o.bold }), o.align)]
-  });
-
-  const dataRows = [];
-  S.goals.forEach(g => {
-    const tasks = (g.tasks && g.tasks.length) ? g.tasks : [{ id: `${g.no}.1`, name: '', progress: null, note: '' }];
-    const n = tasks.length;
-    const avg = goalAvgDisp(g);
-    tasks.forEach((t, i) => {
-      const taskText = `${(t.id || `${g.no}.${i + 1}`).replace(/\)$/, '')}  ${t.name || ''}`;
-      const prog = (t.progress === null || t.progress === undefined) ? '' : t.progress + '%';
-      const cells = [];
-      if (i === 0) {
-        cells.push(dataCell(String(g.no), { bold: true, align: AlignmentType.CENTER, va: VerticalAlign.CENTER, rowSpan: n }));
-        cells.push(dataCell(g.name || '', { bold: true, va: VerticalAlign.CENTER, rowSpan: n }));
-        cells.push(dataCell(taskText, { bold: true }));
-        cells.push(dataCell(g.dependency || '', { va: VerticalAlign.CENTER, rowSpan: n }));
-        cells.push(dataCell(prog, { bold: true, align: AlignmentType.CENTER }));
-        cells.push(dataCell(avg === null ? '' : fmtPct(avg), { bold: true, align: AlignmentType.CENTER, va: VerticalAlign.CENTER, rowSpan: n }));
-        cells.push(dataCell(t.note || ''));
-      } else {
-        cells.push(dataCell(taskText, { bold: true }));
-        cells.push(dataCell(prog, { bold: true, align: AlignmentType.CENTER }));
-        cells.push(dataCell(t.note || ''));
-      }
-      dataRows.push(new TableRow({ children: cells }));
+    const headCell = (t, s) => new TableCell({
+      columnSpan: s, shading: shade(BLUE), borders,
+      children: [para(new TextRun({ text: t, bold: true, color: 'FFFFFF', font: 'Calibri' }), AlignmentType.CENTER)]
     });
-  });
+    const rowHead = new TableRow({
+      tableHeader: true,
+      children: ['No.', 'Goals', 'Tasks', 'Dependencies', 'Progress (%)', 'Average %', 'Justifications Of Delay (If Any)'].map((t, i) => headCell(t, SPANS[i]))
+    });
 
-  const table = new Table({ columnWidths: COLS, borders, rows: [row0, row1, row2, rowHead, ...dataRows] });
+    const dataCell = (text, o = {}) => new TableCell({
+      borders, columnSpan: o.span, rowSpan: o.rowSpan, verticalAlign: o.va,
+      children: [para(new TextRun({ text: String(text ?? ''), font: 'Calibri', bold: !!o.bold }), o.align)]
+    });
+
+    const dataRows = [];
+    S.goals.forEach(g => {
+      let tasks = (g.tasks || []).slice(0, n); // cumulative up to this sprint
+      if (!tasks.length) tasks = [{ id: `${g.no}.1`, name: '', progress: null, note: '' }];
+      const cnt = tasks.length;
+      let avg;
+      if (g.avgOverride !== null && g.avgOverride !== undefined) avg = Number(g.avgOverride);
+      else avg = tasks.reduce((s, t) => s + ((t && t.progress !== null && t.progress !== undefined) ? Number(t.progress) : 0), 0) / cnt;
+
+      tasks.forEach((t, i) => {
+        const taskText = `${(t.id || `${g.no}.${i + 1}`).replace(/\)$/, '')}  ${t.name || ''}`;
+        const prog = (t.progress === null || t.progress === undefined) ? '' : t.progress + '%';
+        const cells = [];
+        if (i === 0) {
+          cells.push(dataCell(String(g.no), { bold: true, align: AlignmentType.CENTER, rowSpan: cnt, span: SPANS[0] }));
+          cells.push(dataCell(g.name || '', { bold: true, rowSpan: cnt, span: SPANS[1] }));
+          cells.push(dataCell(taskText, { bold: true, span: SPANS[2], va: VerticalAlign.CENTER }));
+          cells.push(dataCell(g.dependency || '', { align: AlignmentType.CENTER, rowSpan: cnt, span: SPANS[3] }));
+          cells.push(dataCell(prog, { bold: true, align: AlignmentType.CENTER, span: SPANS[4] }));
+          cells.push(dataCell(fmtPct(avg), { bold: true, align: AlignmentType.CENTER, rowSpan: cnt, span: SPANS[5] }));
+          cells.push(dataCell(t.note || '', { align: AlignmentType.CENTER, span: SPANS[6] }));
+        } else {
+          cells.push(dataCell(taskText, { bold: true, span: SPANS[2], va: VerticalAlign.CENTER }));
+          cells.push(dataCell(prog, { bold: true, align: AlignmentType.CENTER, span: SPANS[4] }));
+          cells.push(dataCell(t.note || '', { align: AlignmentType.CENTER, span: SPANS[6] }));
+        }
+        dataRows.push(new TableRow({ children: cells }));
+      });
+    });
+
+    return new Table({
+      columnWidths: GRID,
+      width: { size: 15038, type: WidthType.DXA },
+      indent: { size: -995, type: WidthType.DXA },
+      alignment: AlignmentType.CENTER,
+      borders,
+      rows: [row0, row1, row2, rowHead, ...dataRows]
+    });
+  }
+
+  const children = [title];
+  for (let n = 1; n <= curSprint; n++) {
+    if (n > 1) children.push(new Paragraph({ children: [new PageBreak()] }));
+    children.push(sprintTable(n));
+  }
 
   const document = new Document({
     sections: [{
@@ -2759,11 +2782,11 @@ async function exportWord() {
           margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 }
         }
       },
-      children: [title, table]
+      children
     }]
   });
   const blob = await Packer.toBlob(document);
-  downloadBlob(blob, `12 Weeks Plan Cycle ${cycleNo} sprint ${sprintNo}-${new Date().getFullYear()}.docx`);
+  downloadBlob(blob, `12 Weeks Plan Cycle ${cycleNo} sprint ${curSprint}-${new Date().getFullYear()}.docx`);
   toast('Word report downloaded', 'success');
 }
 
