@@ -445,6 +445,17 @@ body {
 .goal-badge { font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700; padding: 5px 12px; border-radius: 8px; background: var(--primary); color: #fff; flex-shrink: 0; }
 .goal-title { font-size: 14px; font-weight: 700; line-height: 1.4; flex: 1; min-width: 0; }
 .entry-card-body { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+.task-block { display: flex; flex-direction: column; gap: 12px; }
+.task-block.carry {
+  border: 1.5px dashed var(--amber); border-radius: var(--radius-sm);
+  padding: 12px; background: #FFFBF3;
+}
+.carry-label {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 800; color: var(--amber);
+  text-transform: uppercase; letter-spacing: .04em;
+}
+.task-block.invalid .progress-input, .task-block.invalid textarea { border-color: var(--red); }
 
 .task-info {
   display: flex; align-items: center; gap: 10px; padding: 10px 13px;
@@ -875,10 +886,14 @@ body {
           <div class="chart-wrap"><canvas id="chartAvg"></canvas></div>
         </div>
         <div class="chart-card">
-          <div class="chart-title"><span class="chart-dot" style="background:#22C55E;"></span>Task Status Overview</div>
+          <div class="chart-title"><span class="chart-dot" style="background:#22C55E;"></span>Goal Status Overview</div>
           <div class="chart-wrap"><canvas id="chartStatus"></canvas></div>
         </div>
         <div class="chart-card">
+          <div class="chart-title"><span class="chart-dot" style="background:#0B769F;"></span>Task Status Overview</div>
+          <div class="chart-wrap"><canvas id="chartTaskStatus"></canvas></div>
+        </div>
+        <div class="chart-card" style="grid-column: 1 / -1;">
           <div class="chart-title"><span class="chart-dot" style="background:#D97706;"></span>Task Status by Goal</div>
           <div class="chart-wrap"><canvas id="chartGoalStatus"></canvas></div>
         </div>
@@ -1961,7 +1976,27 @@ function renderCharts() {
     });
   }
 
-  // Status calculated at TASK level (per user's request)
+  // GOAL-level status doughnut (as before: On Track / At Risk / Critical / No Data)
+  const stCtx = $('chartStatus');
+  if (stCtx) {
+    const complete = avgs.filter(a => a !== null && a >= 80).length;
+    const risk = avgs.filter(a => a !== null && a >= 50 && a < 80).length;
+    const crit = avgs.filter(a => a !== null && a < 50).length;
+    const none = avgs.filter(a => a === null).length;
+    S.charts.status = new Chart(stCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['On Track', 'At Risk', 'Critical', 'No Data'],
+        datasets: [{ data: [complete, risk, crit, none], backgroundColor: ['#16A34A', '#D97706', '#DC2626', '#CBD8DD'], borderWidth: 3, borderColor: '#fff' }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: '62%',
+        plugins: { legend: { position: 'bottom', labels: { padding: 14, usePointStyle: true, pointStyle: 'circle', font: { size: 11, weight: 600 } } } }
+      }
+    });
+  }
+
+  // TASK-level status doughnut
   const allTasks = [];
   S.goals.forEach(g => (g.tasks || []).forEach(t => allTasks.push(t)));
   const tComplete = allTasks.filter(t => t.progress === 100).length;
@@ -1971,9 +2006,9 @@ function renderCharts() {
   const ST_COLORS = ['#16A34A', '#0B769F', '#DC2626', '#CBD8DD'];
   const ST_LABELS = ['Complete (100%)', 'In Progress (50-99)', 'Late (<50)', 'Not Reported'];
 
-  const stCtx = $('chartStatus');
-  if (stCtx) {
-    S.charts.status = new Chart(stCtx, {
+  const tstCtx = $('chartTaskStatus');
+  if (tstCtx) {
+    S.charts.taskStatus = new Chart(tstCtx, {
       type: 'doughnut',
       data: {
         labels: ST_LABELS,
@@ -2140,11 +2175,20 @@ function renderEntry() {
 
   const idx = S.sprint - 1;
   grid.innerHTML = goals.map((g, i) => {
-    const t = (g.tasks || [])[idx] || { name: '', progress: null, note: '' };
-    const progVal = (t.progress === null || t.progress === undefined) ? '' : t.progress;
+    const allT = g.tasks || [];
+    // Current sprint task + any previous UNFINISHED tasks (<100 or unreported) carry over
+    const blocks = [];
+    allT.forEach((tk, ti) => {
+      const done = tk.progress !== null && tk.progress !== undefined && tk.progress >= 100;
+      if (ti === idx) blocks.push({ t: tk, ti, current: true });
+      else if (ti < idx && !done) blocks.push({ t: tk, ti, current: false });
+    });
+    if (!blocks.some(b => b.current)) blocks.push({ t: { id: `${g.no}.${idx + 1})`, name: '', progress: null, note: '' }, ti: idx, current: true });
+
+    const cur = blocks.find(b => b.current).t;
     const avg = goalAvgDisp(g);
     const st = statusOf(avg);
-    const hasSaved = t.progress !== null && t.progress !== undefined;
+    const hasSaved = cur.progress !== null && cur.progress !== undefined;
     const isLocked = (hasSaved && !S.editableGoalNos.has(Number(g.no))) || S.isGuest;
     const dis = isLocked ? 'disabled' : '';
     return `
@@ -2161,18 +2205,25 @@ function renderEntry() {
           </div>
         </div>
         <div class="entry-card-body">
-          <div class="task-info">
-            <span class="task-id">${esc(t.id || g.no + '.' + S.sprint + ')')}</span>
-            <span class="task-name">${esc(t.name || '(no task name)')}</span>
-          </div>
-          <div class="field">
-            <label>Progress %</label>
-            <input type="number" min="0" max="100" class="progress-input" value="${progVal}" placeholder="0" inputmode="numeric" ${dis}>
-          </div>
-          <div class="field">
-            <label>Justification ${'<span style="color:var(--red);">*</span>'}</label>
-            <textarea placeholder="Justification of delay — required if progress is below 100%" ${dis}>${esc(t.note || '')}</textarea>
-          </div>
+          ${blocks.map(b => {
+            const pv = (b.t.progress === null || b.t.progress === undefined) ? '' : b.t.progress;
+            return `
+          <div class="task-block ${b.current ? '' : 'carry'}" data-tidx="${b.ti}">
+            ${b.current ? '' : `<div class="carry-label"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Unfinished from Sprint ${b.ti + 1}</div>`}
+            <div class="task-info">
+              <span class="task-id">${esc(b.t.id || g.no + '.' + (b.ti + 1) + ')')}</span>
+              <span class="task-name">${esc(b.t.name || '(no task name)')}</span>
+            </div>
+            <div class="field">
+              <label>Progress %</label>
+              <input type="number" min="0" max="100" class="progress-input" value="${pv}" placeholder="0" inputmode="numeric" ${dis}>
+            </div>
+            <div class="field">
+              <label>Justification ${'<span style="color:var(--red);">*</span>'}</label>
+              <textarea placeholder="Justification of delay — required if progress is below 100%" ${dis}>${esc(b.t.note || '')}</textarea>
+            </div>
+          </div>`;
+          }).join('')}
           ${!isLocked ? `<button type="button" class="btn btn-primary goal-save-btn" data-save-goal="${g.no}" style="width:100%; margin-top:4px;">
             Save Goal ${String(g.no).padStart(2, '0')}
           </button>` : ''}
@@ -2193,9 +2244,24 @@ function renderEntry() {
 
   grid.querySelectorAll('.entry-card[data-goalno]').forEach(card => {
     const mark = () => { card.dataset.dirty = '1'; };
-    card.querySelector('.progress-input').addEventListener('input', mark);
-    card.querySelector('textarea').addEventListener('input', mark);
+    card.querySelectorAll('.progress-input, textarea').forEach(el => el.addEventListener('input', mark));
   });
+}
+
+/* Validate one card's task blocks; returns true if all valid */
+function validateEntryCard(row) {
+  let firstBad = null;
+  row.querySelectorAll('.task-block').forEach(blk => {
+    blk.classList.remove('invalid');
+    const raw = blk.querySelector('.progress-input').value.trim();
+    const note = blk.querySelector('textarea').value.trim();
+    const num = raw === '' ? null : parseInt(raw, 10);
+    if ((num === null || num < 100) && note === '') {
+      blk.classList.add('invalid');
+      if (!firstBad) firstBad = blk;
+    }
+  });
+  return firstBad;
 }
 
 /* Save a single goal's entry (validates only that goal) */
@@ -2204,18 +2270,13 @@ async function saveOneGoal(no) {
   if (!S.cycleId) { toast('No active cycle', 'warning'); return; }
   const row = document.querySelector(`#entryGrid .entry-card[data-goalno="${no}"]`);
   if (!row) return;
-  const idx = S.sprint - 1;
-  const raw = row.querySelector('.progress-input').value.trim();
-  const note = row.querySelector('textarea').value.trim();
-  const num = raw === '' ? null : clamp(parseInt(raw, 10) || 0);
 
-  row.classList.remove('invalid');
-  if ((num === null || num < 100) && note === '') {
-    row.classList.add('invalid');
+  const firstBad = validateEntryCard(row);
+  if (firstBad) {
     showModal({
       title: 'Justification required',
-      text: `Goal ${String(no).padStart(2, '0')} is below 100% — please add a comment explaining the reason before saving.`,
-      actions: [{ label: 'Got it', kind: 'primary', onClick: () => { row.scrollIntoView({ behavior: 'smooth', block: 'center' }); row.querySelector('textarea').focus(); } }]
+      text: `Goal ${String(no).padStart(2, '0')} has a task below 100% — please add a comment explaining the reason before saving.`,
+      actions: [{ label: 'Got it', kind: 'primary', onClick: () => { firstBad.scrollIntoView({ behavior: 'smooth', block: 'center' }); firstBad.querySelector('textarea').focus(); } }]
     });
     return;
   }
@@ -2223,8 +2284,13 @@ async function saveOneGoal(no) {
   const g = S.goals.find(x => Number(x.no) === no);
   if (!g) return;
   if (!g.tasks) g.tasks = [];
-  while (g.tasks.length <= idx) g.tasks.push({ id: `${g.no}.${g.tasks.length + 1})`, name: '', progress: null, note: '' });
-  g.tasks[idx] = { ...g.tasks[idx], progress: num, note };
+  row.querySelectorAll('.task-block').forEach(blk => {
+    const ti = Number(blk.dataset.tidx);
+    while (g.tasks.length <= ti) g.tasks.push({ id: `${g.no}.${g.tasks.length + 1})`, name: '', progress: null, note: '' });
+    const raw = blk.querySelector('.progress-input').value.trim();
+    const note = blk.querySelector('textarea').value.trim();
+    g.tasks[ti] = { ...g.tasks[ti], progress: raw === '' ? null : clamp(parseInt(raw, 10) || 0), note };
+  });
   row.dataset.dirty = '';
   saveToLocal(S.cycleId, S.goals);
   try {
@@ -2240,7 +2306,6 @@ async function saveOneGoal(no) {
 /* ---------- Save all (manual) ---------- */
 function collectAndSave() {
   if (!S.cycleId || S.isGuest) return;
-  const idx = S.sprint - 1;
   let changed = false;
   document.querySelectorAll('#entryGrid .entry-card[data-goalno]').forEach(row => {
     if (row.dataset.dirty !== '1') return;
@@ -2248,10 +2313,13 @@ function collectAndSave() {
     const g = S.goals.find(x => Number(x.no) === no);
     if (!g) return;
     if (!g.tasks) g.tasks = [];
-    while (g.tasks.length <= idx) g.tasks.push({ id: `${g.no}.${g.tasks.length + 1})`, name: '', progress: null, note: '' });
-    const raw = row.querySelector('.progress-input').value.trim();
-    const note = row.querySelector('textarea').value.trim();
-    g.tasks[idx] = { ...g.tasks[idx], progress: raw === '' ? null : clamp(parseInt(raw, 10) || 0), note };
+    row.querySelectorAll('.task-block').forEach(blk => {
+      const ti = Number(blk.dataset.tidx);
+      while (g.tasks.length <= ti) g.tasks.push({ id: `${g.no}.${g.tasks.length + 1})`, name: '', progress: null, note: '' });
+      const raw = blk.querySelector('.progress-input').value.trim();
+      const note = blk.querySelector('textarea').value.trim();
+      g.tasks[ti] = { ...g.tasks[ti], progress: raw === '' ? null : clamp(parseInt(raw, 10) || 0), note };
+    });
     row.dataset.dirty = '';
     changed = true;
   });
@@ -2273,17 +2341,11 @@ $('saveBtn').addEventListener('click', () => {
   if (S.isGuest) { toast('Sign in to save changes', 'warning'); return; }
   if (!S.cycleId) { toast('No active cycle', 'warning'); return; }
 
-  // Validate: comment required if < 100
+  // Validate: comment required if < 100 (per task block)
   let firstInvalid = null;
   document.querySelectorAll('#entryGrid .entry-card[data-goalno]').forEach(row => {
-    row.classList.remove('invalid');
-    const raw = row.querySelector('.progress-input').value.trim();
-    const note = row.querySelector('textarea').value.trim();
-    const num = raw === '' ? null : parseInt(raw, 10);
-    if ((num === null || num < 100) && note === '') {
-      row.classList.add('invalid');
-      if (!firstInvalid) firstInvalid = row;
-    }
+    const bad = validateEntryCard(row);
+    if (bad && !firstInvalid) firstInvalid = bad;
   });
 
   if (firstInvalid) {
