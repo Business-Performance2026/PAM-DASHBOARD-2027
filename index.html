@@ -2929,8 +2929,10 @@ async function exportWord() {
       let avg;
       if (g.avgOverride !== null && g.avgOverride !== undefined) avg = Number(g.avgOverride);
       else {
-        const upto = tasks.slice(0, n);
-        avg = upto.reduce((s, t) => s + ((t && t.progress !== null && t.progress !== undefined) ? Number(t.progress) : 0), 0) / upto.length;
+        // Cumulative: only tasks reached so far (sprints 1..n), and only REPORTED ones —
+        // a dash (null) = not reported → excluded; a typed 0 = reported zero → counted.
+        const reported = tasks.slice(0, n).filter(t => t && t.progress !== null && t.progress !== undefined && t.progress !== '');
+        avg = reported.length ? reported.reduce((s, t) => s + Number(t.progress), 0) / reported.length : 0;
       }
 
       tasks.forEach((t, i) => {
@@ -3305,7 +3307,7 @@ document.addEventListener('keydown', e => {
 });
 
 // Console helpers (also used for diagnostics)
-window.PAM = { exportWord, exportExcel, _setRI: ri => { S.reportInfo = ri; }, _setSprint: n => { S.sprint = n; }, _renderSD: () => renderSprintDateRows(), _restrict: p => { S.allowedPages = p; markLockedNav(); }, _test: p => { S.isGuest = false; S.isAdmin = false; S.allowedPages = p; markLockedNav(); }, _admin: () => { S.isGuest = false; S.isAdmin = true; renderAll(); switchTab('admin'); } };
+window.PAM = { exportWord, exportExcel, _injectGoals: gs => { S.goals = gs; }, _setRI: ri => { S.reportInfo = ri; }, _setSprint: n => { S.sprint = n; }, _renderSD: () => renderSprintDateRows(), _restrict: p => { S.allowedPages = p; markLockedNav(); }, _test: p => { S.isGuest = false; S.isAdmin = false; S.allowedPages = p; markLockedNav(); }, _admin: () => { S.isGuest = false; S.isAdmin = true; renderAll(); switchTab('admin'); } };
 
 // Splash safety: hide after 6s no matter what
 setTimeout(() => $('splash').classList.add('hide'), 6000);
