@@ -1040,7 +1040,11 @@ body {
           Report Info
         </div>
         <div class="admin-block-sub">The red fields in the Word report — set them once per cycle, they are used in every export.</div>
-        <div class="admin-row">
+        <div class="field">
+          <label>Report Title <span style="text-transform:none; font-weight:500;">— shown at the top of EVERY sprint table in the Word export (leave empty for auto)</span></label>
+          <input type="text" id="riTitle" placeholder="The  12 Weeks-Year Plan – Cycle-9 (Muscat) From 16th August 2026 – 12th November 2026 Sprints’ Progress Reporting Form">
+        </div>
+        <div class="admin-row" style="margin-top:10px;">
           <div class="field"><label>GM In Charge</label><input type="text" id="riGm" placeholder="Suhaila Al Balushi"></div>
           <div class="field"><label>Focal Point</label><input type="text" id="riFocal" placeholder="Badar Al Mamari"></div>
         </div>
@@ -2659,6 +2663,7 @@ async function loadReportInfo() {
     const snap = await getDoc(doc(db, 'settings', 'reportInfo'));
     S.reportInfo = snap.exists() ? snap.data() : {};
   } catch (e) { S.reportInfo = {}; }
+  $('riTitle').value = S.reportInfo.reportTitle || '';
   $('riGm').value = S.reportInfo.gmName || '';
   $('riFocal').value = S.reportInfo.focalName || '';
   $('riPlanPeriod').value = S.reportInfo.planPeriod || '';
@@ -2684,6 +2689,7 @@ function renderSprintDateRows() {
 
 $('saveReportInfoBtn').addEventListener('click', async () => {
   S.reportInfo = {
+    reportTitle: $('riTitle').value.trim(),
     gmName: $('riGm').value.trim(),
     focalName: $('riFocal').value.trim(),
     planPeriod: $('riPlanPeriod').value.trim(),
@@ -2715,9 +2721,9 @@ async function exportWord() {
   const NAVY = '153D63', SPRINT = '156082', TEAL = '006666', BLUE = '0B769F', GRAY = 'D1D1D1';
   const B = { style: 'single', size: 4, color: '000000' };
   const borders = { top: B, bottom: B, left: B, right: B, insideHorizontal: B, insideVertical: B };
-  // EXACT template grid: 11 columns incl. narrow gutters — total 15038 dxa, indent -995, centered
-  const GRID = [563, 2317, 202, 3488, 8, 1882, 1620, 1530, 8, 3412, 8];
-  const SPANS = [1, 1, 2, 2, 1, 1, 2]; // No | Goals | Tasks | Dependencies | Progress | Average | Justifications
+  // EXACT template grid: 7 columns — total 15038 dxa, centered, no indent
+  const GRID = [342, 2983, 4140, 1800, 1170, 1080, 3523]; // No | Goals | Tasks | Dependencies | Progress | Average | Justifications
+  const SPANS = [1, 1, 1, 1, 1, 1, 1];
   const PSP = { after: 160, line: 259, lineRule: LineRuleType.AUTO }; // template default paragraph spacing
 
   const ri = S.reportInfo || {};
@@ -2733,18 +2739,14 @@ async function exportWord() {
     children: [para(runs, align)]
   });
 
-  // ===== Document title (12pt, bold italic, centered, indent -270) =====
-  const title = new Paragraph({
+  // ===== Report title (11pt, bold italic, centered, indent -270) — editable via Report Info, repeated above EVERY sprint table =====
+  const titleText = (ri.reportTitle && ri.reportTitle.trim()) ||
+    ('The  12 Weeks-Year Plan – Cycle-' + cycleNo + ' (Muscat) From ' + (ri.planPeriod || '—') + ' Sprints’ Progress Reporting Form');
+  const buildTitle = () => new Paragraph({
     alignment: AlignmentType.CENTER,
     indent: { left: -270 },
     spacing: PSP,
-    children: [
-      run('The  12 Weeks-Year Plan – Cycle-', { italics: true, size: 24 }),
-      run(cycleNo, { italics: true, size: 24 }),
-      run(' (Muscat) From ', { italics: true, size: 24 }),
-      run(ri.planPeriod || '—', { italics: true, size: 24 }),
-      run(' Sprints’ Progress Reporting Form', { italics: true, size: 24 })
-    ]
+    children: [run(titleText, { italics: true })]
   });
 
   // ===== Build one table per sprint (table N: ALL tasks listed; progress/avg cumulative up to sprint N) =====
@@ -2753,22 +2755,21 @@ async function exportWord() {
     const sd = (ri.sprintDates || {})[n] || {};
 
     const row0 = new TableRow({ children: [
-      infoCell([], 3, 'FFFFFF'),
       infoCell([
-        run('Sprint -', { color: NAVY, italics: true, size: 24 }),
-        run(sn, { color: SPRINT, italics: true, size: 24 }),
-        run(' Execution Progress Report', { color: NAVY, italics: true, size: 24 })
-      ], 8, 'FFFFFF', AlignmentType.CENTER)
+        run('Sprint -', { color: NAVY, italics: true }),
+        run(sn, { color: SPRINT, italics: true }),
+        run(' Execution Progress Report', { color: NAVY, italics: true })
+      ], 7, 'FFFFFF', AlignmentType.CENTER)
     ]});
     const row1 = new TableRow({ children: [
-      infoCell([run('Division: ', { color: 'FFFFFF', italics: true }), run('Planning & Asset Management', { color: 'FFFFFF', italics: true })], 5, TEAL),
-      infoCell([run('GM In Charge: ', { color: 'FFFFFF', italics: true }), run(ri.gmName || '—', { color: 'FFFFFF', italics: true })], 4, TEAL),
-      infoCell([run('Focal Point : ', { color: 'FFFFFF', italics: true }), run(ri.focalName || '—', { color: 'FFFFFF', italics: true })], 2, TEAL)
+      infoCell([run('Division: ', { color: 'FFFFFF', italics: true }), run('Planning & Asset Management', { color: 'FFFFFF', italics: true })], 3, TEAL),
+      infoCell([run('GM In Charge: ', { color: 'FFFFFF', italics: true }), run(ri.gmName || '—', { color: 'FFFFFF', italics: true })], 3, TEAL),
+      infoCell([run('Focal Point : ', { color: 'FFFFFF', italics: true }), run(ri.focalName || '—', { color: 'FFFFFF', italics: true })], 1, TEAL)
     ]});
     const row2 = new TableRow({ children: [
-      infoCell([run('Sprint-', { italics: true }), run(sn, { italics: true }), run(' Period: ', { italics: true }), run(sd.period || '—', { italics: true })], 5, GRAY, AlignmentType.CENTER),
-      infoCell([run('Submission Deadline: ', { italics: true }), run(sd.deadline || '—', { italics: true })], 4, GRAY, AlignmentType.CENTER),
-      infoCell([run('Submission To CEO: ', { italics: true }), run(ri.ceo || '—', { italics: true })], 2, GRAY, AlignmentType.CENTER)
+      infoCell([run('Sprint-', { italics: true }), run(sn, { italics: true }), run(' Period: ', { italics: true }), run(sd.period || '—', { italics: true })], 3, GRAY),
+      infoCell([run('Submission Deadline: ', { italics: true }), run(sd.deadline || '—', { italics: true })], 3, GRAY),
+      infoCell([run('Submission To CEO: ', { italics: true }), run(ri.ceo || '—', { italics: true })], 1, GRAY)
     ]});
 
     const headCell = (t, s) => new TableCell({
@@ -2823,16 +2824,16 @@ async function exportWord() {
     return new Table({
       columnWidths: GRID,
       width: { size: 15038, type: WidthType.DXA },
-      indent: { size: -995, type: WidthType.DXA },
       alignment: AlignmentType.CENTER,
       borders,
       rows: [row0, row1, row2, rowHead, ...dataRows]
     });
   }
 
-  const children = [title];
+  const children = [];
   for (let n = 1; n <= curSprint; n++) {
     if (n > 1) children.push(new Paragraph({ children: [new PageBreak()] }));
+    children.push(buildTitle()); // title on top of EVERY sprint table
     children.push(sprintTable(n));
   }
 
