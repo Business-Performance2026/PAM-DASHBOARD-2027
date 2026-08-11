@@ -2216,11 +2216,11 @@ function renderEntry() {
             </div>
             <div class="field">
               <label>Progress %</label>
-              <input type="number" min="0" max="100" class="progress-input" value="${pv}" placeholder="0" inputmode="numeric" ${dis}>
+              <input type="number" min="0" max="100" class="progress-input" value="${pv}" placeholder="–" inputmode="numeric" ${dis}>
             </div>
             <div class="field">
               <label>Justification ${'<span style="color:var(--red);">*</span>'}</label>
-              <textarea placeholder="Justification of delay — required if progress is below 100%" ${dis}>${esc(b.t.note || '')}</textarea>
+              <textarea placeholder="Required only if you enter a value below 100% — leave progress as – if not reported" ${dis}>${esc(b.t.note || '')}</textarea>
             </div>
           </div>`;
           }).join('')}
@@ -2256,7 +2256,7 @@ function validateEntryCard(row) {
     const raw = blk.querySelector('.progress-input').value.trim();
     const note = blk.querySelector('textarea').value.trim();
     const num = raw === '' ? null : parseInt(raw, 10);
-    if ((num === null || num < 100) && note === '') {
+    if (num !== null && num < 100 && note === '') {
       blk.classList.add('invalid');
       if (!firstBad) firstBad = blk;
     }
