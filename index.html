@@ -18,8 +18,8 @@
   --border: #E2E9ED;
   --border-strong: #CBD8DD;
   --text: #0F2A33;
-  --text-mid: #546B75;
-  --text-dim: #8CA0A9;
+  --text-mid: #45565E;
+  --text-dim: #6B7F88;
   --primary: #0E7C86;
   --primary-dark: #0A5F67;
   --primary-bg: #E4F3F4;
@@ -303,6 +303,8 @@ body {
 .card-side-label { font-size: 11px; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 3px; }
 .card-side-value { font-size: 14px; font-weight: 700; }
 .card-side-note { font-size: 12px; color: var(--text-mid); margin-top: 2px; }
+.card-bigpct { font-family: 'IBM Plex Mono', monospace; font-size: 32px; font-weight: 700; line-height: 1; letter-spacing: -0.02em; }
+.card-side-complete { font-size: 16px; font-weight: 800; margin-top: 4px; }
 .card-meta {
   font-size: 11.5px; color: var(--text-dim); font-weight: 500;
   display: flex; justify-content: space-between; gap: 8px;
@@ -565,6 +567,19 @@ body {
   font-size: 13px; background: var(--input);
 }
 
+/* Collapsible sections (Detailed Tasks) */
+.collapse-toggle { cursor: pointer; user-select: none; }
+.collapse-toggle:hover .section-title { color: var(--primary); }
+.collapse-arrow {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 8px; background: var(--primary-bg);
+  transition: transform .3s ease; flex-shrink: 0;
+}
+.collapse-arrow svg { width: 14px; height: 14px; }
+.collapsible-body { overflow: hidden; max-height: 4000px; transition: max-height .45s ease, opacity .35s ease; opacity: 1; }
+.collapsible-body.collapsed { max-height: 0; opacity: 0; }
+.collapse-toggle.collapsed .collapse-arrow { transform: rotate(-90deg); }
+
 /* ============ Misc ============ */
 .empty { text-align: center; padding: 52px 24px; color: var(--text-dim); grid-column: 1 / -1; }
 .empty svg { width: 46px; height: 46px; margin-bottom: 14px; opacity: .4; }
@@ -808,9 +823,10 @@ body {
           <div class="section-title" style="font-size:16px;">Analytics</div>
         </div>
       </div>
+      <div class="stats-row" id="planStats"></div>
       <div class="charts-2col">
         <div class="chart-card">
-          <div class="chart-title"><span class="chart-dot" style="background:var(--primary);"></span>Average by Goal</div>
+          <div class="chart-title"><span class="chart-dot" style="background:var(--primary);"></span>Completion % by Goal</div>
           <div class="chart-wrap"><canvas id="chartAvg"></canvas></div>
         </div>
         <div class="chart-card">
@@ -819,17 +835,22 @@ body {
         </div>
       </div>
 
-      <div class="section-head" style="margin-top:8px;">
-        <div>
-          <div class="section-title" style="font-size:16px;">Detailed Tasks</div>
-          <div class="section-sub" id="tableCycleLabel"></div>
+      <div class="section-head collapse-toggle collapsed" id="tasksToggle" style="margin-top:8px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span class="collapse-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+          <div>
+            <div class="section-title" style="font-size:16px;">Detailed Tasks</div>
+            <div class="section-sub" id="tableCycleLabel"></div>
+          </div>
         </div>
       </div>
-      <div class="table-card">
-        <table class="data-table">
-          <thead><tr><th>Goal</th><th>Task</th><th>Progress</th><th>Comment</th></tr></thead>
-          <tbody id="goalsTableBody"></tbody>
-        </table>
+      <div class="collapsible-body collapsed" id="tasksCollapseBody">
+        <div class="table-card">
+          <table class="data-table">
+            <thead><tr><th>Goal</th><th>Task</th><th>Progress</th><th>Comment</th></tr></thead>
+            <tbody id="goalsTableBody"></tbody>
+          </table>
+        </div>
       </div>
     </section>
 
@@ -890,7 +911,7 @@ body {
             <select class="select" id="adminCycle" style="width:100%; padding:11px;"></select>
           </div>
           <div class="field">
-            <label>Sprint (Task #)</label>
+            <label>Sprint #</label>
             <select class="select" id="adminSprint" style="width:100%; padding:11px;"></select>
           </div>
           <button class="btn btn-primary" id="saveSettingsBtn" style="padding:11px 22px;">Save</button>
@@ -962,37 +983,35 @@ body {
       <div class="admin-block">
         <div class="admin-block-title">
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          User Permissions
+          Users &amp; Access
         </div>
-        <div class="admin-block-sub">Choose which goals each user can update. Leave all unchecked to allow all goals.</div>
-        <div class="field">
-          <label>User Email</label>
-          <input type="email" id="permEmail" placeholder="user@email.com" inputmode="email">
-        </div>
-        <div class="perm-goal-checks" id="permGoalChecks"></div>
-        <button class="btn btn-primary" id="savePermBtn">Save Permissions</button>
-        <div style="margin-top:20px;" id="permList"></div>
-      </div>
+        <div class="admin-block-sub">Control what each user can update (goals) and which pages they can open. Nothing checked = full access.</div>
 
-      <div class="admin-block">
-        <div class="admin-block-title">
-          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          Page Access
+        <div id="usersList"></div>
+
+        <button class="btn btn-primary" id="addUserBtn" style="width:100%; margin-top:6px;">+ Add User</button>
+
+        <div id="userForm" class="hidden" style="margin-top:16px; border:1.5px solid var(--primary); border-radius:12px; padding:16px; background:var(--primary-bg);">
+          <div style="font-weight:800; margin-bottom:12px;" id="uaFormTitle">Add User</div>
+          <div class="field">
+            <label>User Email</label>
+            <input type="email" id="uaEmail" placeholder="user@email.com" inputmode="email" style="background:#fff;">
+          </div>
+          <div class="field" style="margin-top:12px;"><label>Goals they can update <span style="text-transform:none; font-weight:500;">(none checked = all goals)</span></label></div>
+          <div class="perm-goal-checks" id="uaGoals"></div>
+          <div class="field" style="margin-top:12px;"><label>Pages they can open <span style="text-transform:none; font-weight:500;">(none checked = all pages)</span></label></div>
+          <div class="perm-goal-checks" id="uaPages">
+            <label class="perm-check" data-page="summary"><input type="checkbox" value="summary"><span>Summary</span></label>
+            <label class="perm-check" data-page="plan"><input type="checkbox" value="plan"><span>12-Week Plan</span></label>
+            <label class="perm-check" data-page="entry"><input type="checkbox" value="entry"><span>Data Entry</span></label>
+            <label class="perm-check" data-page="bsc"><input type="checkbox" value="bsc"><span>BSC</span></label>
+            <label class="perm-check" data-page="kpis"><input type="checkbox" value="kpis"><span>KPIs</span></label>
+          </div>
+          <div class="modal-actions" style="flex-direction:row; margin-top:14px;">
+            <button class="btn" id="uaCancelBtn" style="flex:1; background:#fff;">Cancel</button>
+            <button class="btn btn-primary" id="uaSaveBtn" style="flex:1;">Save User</button>
+          </div>
         </div>
-        <div class="admin-block-sub">Choose which pages a user can open. Leave all unchecked = full access to everything.</div>
-        <div class="field">
-          <label>User Email</label>
-          <input type="email" id="paEmail" placeholder="user@email.com" inputmode="email">
-        </div>
-        <div class="perm-goal-checks" id="pageChecks">
-          <label class="perm-check" data-page="summary"><input type="checkbox" value="summary"><span>Summary</span></label>
-          <label class="perm-check" data-page="plan"><input type="checkbox" value="plan"><span>12-Week Plan</span></label>
-          <label class="perm-check" data-page="entry"><input type="checkbox" value="entry"><span>Data Entry</span></label>
-          <label class="perm-check" data-page="bsc"><input type="checkbox" value="bsc"><span>BSC</span></label>
-          <label class="perm-check" data-page="kpis"><input type="checkbox" value="kpis"><span>KPIs</span></label>
-        </div>
-        <button class="btn btn-primary" id="savePagePermBtn">Save Page Access</button>
-        <div style="margin-top:20px;" id="pagePermList"></div>
       </div>
     </section>
 
@@ -1060,12 +1079,13 @@ body {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-import { getFirestore, collection, getDocs, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, doc, setDoc, getDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 /* ============================================================
    ★ ADMIN SETUP — ضع إيميل المدير هنا ليظهر له تبويب Admin
@@ -1428,7 +1448,9 @@ async function loadUserPermissions(email) {
     const snap = await getDoc(doc(db, 'entryPermissions', (email || '').toLowerCase()));
     const goals = snap.exists() ? (snap.data().goals || []) : [];
     S.allowedGoalNos = goals.length ? goals.map(Number) : null;
-  } catch (e) { S.allowedGoalNos = null; }
+    const pages = snap.exists() ? (snap.data().pages || []) : [];
+    S.allowedPages = pages.length ? pages.map(String) : null;
+  } catch (e) { S.allowedGoalNos = null; S.allowedPages = null; }
 }
 
 /* ===================== Data loading ===================== */
@@ -1549,7 +1571,7 @@ function renderAll() {
   $('summaryCycleLabel').textContent = cycleLabel();
   $('planCycleLabel').textContent = cycleLabel();
   $('tableCycleLabel').textContent = cycleLabel();
-  $('cycleText').textContent = S.cycleId ? `Cycle ${S.cycleId} · Task ${S.sprint}` : 'No assignment';
+  $('cycleText').textContent = S.cycleId ? `Cycle ${S.cycleId} · Sprint ${S.sprint}` : 'No assignment';
   renderSummary();
   renderPlan();
   renderBsc();
@@ -1647,21 +1669,23 @@ function renderPlan() {
       const st = statusOf(avg);
       const task = (g.tasks || [])[sprintIdx] || null;
       const doneTasks = (g.tasks || []).filter(t => t.progress === 100).length;
+      const hasProg = task && task.progress !== null && task.progress !== undefined;
       return `
         <div class="card" style="animation-delay:${i * 60}ms;">
           <div class="card-header">
-            <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">
-              <div class="card-id">${String(g.no).padStart(2, '0')}</div>
-              <div class="card-title">${esc(g.name)}</div>
-            </div>
+            <div class="card-bigpct" style="color:${st.color};">${avg === null ? '—' : Math.round(avg) + '%'}</div>
             <div class="card-status ${st.key}">${st.label}</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+            <div class="card-id">${String(g.no).padStart(2, '0')}</div>
+            <div class="card-title">${esc(g.name)}</div>
           </div>
           <div class="card-progress">
             ${ringSVG(avg, st.color)}
             <div class="card-side">
-              <div class="card-side-label">Sprint ${S.sprint} Task</div>
+              <div class="card-side-label">Sprint ${S.sprint}</div>
               <div class="card-side-value">${task ? esc(task.name || '(unnamed)') : '—'}</div>
-              <div class="card-side-note">${task && task.progress !== null && task.progress !== undefined ? task.progress + '% complete' : 'Not reported yet'}</div>
+              <div class="card-side-complete" style="color:${hasProg ? st.color : 'var(--text-dim)'};">${hasProg ? task.progress + '% complete' : 'Not reported yet'}</div>
             </div>
           </div>
           <div class="card-meta">
@@ -1687,6 +1711,23 @@ function renderPlan() {
         </tr>`;
     });
   }).join('');
+
+  // Stats above Analytics
+  const allAvgs = S.goals.map(g => goalAvg(g));
+  const valid = allAvgs.filter(a => a !== null);
+  const overall = valid.length ? Math.round(valid.reduce((a, b) => a + b, 0) / valid.length) : 0;
+  const planStats = [
+    { v: overall, label: 'Overall Progress', accent: 'var(--primary)', suffix: '%' },
+    { v: allAvgs.filter(a => a !== null && a >= 80).length, label: 'On Track', accent: 'var(--green)' },
+    { v: allAvgs.filter(a => a !== null && a >= 50 && a < 80).length, label: 'At Risk', accent: 'var(--amber)' },
+    { v: allAvgs.filter(a => a !== null && a < 50).length, label: 'Critical', accent: 'var(--red)' }
+  ];
+  $('planStats').innerHTML = planStats.map(s => `
+    <div class="stat-box" style="--accent:${s.accent};">
+      <div class="stat-value" data-count="${s.v}" data-suffix="${s.suffix || ''}">0</div>
+      <div class="stat-label">${s.label}</div>
+    </div>`).join('');
+  $('planStats').querySelectorAll('[data-count]').forEach(el => countUp(el, Number(el.dataset.count), el.dataset.suffix || ''));
 
   renderCharts();
 }
@@ -1717,20 +1758,39 @@ function renderCharts() {
 
   const avgCtx = $('chartAvg');
   if (avgCtx) {
+    const pctLabels = {
+      id: 'pctLabels',
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+        const meta = chart.getDatasetMeta(0);
+        meta.data.forEach((bar, i) => {
+          const v = chart.data.datasets[0].data[i];
+          if (avgs[i] === null) return;
+          ctx.save();
+          ctx.font = '700 11px Inter';
+          ctx.fillStyle = '#3D545E';
+          ctx.textAlign = 'center';
+          ctx.fillText(v + '%', bar.x, bar.y - 6);
+          ctx.restore();
+        });
+      }
+    };
     S.charts.avg = new Chart(avgCtx, {
       type: 'bar',
       data: {
-        labels: S.goals.map(g => 'G' + g.no),
+        labels: S.goals.map(g => 'Goal ' + g.no),
         datasets: [{
           data: avgs.map(a => a === null ? 0 : Math.round(a)),
           backgroundColor: avgs.map(a => statusOf(a).color),
           borderRadius: 8,
-          maxBarThickness: 42
+          maxBarThickness: 46
         }]
       },
+      plugins: [pctLabels],
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + c.parsed.y + '%' } } },
+        layout: { padding: { top: 18 } },
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + c.parsed.y + '% complete' } } },
         scales: { y: { max: 100, ticks: { callback: v => v + '%' } }, x: { grid: { display: false } } }
       }
     });
@@ -2028,7 +2088,7 @@ function renderAdmin() {
   const cycSel = $('adminCycle'), sprSel = $('adminSprint');
   if (!cycSel.options.length) {
     for (let i = 1; i <= 12; i++) cycSel.add(new Option('Cycle ' + i, i));
-    for (let i = 1; i <= 6; i++) sprSel.add(new Option('Task ' + i, i));
+    for (let i = 1; i <= 6; i++) sprSel.add(new Option('Sprint ' + i, i));
   }
   if (S.cycleId) cycSel.value = S.cycleId;
   sprSel.value = S.sprint;
@@ -2036,9 +2096,7 @@ function renderAdmin() {
   // Goals editor draft
   if (!S.adminGoalsDraft) S.adminGoalsDraft = JSON.parse(JSON.stringify(S.goals));
   renderAdminGoals();
-  renderPermChecks();
-  loadPermList();
-  loadPagePermList();
+  renderUsersAccess();
   loadReportInfo();
 }
 
@@ -2142,108 +2200,136 @@ $('saveSettingsBtn').addEventListener('click', async () => {
   }
 });
 
-/* ---------- Permissions ---------- */
-function renderPermChecks() {
-  const wrap = $('permGoalChecks');
+/* ---------- Users & Access (unified permissions manager) ---------- */
+const PAGE_NAMES = { summary: 'Summary', plan: 'Plan', entry: 'Entry', bsc: 'BSC', kpis: 'KPIs' };
+let uaEditingEmail = null; // null = adding a new user
+
+function uaGoalChips() {
+  const wrap = $('uaGoals');
   const goals = S.adminGoalsDraft && S.adminGoalsDraft.length ? S.adminGoalsDraft : S.goals;
-  if (!goals.length) { wrap.innerHTML = '<div style="font-size:12.5px; color:var(--text-dim);">No goals in this cycle yet.</div>'; return; }
+  if (!goals.length) { wrap.innerHTML = '<div style="font-size:12.5px; color:var(--text-dim);">No goals in this cycle yet — save goals first.</div>'; return; }
   wrap.innerHTML = goals.map(g => `
     <label class="perm-check" data-goal="${g.no}">
       <input type="checkbox" value="${g.no}">
       <span>${String(g.no).padStart(2, '0')} · ${esc((g.name || '').slice(0, 22))}${(g.name || '').length > 22 ? '…' : ''}</span>
     </label>`).join('');
-  wrap.querySelectorAll('.perm-check').forEach(lbl => {
-    lbl.querySelector('input').addEventListener('change', e => lbl.classList.toggle('checked', e.target.checked));
+  wrap.querySelectorAll('.perm-check input').forEach(cb => {
+    cb.addEventListener('change', () => cb.closest('.perm-check').classList.toggle('checked', cb.checked));
   });
 }
 
-$('permEmail').addEventListener('change', async () => {
-  const email = $('permEmail').value.trim().toLowerCase();
-  if (!email) return;
-  try {
-    const snap = await getDoc(doc(db, 'entryPermissions', email));
-    const goals = snap.exists() ? (snap.data().goals || []).map(String) : [];
-    $('permGoalChecks').querySelectorAll('input').forEach(cb => {
-      cb.checked = goals.includes(cb.value);
-      cb.closest('.perm-check').classList.toggle('checked', cb.checked);
-    });
-  } catch (e) {}
-});
-
-$('savePermBtn').addEventListener('click', async () => {
-  const email = $('permEmail').value.trim().toLowerCase();
-  if (!email) { toast('Enter a user email first', 'warning'); return; }
-  const goals = [...$('permGoalChecks').querySelectorAll('input:checked')].map(cb => Number(cb.value));
-  try {
-    await setDoc(doc(db, 'entryPermissions', email), { goals });
-    toast(`Permissions saved for ${email}`, 'success');
-    loadPermList();
-  } catch (err) {
-    toast('Could not save permissions: ' + (err.code || err.message), 'error', 5000);
-  }
-});
-
-async function loadPermList() {
-  const wrap = $('permList');
-  try {
-    const snap = await getDocs(collection(db, 'entryPermissions'));
-    if (snap.empty) { wrap.innerHTML = ''; return; }
-    wrap.innerHTML = '<div class="field"><label>Current assignments</label></div>' + snap.docs.map(d => {
-      const goals = d.data().goals || [];
-      return `<div class="perm-list-item">
-        <span style="font-weight:600;">${esc(d.id)}</span>
-        <span class="pill cyan">${goals.length ? goals.length + ' goal' + (goals.length > 1 ? 's' : '') : 'All goals'}</span>
-      </div>`;
-    }).join('');
-  } catch (e) { wrap.innerHTML = ''; }
+function openUserForm(email, data) {
+  uaEditingEmail = email || null;
+  $('uaFormTitle').textContent = email ? 'Edit User' : 'Add User';
+  $('uaEmail').value = email || '';
+  $('uaEmail').disabled = !!email;
+  uaGoalChips();
+  const goals = (data && data.goals ? data.goals : []).map(String);
+  $('uaGoals').querySelectorAll('input').forEach(cb => {
+    cb.checked = goals.includes(cb.value);
+    cb.closest('.perm-check').classList.toggle('checked', cb.checked);
+  });
+  const pages = (data && data.pages ? data.pages : []).map(String);
+  $('uaPages').querySelectorAll('input').forEach(cb => {
+    cb.checked = pages.includes(cb.value);
+    cb.closest('.perm-check').classList.toggle('checked', cb.checked);
+  });
+  $('userForm').classList.remove('hidden');
+  $('userForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
-/* ---------- Page access ---------- */
-$('pageChecks').querySelectorAll('.perm-check input').forEach(cb => {
+function closeUserForm() {
+  $('userForm').classList.add('hidden');
+  uaEditingEmail = null;
+}
+
+$('uaPages').querySelectorAll('.perm-check input').forEach(cb => {
   cb.addEventListener('change', () => cb.closest('.perm-check').classList.toggle('checked', cb.checked));
 });
 
-const PAGE_NAMES = { summary: 'Summary', plan: 'Plan', entry: 'Entry', bsc: 'BSC', kpis: 'KPIs' };
-
-$('paEmail').addEventListener('change', async () => {
-  const email = $('paEmail').value.trim().toLowerCase();
-  if (!email) return;
-  try {
-    const snap = await getDoc(doc(db, 'pagePermissions', email));
-    const pages = snap.exists() ? (snap.data().pages || []).map(String) : [];
-    $('pageChecks').querySelectorAll('input').forEach(cb => {
-      cb.checked = pages.includes(cb.value);
-      cb.closest('.perm-check').classList.toggle('checked', cb.checked);
-    });
-  } catch (e) {}
+$('addUserBtn').addEventListener('click', () => {
+  if (!$('userForm').classList.contains('hidden') && !uaEditingEmail) { closeUserForm(); return; }
+  openUserForm(null, null);
 });
 
-$('savePagePermBtn').addEventListener('click', async () => {
-  const email = $('paEmail').value.trim().toLowerCase();
-  if (!email) { toast('Enter a user email first', 'warning'); return; }
-  const pages = [...$('pageChecks').querySelectorAll('input:checked')].map(cb => cb.value);
+$('uaCancelBtn').addEventListener('click', closeUserForm);
+
+$('uaSaveBtn').addEventListener('click', async () => {
+  const email = (uaEditingEmail || $('uaEmail').value.trim().toLowerCase());
+  if (!email || !email.includes('@')) { toast('Enter a valid user email', 'warning'); return; }
+  const goals = [...$('uaGoals').querySelectorAll('input:checked')].map(cb => Number(cb.value));
+  const pages = [...$('uaPages').querySelectorAll('input:checked')].map(cb => cb.value);
   try {
-    await setDoc(doc(db, 'pagePermissions', email), { pages });
-    toast(`Page access saved for ${email}`, 'success');
-    loadPagePermList();
+    await setDoc(doc(db, 'entryPermissions', email), { goals, pages });
+    toast(`Access saved for ${email}`, 'success');
+    closeUserForm();
+    renderUsersAccess();
   } catch (err) {
     toast('Could not save: ' + (err.code || err.message), 'error', 5000);
   }
 });
 
-async function loadPagePermList() {
-  const wrap = $('pagePermList');
+async function renderUsersAccess() {
+  const wrap = $('usersList');
+  if (!wrap) return;
+  wrap.innerHTML = '<div style="font-size:12.5px; color:var(--text-dim); padding:8px 0;">Loading users…</div>';
   try {
-    const snap = await getDocs(collection(db, 'pagePermissions'));
-    if (snap.empty) { wrap.innerHTML = ''; return; }
-    wrap.innerHTML = '<div class="field"><label>Current page restrictions</label></div>' + snap.docs.map(d => {
-      const pages = (d.data().pages || []).map(p => PAGE_NAMES[p] || p);
-      return `<div class="perm-list-item">
-        <span style="font-weight:600;">${esc(d.id)}</span>
-        <span class="pill ${pages.length ? 'amber' : 'cyan'}">${pages.length ? esc(pages.join(' · ')) : 'Full access'}</span>
+    const snap = await getDocs(collection(db, 'entryPermissions'));
+    if (snap.empty) {
+      wrap.innerHTML = '<div style="font-size:12.5px; color:var(--text-dim); padding:8px 0;">No users yet — everyone has full access. Add a user to restrict what they can update or open.</div>';
+      return;
+    }
+    wrap.innerHTML = snap.docs.map(d => {
+      const data = d.data() || {};
+      const goals = data.goals || [];
+      const pages = (data.pages || []).map(p => PAGE_NAMES[p] || p);
+      const goalLabel = goals.length ? goals.map(n => String(n).padStart(2, '0')).join(' · ') : 'All goals';
+      const pageLabel = pages.length ? pages.join(' · ') : 'All pages';
+      return `<div class="perm-list-item" style="flex-wrap:wrap; gap:8px;">
+        <div style="flex:1; min-width:180px;">
+          <div style="font-weight:700; font-size:13.5px;">${esc(d.id)}</div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:5px;">
+            <span class="pill cyan">Update: ${esc(goalLabel)}</span>
+            <span class="pill ${pages.length ? 'amber' : 'cyan'}">Open: ${esc(pageLabel)}</span>
+          </div>
+        </div>
+        <button class="btn btn-sm ua-edit" data-email="${esc(d.id)}" style="padding:6px 14px;">Edit</button>
+        <button class="btn btn-sm btn-danger ua-del" data-email="${esc(d.id)}" style="padding:6px 14px;">Delete</button>
       </div>`;
     }).join('');
-  } catch (e) { wrap.innerHTML = ''; }
+    wrap.querySelectorAll('.ua-edit').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const email = btn.dataset.email;
+        try {
+          const d = await getDoc(doc(db, 'entryPermissions', email));
+          openUserForm(email, d.exists() ? d.data() : {});
+        } catch (e) { openUserForm(email, {}); }
+      });
+    });
+    wrap.querySelectorAll('.ua-del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const email = btn.dataset.email;
+        showModal({
+          title: 'Remove this user?',
+          text: `${email} will go back to full access.`,
+          actions: [
+            { label: 'Cancel', kind: 'ghost' },
+            { label: 'Remove', kind: 'danger', onClick: async () => {
+              try {
+                await deleteDoc(doc(db, 'entryPermissions', email));
+                toast(`Removed ${email}`, 'success');
+                renderUsersAccess();
+              } catch (err) {
+                toast('Could not delete: ' + (err.code || err.message), 'error', 5000);
+              }
+            } }
+          ]
+        });
+      });
+    });
+  } catch (e) {
+    wrap.innerHTML = '<div style="font-size:12.5px; color:var(--red); padding:8px 0;">Could not load users — check your connection.</div>';
+  }
 }
 
 /* ---------- Report info ---------- */
@@ -2281,9 +2367,9 @@ $('saveReportInfoBtn').addEventListener('click', async () => {
 async function exportWord() {
   if (typeof docx === 'undefined') { toast('Word library failed to load — check your connection', 'error'); return; }
   toast('Building Word report...', 'info', 1800);
-  const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, VerticalAlign, ShadingType } = docx;
+  const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, VerticalAlign, ShadingType, PageOrientation } = docx;
 
-  const RED = 'FF0000', NAVY = '153D63', TEAL = '006666', BLUE = '0B769F', GRAY = 'D1D1D1';
+  const NAVY = '153D63', SPRINT = '156082', TEAL = '006666', BLUE = '0B769F', GRAY = 'D1D1D1';
   const B = { style: 'single', size: 4, color: '000000' };
   const borders = { top: B, bottom: B, left: B, right: B };
   const COLS = [485, 1997, 3180, 1629, 1396, 1319, 2954]; // dxa — matches original proportions
@@ -2307,9 +2393,9 @@ async function exportWord() {
     spacing: { after: 120 },
     children: [
       run('The 12 Weeks-Year Plan – Cycle-'),
-      run(cycleNo, { color: RED }),
+      run(cycleNo),
       run(' (Muscat) From '),
-      run(ri.planPeriod || '—', { color: RED }),
+      run(ri.planPeriod || '—'),
       run(' Sprints’ Progress Reporting Form')
     ]
   });
@@ -2319,19 +2405,19 @@ async function exportWord() {
     infoCell([], 2, 'FFFFFF'),
     infoCell([
       run('Sprint -', { color: NAVY }),
-      run(sprintNo, { color: RED }),
+      run(sprintNo, { color: SPRINT }),
       run(' Execution Progress Report', { color: NAVY })
     ], 5, 'FFFFFF')
   ]});
   const row1 = new TableRow({ children: [
     infoCell([run('Division: ', { color: 'FFFFFF' }), run('Planning & Asset Management', { color: 'FFFFFF' })], 3, TEAL),
-    infoCell([run('GM In Charge: ', { color: 'FFFFFF' }), run(ri.gmName || '—', { color: RED })], 2, TEAL),
-    infoCell([run('Focal Point : ', { color: 'FFFFFF' }), run(ri.focalName || '—', { color: RED })], 2, TEAL)
+    infoCell([run('GM In Charge: ', { color: 'FFFFFF' }), run(ri.gmName || '—', { color: 'FFFFFF' })], 2, TEAL),
+    infoCell([run('Focal Point : ', { color: 'FFFFFF' }), run(ri.focalName || '—', { color: 'FFFFFF' })], 2, TEAL)
   ]});
   const row2 = new TableRow({ children: [
-    infoCell([run('Sprint-'), run(sprintNo, { color: RED }), run(' Period: '), run(ri.sprintPeriod || '—', { color: RED })], 3, GRAY),
-    infoCell([run('Submission Deadline: '), run(ri.deadline || '—', { color: RED })], 2, GRAY),
-    infoCell([run('Submission To CEO: '), run(ri.ceo || '—', { color: RED })], 2, GRAY)
+    infoCell([run('Sprint-'), run(sprintNo), run(' Period: '), run(ri.sprintPeriod || '—')], 3, GRAY),
+    infoCell([run('Submission Deadline: '), run(ri.deadline || '—')], 2, GRAY),
+    infoCell([run('Submission To CEO: '), run(ri.ceo || '—')], 2, GRAY)
   ]});
 
   // ===== Header row =====
@@ -2382,7 +2468,7 @@ async function exportWord() {
     sections: [{
       properties: {
         page: {
-          size: { width: 15840, height: 12240, orientation: 'landscape' }, // Letter landscape
+          size: { width: 12240, height: 15840, orientation: PageOrientation.LANDSCAPE }, // Letter landscape (lib flips w/h)
           margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 }
         }
       },
@@ -2394,41 +2480,99 @@ async function exportWord() {
   toast('Word report downloaded', 'success');
 }
 
-/* ===================== Export: Excel ===================== */
-function exportExcel() {
-  if (typeof XLSX === 'undefined') { toast('Excel library failed to load — check your connection', 'error'); return; }
-  const wb = XLSX.utils.book_new();
+/* ===================== Export: Excel (styled, ExcelJS) ===================== */
+async function exportExcel() {
+  if (typeof ExcelJS === 'undefined') { toast('Excel library failed to load — check your connection', 'error'); return; }
+  toast('Building Excel report...', 'info', 1500);
 
-  const gRows = [['No', 'Goal', 'Dependency', 'Average %', 'Status']];
+  const NAVY = 'FF153D63', TEAL = 'FF006666', BLUE = 'FF0B769F', GRAYF = 'FFF2F5F7', WHITE = 'FFFFFFFF';
+  const border = { top: { style: 'thin', color: { argb: 'FFB9C6CC' } }, bottom: { style: 'thin', color: { argb: 'FFB9C6CC' } }, left: { style: 'thin', color: { argb: 'FFB9C6CC' } }, right: { style: 'thin', color: { argb: 'FFB9C6CC' } } };
+
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'PAM Dashboard';
+  wb.created = new Date();
+
+  function styleTitle(ws, title, nCols) {
+    ws.mergeCells(1, 1, 1, nCols);
+    const c = ws.getCell(1, 1);
+    c.value = title;
+    c.font = { bold: true, size: 14, color: { argb: WHITE }, name: 'Calibri' };
+    c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+    c.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getRow(1).height = 30;
+  }
+  function styleHeader(ws, rowNum, nCols) {
+    const r = ws.getRow(rowNum);
+    r.height = 24;
+    for (let i = 1; i <= nCols; i++) {
+      const c = r.getCell(i);
+      c.font = { bold: true, size: 11, color: { argb: WHITE }, name: 'Calibri' };
+      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } };
+      c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      c.border = border;
+    }
+  }
+  function styleData(ws, firstRow, nCols, wrapCols = [], centerCols = []) {
+    for (let r = firstRow; r <= ws.rowCount; r++) {
+      const row = ws.getRow(r);
+      const alt = (r - firstRow) % 2 === 1;
+      for (let i = 1; i <= nCols; i++) {
+        const c = row.getCell(i);
+        c.font = { size: 11, name: 'Calibri', color: { argb: 'FF1E2B33' } };
+        c.border = border;
+        c.alignment = { vertical: 'middle', wrapText: wrapCols.includes(i), horizontal: centerCols.includes(i) ? 'center' : 'left' };
+        if (alt) c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GRAYF } };
+      }
+    }
+  }
+
+  // ===== Sheet 1: Goals Summary =====
+  const ws1 = wb.addWorksheet('Goals Summary', { views: [{ state: 'frozen', ySplit: 2 }] });
+  ws1.columns = [{ width: 6 }, { width: 50 }, { width: 22 }, { width: 12 }, { width: 14 }];
+  ws1.addRow([]);
+  styleTitle(ws1, `12-Week Plan — Cycle ${S.cycleId || '?'} · Sprint ${S.sprint || 1} · Goals Summary`, 5);
+  ws1.addRow(['No', 'Goal', 'Dependency', 'Average %', 'Status']);
+  styleHeader(ws1, 2, 5);
   S.goals.forEach(g => {
     const a = goalAvg(g);
-    gRows.push([g.no, g.name || '', g.dependency || '', a === null ? '' : Math.round(a), statusOf(a).label]);
+    ws1.addRow([g.no, g.name || '', g.dependency || '', a === null ? '' : Math.round(a), statusOf(a).label]);
   });
-  const ws1 = XLSX.utils.aoa_to_sheet(gRows);
-  ws1['!cols'] = [{ wch: 5 }, { wch: 48 }, { wch: 18 }, { wch: 11 }, { wch: 12 }];
-  XLSX.utils.book_append_sheet(wb, ws1, 'Goals Summary');
+  styleData(ws1, 3, 5, [2, 3], [1, 4, 5]);
 
-  const tRows = [['Goal No', 'Goal', 'Task ID', 'Task', 'Progress %', 'Comment']];
+  // ===== Sheet 2: Tasks Detail =====
+  const ws2 = wb.addWorksheet('Tasks Detail', { views: [{ state: 'frozen', ySplit: 2 }] });
+  ws2.columns = [{ width: 8 }, { width: 40 }, { width: 10 }, { width: 34 }, { width: 12 }, { width: 46 }];
+  ws2.addRow([]);
+  styleTitle(ws2, 'Detailed Tasks & Progress', 6);
+  ws2.addRow(['Goal No', 'Goal', 'Task ID', 'Task', 'Progress %', 'Justification / Comment']);
+  styleHeader(ws2, 2, 6);
   S.goals.forEach(g => (g.tasks || []).forEach(t => {
-    tRows.push([g.no, g.name || '', t.id || '', t.name || '', t.progress === null || t.progress === undefined ? '' : t.progress, t.note || '']);
+    ws2.addRow([g.no, g.name || '', t.id || '', t.name || '', t.progress === null || t.progress === undefined ? '' : t.progress, t.note || '']);
   }));
-  const ws2 = XLSX.utils.aoa_to_sheet(tRows);
-  ws2['!cols'] = [{ wch: 8 }, { wch: 38 }, { wch: 9 }, { wch: 30 }, { wch: 11 }, { wch: 42 }];
-  XLSX.utils.book_append_sheet(wb, ws2, 'Tasks Detail');
+  styleData(ws2, 3, 6, [2, 4, 6], [1, 3, 5]);
 
-  const bRows = [['No', 'Responsibility', 'Scope', 'Progress %', 'Status', 'Updates']];
-  S.bsc.forEach(b => bRows.push([b.no, b.title || '', b.scope || '', b.pct === null || b.pct === undefined ? '' : b.pct, b.status || '', (b.progress || []).join(' | ')]));
-  const ws3 = XLSX.utils.aoa_to_sheet(bRows);
-  ws3['!cols'] = [{ wch: 5 }, { wch: 32 }, { wch: 30 }, { wch: 11 }, { wch: 15 }, { wch: 55 }];
-  XLSX.utils.book_append_sheet(wb, ws3, 'BSC');
+  // ===== Sheet 3: BSC =====
+  const ws3 = wb.addWorksheet('BSC', { views: [{ state: 'frozen', ySplit: 2 }] });
+  ws3.columns = [{ width: 6 }, { width: 34 }, { width: 32 }, { width: 12 }, { width: 16 }, { width: 58 }];
+  ws3.addRow([]);
+  styleTitle(ws3, 'Balanced Scorecard — Responsibilities', 6);
+  ws3.addRow(['No', 'Responsibility', 'Scope', 'Progress %', 'Status', 'Updates']);
+  styleHeader(ws3, 2, 6);
+  S.bsc.forEach(b => ws3.addRow([b.no, b.title || '', b.scope || '', b.pct === null || b.pct === undefined ? '' : b.pct, b.status || '', (b.progress || []).join(' | ')]));
+  styleData(ws3, 3, 6, [2, 3, 5, 6], [1, 4]);
 
-  const kRows = [['Type', 'Title', 'Execution %', 'Status', 'Update']];
-  S.kpis.forEach(k => kRows.push([k.type === 'kpi' ? 'KPI' : 'Initiative', k.title || '', k.pct === null || k.pct === undefined ? '' : k.pct, k.exec || '', k.update || '']));
-  const ws4 = XLSX.utils.aoa_to_sheet(kRows);
-  ws4['!cols'] = [{ wch: 11 }, { wch: 34 }, { wch: 12 }, { wch: 38 }, { wch: 28 }];
-  XLSX.utils.book_append_sheet(wb, ws4, 'KPIs');
+  // ===== Sheet 4: KPIs =====
+  const ws4 = wb.addWorksheet('KPIs', { views: [{ state: 'frozen', ySplit: 2 }] });
+  ws4.columns = [{ width: 12 }, { width: 36 }, { width: 13 }, { width: 40 }, { width: 30 }];
+  ws4.addRow([]);
+  styleTitle(ws4, 'KPIs & Initiatives', 5);
+  ws4.addRow(['Type', 'Title', 'Execution %', 'Status', 'Update']);
+  styleHeader(ws4, 2, 5);
+  S.kpis.forEach(k => ws4.addRow([k.type === 'kpi' ? 'KPI' : 'Initiative', k.title || '', k.pct === null || k.pct === undefined ? '' : k.pct, k.exec || '', k.update || '']));
+  styleData(ws4, 3, 5, [2, 4, 5], [1, 3]);
 
-  XLSX.writeFile(wb, `PAM-Report-Cycle-${S.cycleId || 'demo'}.xlsx`);
+  const buf = await wb.xlsx.writeBuffer();
+  downloadBlob(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `PAM-Report-Cycle-${S.cycleId || 'demo'}-Sprint-${S.sprint || 1}.xlsx`);
   toast('Excel report downloaded', 'success');
 }
 
@@ -2441,8 +2585,14 @@ function downloadBlob(blob, name) {
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
 }
 
+/* Collapsible Detailed Tasks */
+$('tasksToggle').addEventListener('click', () => {
+  $('tasksToggle').classList.toggle('collapsed');
+  $('tasksCollapseBody').classList.toggle('collapsed');
+});
+
 $('exportWordBtn').addEventListener('click', () => { exportWord().catch(e => toast('Export failed: ' + e.message, 'error')); });
-$('exportExcelBtn').addEventListener('click', () => { try { exportExcel(); } catch (e) { toast('Export failed: ' + e.message, 'error'); } });
+$('exportExcelBtn').addEventListener('click', () => { exportExcel().catch(e => toast('Export failed: ' + e.message, 'error')); });
 
 /* ===================== Import: Word ===================== */
 $('importWordBtn').addEventListener('click', () => $('importWordInput').click());
@@ -2647,7 +2797,7 @@ document.addEventListener('keydown', e => {
 });
 
 // Console helpers (also used for diagnostics)
-window.PAM = { exportWord, exportExcel, _restrict: p => { S.allowedPages = p; markLockedNav(); }, _test: p => { S.isGuest = false; S.isAdmin = false; S.allowedPages = p; markLockedNav(); } };
+window.PAM = { exportWord, exportExcel, _restrict: p => { S.allowedPages = p; markLockedNav(); }, _test: p => { S.isGuest = false; S.isAdmin = false; S.allowedPages = p; markLockedNav(); }, _admin: () => { S.isGuest = false; S.isAdmin = true; renderAll(); switchTab('admin'); } };
 
 // Splash safety: hide after 6s no matter what
 setTimeout(() => $('splash').classList.add('hide'), 6000);
