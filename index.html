@@ -761,8 +761,8 @@ body {
     <div class="login-logo" style="background:#F59E0B; margin:0 auto 18px;">
       <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
     </div>
-    <div class="login-title">Account pending approval</div>
-    <div class="login-sub" style="margin:10px 0 22px; line-height:1.7;">
+    <div class="login-title" id="pendingTitle">Account pending approval</div>
+    <div class="login-sub" id="pendingMsg" style="margin:10px 0 22px; line-height:1.7;">
       Your account has been created successfully.<br>
       An administrator needs to approve it and assign your permissions before you can access the dashboard.<br>
       Please contact the PAM admin.
@@ -771,6 +771,33 @@ body {
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       Sign Out
     </button>
+  </div>
+</div>
+
+<!-- ================= SIGNUP MODAL ================= -->
+<div id="signupOverlay" class="modal-overlay">
+  <div class="modal-sheet" style="max-width:420px; text-align:left;">
+    <div class="modal-title" style="text-align:center;">Create your account</div>
+    <div style="font-size:12.5px; color:var(--text-dim); text-align:center; margin-bottom:16px; line-height:1.6;">
+      Fill in your details — an admin will approve your account before you can sign in.
+    </div>
+    <div class="input-group">
+      <label>Email</label>
+      <input type="email" id="suEmail" autocomplete="username" placeholder="your@email.com" inputmode="email">
+    </div>
+    <div class="input-group">
+      <label>Password</label>
+      <input type="password" id="suPw" autocomplete="new-password" placeholder="At least 6 characters">
+    </div>
+    <div class="input-group">
+      <label>Confirm Password</label>
+      <input type="password" id="suPw2" autocomplete="new-password" placeholder="Re-enter your password">
+    </div>
+    <div class="msg err" id="suErr"></div>
+    <div class="modal-actions" style="flex-direction:column; margin-top:14px;">
+      <button class="btn btn-primary" id="suCreateBtn" style="width:100%; padding:13px;">Create Account</button>
+      <button class="btn" id="suCancelBtn" style="width:100%; padding:13px;">Cancel</button>
+    </div>
   </div>
 </div>
 
@@ -1052,7 +1079,7 @@ body {
           <div class="field"><label>Plan Period (title)</label><input type="text" id="riPlanPeriod" placeholder="16th August 2026 – 12th November 2026"></div>
           <div class="field"><label>Submission To CEO</label><input type="text" id="riCeo" placeholder="3rd Sep 26"></div>
         </div>
-        <div class="field" style="margin-top:14px;"><label>Sprint Dates <span style="text-transform:none; font-weight:500;">— each sprint table in the Word export uses its own period &amp; deadline</span></label></div>
+        <div class="field" style="margin-top:14px;"><label>Sprint Dates <span style="text-transform:none; font-weight:500;">— each sprint table in the Word export uses its own period, deadline &amp; Submission To CEO</span></label></div>
         <div id="riSprintDates"></div>
         <div class="modal-actions" style="flex-direction:row; margin-top:12px;">
           <button class="btn btn-primary" id="saveReportInfoBtn" style="flex:1;">Save Report Info</button>
@@ -1079,6 +1106,14 @@ body {
         </div>
         <div class="admin-block-sub">Only users listed here can sign in — adding a user approves their account. Control what each user can update (goals) and which pages they can open. Nothing checked = full access.</div>
 
+        <div id="pendingUsersWrap" class="hidden">
+          <div style="font-weight:800; font-size:13px; color:#B45309; margin:4px 0 8px; display:flex; align-items:center; gap:7px;">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            New signups — waiting for your approval
+          </div>
+          <div id="pendingUsersList"></div>
+          <div style="border-top:1px dashed var(--border); margin:14px 0;"></div>
+        </div>
         <div id="usersList"></div>
 
         <button class="btn btn-primary" id="addUserBtn" style="width:100%; margin-top:6px;">+ Add User</button>
@@ -1441,16 +1476,43 @@ $('pwToggle').addEventListener('click', () => {
   $('eyeClosed').classList.toggle('hidden', !show);
 });
 
+/* Signup = dedicated popup with empty fields (email / password / confirm) */
 $('signupToggle').addEventListener('click', () => {
-  authMode = authMode === 'signin' ? 'signup' : 'signin';
-  const su = authMode === 'signup';
-  $('authTitle').textContent = su ? 'Create account' : 'Welcome back';
-  $('authSubtitle').textContent = su ? 'Set up your account to start tracking' : 'Sign in to PAM Performance Dashboard';
-  $('loginBtnText').textContent = su ? 'Create Account' : 'Sign In';
-  $('signupToggle').textContent = su ? 'Already have an account? Sign in' : 'New here? Create an account';
-  $('loginErr').classList.remove('show');
-  $('loginOk').classList.remove('show');
+  $('suEmail').value = ''; $('suPw').value = ''; $('suPw2').value = '';
+  $('suErr').classList.remove('show');
+  $('signupOverlay').classList.add('open');
+  setTimeout(() => $('suEmail').focus(), 250);
 });
+$('suCancelBtn').addEventListener('click', () => $('signupOverlay').classList.remove('open'));
+$('signupOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) $('signupOverlay').classList.remove('open'); });
+
+async function doSignup() {
+  const email = $('suEmail').value.trim().toLowerCase();
+  const pw = $('suPw').value, pw2 = $('suPw2').value;
+  const errEl = $('suErr');
+  errEl.classList.remove('show');
+  const fail = m => { errEl.textContent = m; errEl.classList.add('show'); };
+  if (!email || !email.includes('@')) return fail('Please enter a valid email.');
+  if (pw.length < 6) return fail('Password must be at least 6 characters.');
+  if (pw !== pw2) return fail('Passwords do not match — please re-enter.');
+  const btn = $('suCreateBtn');
+  btn.disabled = true; btn.textContent = 'Creating...';
+  try {
+    await createUserWithEmailAndPassword(auth, email, pw);
+    // Register the signup request so the admin sees it in Users & Access
+    try {
+      await setDoc(doc(db, 'signupRequests', email), { email, requestedAt: Date.now() });
+    } catch (e) { /* rules may block — admin can still add manually */ }
+    $('signupOverlay').classList.remove('open');
+    toast('Account created — waiting for admin approval', 'success', 4000);
+  } catch (err) {
+    fail(authError(err.code));
+  } finally {
+    btn.disabled = false; btn.textContent = 'Create Account';
+  }
+}
+$('suCreateBtn').addEventListener('click', doSignup);
+[$('suEmail'), $('suPw'), $('suPw2')].forEach(el => el.addEventListener('keydown', e => { if (e.key === 'Enter') doSignup(); }));
 
 function authError(code) {
   const map = {
@@ -1548,8 +1610,15 @@ onAuthStateChanged(auth, async (user) => {
     S.user = user;
     S.isAdmin = await detectAdmin(user.email);
     await loadUserPermissions(user.email);
-    if (!S.isAdmin && !S.approved) {
-      // New account not yet approved by admin — block access
+    if (!S.isAdmin && (!S.approved || S.suspended)) {
+      // New/suspended account — block access until admin approves/re-activates
+      if (S.suspended) {
+        $('pendingTitle').textContent = 'Account suspended';
+        $('pendingMsg').innerHTML = 'Your account has been suspended by the administrator.<br>Please contact the PAM admin to re-activate it.';
+      } else {
+        $('pendingTitle').textContent = 'Account pending approval';
+        $('pendingMsg').innerHTML = 'Your account has been created successfully.<br>An administrator needs to approve it and assign your permissions before you can access the dashboard.<br>Please contact the PAM admin.';
+      }
       $('appView').classList.add('hidden');
       $('bottomNav').classList.add('hidden');
       $('saveBar').classList.add('hidden');
@@ -1581,11 +1650,12 @@ async function loadUserPermissions(email) {
   try {
     const snap = await getDoc(doc(db, 'entryPermissions', (email || '').toLowerCase()));
     S.approved = snap.exists();
+    S.suspended = snap.exists() && snap.data().suspended === true;
     const goals = snap.exists() ? (snap.data().goals || []) : [];
     S.allowedGoalNos = goals.length ? goals.map(Number) : null;
     const pages = snap.exists() ? (snap.data().pages || []) : [];
     S.allowedPages = pages.length ? pages.map(String) : null;
-  } catch (e) { S.approved = false; S.allowedGoalNos = null; S.allowedPages = null; }
+  } catch (e) { S.approved = false; S.suspended = false; S.allowedGoalNos = null; S.allowedPages = null; }
 }
 
 /* ===================== Data loading ===================== */
@@ -2586,7 +2656,8 @@ $('uaSaveBtn').addEventListener('click', async () => {
   const pages = [...$('uaPages').querySelectorAll('input:checked')].map(cb => cb.value);
   try {
     await setDoc(doc(db, 'entryPermissions', email), { goals, pages });
-    toast(`Access saved for ${email}`, 'success');
+    try { await deleteDoc(doc(db, 'signupRequests', email)); } catch (e) { /* no pending request */ }
+    toast(`Access saved for ${email} — account approved`, 'success');
     closeUserForm();
     renderUsersAccess();
   } catch (err) {
@@ -2600,28 +2671,89 @@ async function renderUsersAccess() {
   wrap.innerHTML = '<div style="font-size:12.5px; color:var(--text-dim); padding:8px 0;">Loading users…</div>';
   try {
     const snap = await getDocs(collection(db, 'entryPermissions'));
+    const approvedEmails = new Set(snap.docs.map(d => d.id));
+
+    /* --- Pending signups (waiting for admin approval) --- */
+    const pwWrap = $('pendingUsersWrap'), pwList = $('pendingUsersList');
+    try {
+      const reqSnap = await getDocs(collection(db, 'signupRequests'));
+      const pending = reqSnap.docs.filter(d => !approvedEmails.has(d.id));
+      if (pending.length) {
+        pwWrap.classList.remove('hidden');
+        pwList.innerHTML = pending.map(d => {
+          const dt = d.data().requestedAt ? new Date(d.data().requestedAt).toLocaleString() : '';
+          return `<div class="perm-list-item" style="flex-wrap:wrap; gap:8px; border-color:#FCD34D; background:#FFFBEB;">
+            <div style="flex:1; min-width:180px;">
+              <div style="font-weight:700; font-size:13.5px;">${esc(d.id)}</div>
+              <div style="font-size:11.5px; color:#B45309; margin-top:3px;">Requested ${esc(dt)} — approve to grant access</div>
+            </div>
+            <button class="btn btn-sm btn-primary ua-approve" data-email="${esc(d.id)}" style="padding:6px 14px;">Approve</button>
+            <button class="btn btn-sm btn-danger ua-reject" data-email="${esc(d.id)}" style="padding:6px 14px;">Reject</button>
+          </div>`;
+        }).join('');
+        pwList.querySelectorAll('.ua-approve').forEach(btn => {
+          btn.addEventListener('click', () => openUserForm(btn.dataset.email, {}));
+        });
+        pwList.querySelectorAll('.ua-reject').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const email = btn.dataset.email;
+            showModal({
+              title: 'Reject this signup?',
+              text: `${email} will NOT get access. The signup request is removed.`,
+              actions: [
+                { label: 'Cancel', kind: 'ghost' },
+                { label: 'Reject', kind: 'danger', onClick: async () => {
+                  try {
+                    await deleteDoc(doc(db, 'signupRequests', email));
+                    toast(`Rejected ${email}`, 'success');
+                    renderUsersAccess();
+                  } catch (err) { toast('Could not reject: ' + (err.code || err.message), 'error', 5000); }
+                } }
+              ]
+            });
+          });
+        });
+      } else {
+        pwWrap.classList.add('hidden');
+        pwList.innerHTML = '';
+      }
+    } catch (e) { pwWrap.classList.add('hidden'); }
+
     if (snap.empty) {
-      wrap.innerHTML = '<div style="font-size:12.5px; color:var(--text-dim); padding:8px 0;">No users yet — everyone has full access. Add a user to restrict what they can update or open.</div>';
+      wrap.innerHTML = '<div style="font-size:12.5px; color:var(--text-dim); padding:8px 0;">No approved users yet. Approve a signup above or add a user manually.</div>';
       return;
     }
     wrap.innerHTML = snap.docs.map(d => {
       const data = d.data() || {};
       const goals = data.goals || [];
       const pages = (data.pages || []).map(p => PAGE_NAMES[p] || p);
+      const suspended = data.suspended === true;
       const goalLabel = goals.length ? goals.map(n => String(n).padStart(2, '0')).join(' · ') : 'All goals';
       const pageLabel = pages.length ? pages.join(' · ') : 'All pages';
-      return `<div class="perm-list-item" style="flex-wrap:wrap; gap:8px;">
+      return `<div class="perm-list-item" style="flex-wrap:wrap; gap:8px;${suspended ? ' opacity:.65; border-color:#FCA5A5; background:#FEF2F2;' : ''}">
         <div style="flex:1; min-width:180px;">
-          <div style="font-weight:700; font-size:13.5px;">${esc(d.id)}</div>
+          <div style="font-weight:700; font-size:13.5px;">${esc(d.id)}${suspended ? ' <span class="pill red" style="margin-left:6px;">Suspended</span>' : ''}</div>
           <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:5px;">
             <span class="pill cyan">Update: ${esc(goalLabel)}</span>
             <span class="pill ${pages.length ? 'amber' : 'cyan'}">Open: ${esc(pageLabel)}</span>
           </div>
         </div>
         <button class="btn btn-sm ua-edit" data-email="${esc(d.id)}" style="padding:6px 14px;">Edit</button>
+        <button class="btn btn-sm ua-susp" data-email="${esc(d.id)}" data-susp="${suspended ? 1 : 0}" style="padding:6px 14px;${suspended ? '' : ' color:#B45309; border-color:#FCD34D;'}">${suspended ? 'Activate' : 'Suspend'}</button>
         <button class="btn btn-sm btn-danger ua-del" data-email="${esc(d.id)}" style="padding:6px 14px;">Delete</button>
       </div>`;
     }).join('');
+    wrap.querySelectorAll('.ua-susp').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const email = btn.dataset.email;
+        const susp = btn.dataset.susp === '1';
+        try {
+          await setDoc(doc(db, 'entryPermissions', email), { suspended: !susp }, { merge: true });
+          toast(susp ? `Activated ${email}` : `Suspended ${email} — sign-in blocked`, 'success');
+          renderUsersAccess();
+        } catch (err) { toast('Could not update: ' + (err.code || err.message), 'error', 5000); }
+      });
+    });
     wrap.querySelectorAll('.ua-edit').forEach(btn => {
       btn.addEventListener('click', async () => {
         const email = btn.dataset.email;
@@ -2682,6 +2814,7 @@ function renderSprintDateRows() {
       + '<span style="min-width:30px; font-weight:800; color:var(--navy); font-size:12.5px;">S' + n + '</span>'
       + '<input class="input" data-sd-period="' + n + '" placeholder="Sprint ' + n + ' period" value="' + esc(d.period || '') + '">'
       + '<input class="input" data-sd-deadline="' + n + '" placeholder="Sprint ' + n + ' deadline" value="' + esc(d.deadline || '') + '">'
+      + '<input class="input" data-sd-ceo="' + n + '" placeholder="Sprint ' + n + ' to CEO" value="' + esc(d.ceo || '') + '">'
       + '</div>';
   }
   wrap.innerHTML = html;
@@ -2699,9 +2832,11 @@ $('saveReportInfoBtn').addEventListener('click', async () => {
   document.querySelectorAll('[data-sd-period]').forEach(inp => {
     const n = inp.dataset.sdPeriod;
     const dl = document.querySelector('[data-sd-deadline="' + n + '"]');
+    const ceo = document.querySelector('[data-sd-ceo="' + n + '"]');
     S.reportInfo.sprintDates[n] = {
       period: inp.value.trim(),
-      deadline: dl ? dl.value.trim() : ''
+      deadline: dl ? dl.value.trim() : '',
+      ceo: ceo ? ceo.value.trim() : ''
     };
   });
   try {
@@ -2769,7 +2904,7 @@ async function exportWord() {
     const row2 = new TableRow({ children: [
       infoCell([run('Sprint-', { italics: true }), run(sn, { italics: true }), run(' Period: ', { italics: true }), run(sd.period || '—', { italics: true })], 3, GRAY),
       infoCell([run('Submission Deadline: ', { italics: true }), run(sd.deadline || '—', { italics: true })], 3, GRAY),
-      infoCell([run('Submission To CEO: ', { italics: true }), run(ri.ceo || '—', { italics: true })], 1, GRAY)
+      infoCell([run('Submission To CEO: ', { italics: true }), run(sd.ceo || ri.ceo || '—', { italics: true })], 1, GRAY)
     ]});
 
     const headCell = (t, s) => new TableCell({
