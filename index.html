@@ -292,6 +292,9 @@ body {
 
 .card-progress { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
 .ring { width: 56px; height: 56px; position: relative; flex-shrink: 0; }
+.mini-ring { display: inline-flex; position: relative; flex-shrink: 0; }
+.mini-ring .ring-bg { stroke-width: 2.6; }
+.mini-ring .ring-fill { stroke-width: 2.6; }
 .ring svg { transform: rotate(-90deg); width: 100%; height: 100%; }
 .ring-bg { fill: none; stroke: #E9EFF2; stroke-width: 4.5; }
 .ring-fill { fill: none; stroke-width: 4.5; stroke-linecap: round; transition: stroke-dashoffset 1s ease; }
@@ -303,7 +306,7 @@ body {
 .card-side-label { font-size: 11px; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 3px; }
 .card-side-value { font-size: 14px; font-weight: 700; }
 .card-side-note { font-size: 12px; color: var(--text-mid); margin-top: 2px; }
-.card-side-complete { font-size: 16px; font-weight: 800; margin-top: 4px; }
+.card-side-complete { font-size: 16px; font-weight: 800; margin-top: 4px; color: #0B769F; display: flex; align-items: center; gap: 8px; }
 .card-id-lg { font-size: 16px; padding: 7px 13px; }
 .ring-col { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; }
 .ring-caption { font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: .04em; }
@@ -430,6 +433,15 @@ body {
 .entry-card:hover { box-shadow: var(--shadow); }
 .entry-card.invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(220,38,38,.1); }
 .entry-card-header { padding: 15px 18px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); background: var(--input); }
+.entry-head-side { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; }
+.entry-avg { display: inline-flex; align-items: center; gap: 5px; }
+.entry-avg-num { font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700; color: var(--text-mid); }
+.edit-icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 9px; border: none; cursor: pointer;
+  background: #7C3AED; color: #fff; transition: all .18s; flex-shrink: 0;
+}
+.edit-icon-btn:hover { background: #6D28D9; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(124,58,237,.3); }
 .goal-badge { font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700; padding: 5px 12px; border-radius: 8px; background: var(--primary); color: #fff; flex-shrink: 0; }
 .goal-title { font-size: 14px; font-weight: 700; line-height: 1.4; flex: 1; min-width: 0; }
 .entry-card-body { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
@@ -622,6 +634,7 @@ body {
 .skel-stat { height: 92px; }
 
 .auto-save {
+  display: none;
   position: fixed; top: 14px; left: 50%; transform: translateX(-50%) translateY(-8px); z-index: 900;
   background: var(--card); border: 1px solid var(--border); border-radius: 30px;
   padding: 7px 18px; font-size: 11.5px; font-weight: 700; color: var(--text-dim);
@@ -687,7 +700,7 @@ body {
 
 <div class="toast-container" id="toastContainer"></div>
 <div class="offline-banner" id="offlineBanner">You are offline — changes will sync when you reconnect</div>
-<div class="auto-save" id="autoSaveIndicator"><span class="dot"></span><span id="autoSaveText">Saving...</span></div>
+
 
 <!-- ================= LOGIN ================= -->
 <div id="loginView" class="hidden">
@@ -862,8 +875,12 @@ body {
           <div class="chart-wrap"><canvas id="chartAvg"></canvas></div>
         </div>
         <div class="chart-card">
-          <div class="chart-title"><span class="chart-dot" style="background:#22C55E;"></span>Status Overview</div>
+          <div class="chart-title"><span class="chart-dot" style="background:#22C55E;"></span>Task Status Overview</div>
           <div class="chart-wrap"><canvas id="chartStatus"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title"><span class="chart-dot" style="background:#D97706;"></span>Task Status by Goal</div>
+          <div class="chart-wrap"><canvas id="chartGoalStatus"></canvas></div>
         </div>
         <div class="chart-card" style="grid-column: 1 / -1;">
           <div class="chart-title" style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
@@ -1264,6 +1281,32 @@ function goalAvg(g) {
 function goalAvgDisp(g) {
   return (g.avgOverride !== null && g.avgOverride !== undefined) ? Number(g.avgOverride) : goalAvg(g);
 }
+/* Percentage with decimals (e.g. 73.33% / 74.5% / 100%) */
+function fmtPct(v) {
+  if (v === null || v === undefined) return '—';
+  const r = Math.round(Number(v) * 100) / 100;
+  return (Number.isInteger(r) ? String(r) : r.toFixed(2).replace(/0$/, '')) + '%';
+}
+/* Color band for a task progress value */
+function bandColor(p) {
+  if (p === null || p === undefined) return '#8CA0A9';
+  if (p <= 25) return '#DC2626';
+  if (p <= 50) return '#D97706';
+  if (p <= 75) return '#0B769F';
+  if (p < 100) return '#0E7C86';
+  return '#16A34A';
+}
+/* Small ring (no text inside) */
+function miniRing(pct, color, size = 24) {
+  const r = 9, c = 2 * Math.PI * r;
+  const off = pct === null || pct === undefined ? c : c - (clamp(pct) / 100) * c;
+  return `<span class="mini-ring" style="width:${size}px;height:${size}px;" title="${pct === null || pct === undefined ? 'No data' : fmtPct(pct)}">
+    <svg viewBox="0 0 ${size} ${size}">
+      <circle class="ring-bg" cx="${size/2}" cy="${size/2}" r="${r}"/>
+      <circle class="ring-fill" cx="${size/2}" cy="${size/2}" r="${r}" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" stroke="${color}"/>
+    </svg>
+  </span>`;
+}
 function statusOf(avg) {
   if (avg === null) return { key: 'pending', label: 'No Data', color: '#8CA0A9' };
   if (avg >= 80) return { key: 'complete', label: 'On Track', color: '#16A34A' };
@@ -1330,7 +1373,7 @@ function ringSVG(pct, color, size = 56, r = 24) {
         <circle class="ring-bg" cx="${size/2}" cy="${size/2}" r="${r}"/>
         <circle class="ring-fill" cx="${size/2}" cy="${size/2}" r="${r}" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" stroke="${color}"/>
       </svg>
-      <div class="ring-text" style="color:${color};">${pct === null ? '—' : Math.round(pct) + '%'}</div>
+      <div class="ring-text" style="color:${color};">${fmtPct(pct)}</div>
     </div>`;
 }
 
@@ -1724,7 +1767,7 @@ function renderPlan() {
             <div class="card-side">
               <div class="card-side-label">Sprint ${S.sprint}</div>
               <div class="card-side-value">${task ? esc(task.name || '(unnamed)') : '—'}</div>
-              <div class="card-side-complete" style="color:${hasProg ? st.color : 'var(--text-dim)'};">${hasProg ? task.progress + '% complete' : 'Not reported yet'}</div>
+              <div class="card-side-complete">${hasProg ? miniRing(task.progress, bandColor(task.progress)) + '<span>' + fmtPct(task.progress) + ' complete</span>' : '<span style="color:var(--text-dim);">Not reported yet</span>'}</div>
             </div>
           </div>
           <div class="card-meta">
@@ -1832,7 +1875,7 @@ function renderCharts() {
           ctx.font = '700 11px Inter';
           ctx.fillStyle = '#3D545E';
           ctx.textAlign = 'center';
-          ctx.fillText(v + '%', bar.x, bar.y - 6);
+          ctx.fillText(fmtPct(avgs[i]), bar.x, bar.y - 6);
           ctx.restore();
         });
       }
@@ -1842,7 +1885,7 @@ function renderCharts() {
       data: {
         labels: S.goals.map(g => 'Goal ' + g.no),
         datasets: [{
-          data: avgs.map(a => a === null ? 0 : Math.round(a)),
+          data: avgs.map(a => a === null ? 0 : Math.round(a * 100) / 100),
           backgroundColor: avgs.map(a => statusOf(a).color),
           borderRadius: 8,
           maxBarThickness: 46
@@ -1852,7 +1895,7 @@ function renderCharts() {
       options: {
         responsive: true, maintainAspectRatio: false,
         layout: { padding: { top: 18 } },
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + c.parsed.y + '% complete' } } },
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + fmtPct(c.parsed.y) + ' complete' } } },
         scales: { y: { max: 100, ticks: { callback: v => v + '%' } }, x: { grid: { display: false } } }
       }
     });
@@ -1918,21 +1961,68 @@ function renderCharts() {
     });
   }
 
+  // Status calculated at TASK level (per user's request)
+  const allTasks = [];
+  S.goals.forEach(g => (g.tasks || []).forEach(t => allTasks.push(t)));
+  const tComplete = allTasks.filter(t => t.progress === 100).length;
+  const tInProg = allTasks.filter(t => t.progress !== null && t.progress !== undefined && t.progress >= 50 && t.progress < 100).length;
+  const tLate = allTasks.filter(t => t.progress !== null && t.progress !== undefined && t.progress < 50).length;
+  const tNone = allTasks.filter(t => t.progress === null || t.progress === undefined).length;
+  const ST_COLORS = ['#16A34A', '#0B769F', '#DC2626', '#CBD8DD'];
+  const ST_LABELS = ['Complete (100%)', 'In Progress (50-99)', 'Late (<50)', 'Not Reported'];
+
   const stCtx = $('chartStatus');
   if (stCtx) {
-    const complete = avgs.filter(a => a !== null && a >= 80).length;
-    const risk = avgs.filter(a => a !== null && a >= 50 && a < 80).length;
-    const crit = avgs.filter(a => a !== null && a < 50).length;
-    const none = avgs.filter(a => a === null).length;
     S.charts.status = new Chart(stCtx, {
       type: 'doughnut',
       data: {
-        labels: ['On Track', 'At Risk', 'Critical', 'No Data'],
-        datasets: [{ data: [complete, risk, crit, none], backgroundColor: ['#16A34A', '#D97706', '#DC2626', '#CBD8DD'], borderWidth: 3, borderColor: '#fff' }]
+        labels: ST_LABELS,
+        datasets: [{ data: [tComplete, tInProg, tLate, tNone], backgroundColor: ST_COLORS, borderWidth: 3, borderColor: '#fff' }]
       },
       options: {
         responsive: true, maintainAspectRatio: false, cutout: '62%',
-        plugins: { legend: { position: 'bottom', labels: { padding: 14, usePointStyle: true, pointStyle: 'circle', font: { size: 11, weight: 600 } } } }
+        plugins: {
+          legend: { position: 'bottom', labels: { padding: 12, usePointStyle: true, pointStyle: 'circle', font: { size: 11, weight: 600 } } },
+          tooltip: { callbacks: { label: c => ' ' + c.parsed + ' task' + (c.parsed !== 1 ? 's' : '') } }
+        }
+      }
+    });
+  }
+
+  // Per-goal stacked task status
+  const gsCtx = $('chartGoalStatus');
+  if (gsCtx) {
+    const perGoal = S.goals.map(g => {
+      const ts = g.tasks || [];
+      return [
+        ts.filter(t => t.progress === 100).length,
+        ts.filter(t => t.progress !== null && t.progress !== undefined && t.progress >= 50 && t.progress < 100).length,
+        ts.filter(t => t.progress !== null && t.progress !== undefined && t.progress < 50).length,
+        ts.filter(t => t.progress === null || t.progress === undefined).length
+      ];
+    });
+    S.charts.goalStatus = new Chart(gsCtx, {
+      type: 'bar',
+      data: {
+        labels: S.goals.map(g => 'Goal ' + g.no),
+        datasets: ST_LABELS.map((lb, i) => ({
+          label: lb,
+          data: perGoal.map(row => row[i]),
+          backgroundColor: ST_COLORS[i],
+          borderRadius: 5,
+          maxBarThickness: 40
+        }))
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { padding: 12, usePointStyle: true, pointStyle: 'circle', font: { size: 11, weight: 600 } } },
+          tooltip: { callbacks: { label: c => ' ' + c.dataset.label + ': ' + c.parsed.y + ' task' + (c.parsed.y !== 1 ? 's' : '') } }
+        },
+        scales: {
+          x: { stacked: true, grid: { display: false } },
+          y: { stacked: true, ticks: { stepSize: 1 }, title: { display: true, text: 'Tasks', font: { size: 11 } } }
+        }
       }
     });
   }
@@ -2052,7 +2142,7 @@ function renderEntry() {
   grid.innerHTML = goals.map((g, i) => {
     const t = (g.tasks || [])[idx] || { name: '', progress: null, note: '' };
     const progVal = (t.progress === null || t.progress === undefined) ? '' : t.progress;
-    const avg = goalAvg(g);
+    const avg = goalAvgDisp(g);
     const st = statusOf(avg);
     const hasSaved = t.progress !== null && t.progress !== undefined;
     const isLocked = (hasSaved && !S.editableGoalNos.has(Number(g.no))) || S.isGuest;
@@ -2062,7 +2152,13 @@ function renderEntry() {
         <div class="entry-card-header">
           <div class="goal-badge">${String(g.no).padStart(2, '0')}</div>
           <div class="goal-title">${esc(g.name)}</div>
-          <div class="card-status ${st.key}">${st.label}</div>
+          <div class="entry-head-side">
+            <span class="entry-avg" title="Goal average">${miniRing(avg, bandColor(avg), 26)}<span class="entry-avg-num">${fmtPct(avg)}</span></span>
+            <div class="card-status ${st.key}">${st.label}</div>
+            ${isLocked && !S.isGuest ? `<button type="button" class="edit-icon-btn" data-edit-goal="${g.no}" title="Edit this entry">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>` : ''}
+          </div>
         </div>
         <div class="entry-card-body">
           <div class="task-info">
@@ -2071,18 +2167,14 @@ function renderEntry() {
           </div>
           <div class="field">
             <label>Progress %</label>
-            <input type="number" min="0" max="100" class="progress-input" value="${progVal}" placeholder="0 – 100" inputmode="numeric" ${dis}>
-          </div>
-          <div class="progress-quick">
-            ${[0, 25, 50, 75, 100].map(v => `<button type="button" class="pq-btn" data-pq="${v}" ${dis}>${v}%</button>`).join('')}
+            <input type="number" min="0" max="100" class="progress-input" value="${progVal}" placeholder="0" inputmode="numeric" ${dis}>
           </div>
           <div class="field">
             <label>Justification ${'<span style="color:var(--red);">*</span>'}</label>
             <textarea placeholder="Justification of delay — required if progress is below 100%" ${dis}>${esc(t.note || '')}</textarea>
           </div>
-          ${isLocked && !S.isGuest ? `<button type="button" class="edit-btn" data-edit-goal="${g.no}">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            Edit this entry
+          ${!isLocked ? `<button type="button" class="btn btn-primary goal-save-btn" data-save-goal="${g.no}" style="width:100%; margin-top:4px;">
+            Save Goal ${String(g.no).padStart(2, '0')}
           </button>` : ''}
         </div>
       </div>`;
@@ -2095,45 +2187,58 @@ function renderEntry() {
     });
   });
 
-  grid.querySelectorAll('.pq-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const card = btn.closest('.entry-card');
-      const input = card.querySelector('.progress-input');
-      input.value = btn.dataset.pq;
-      card.dataset.dirty = '1';
-      scheduleAutoSave();
-    });
+  grid.querySelectorAll('[data-save-goal]').forEach(btn => {
+    btn.addEventListener('click', () => saveOneGoal(Number(btn.dataset.saveGoal)));
   });
 
   grid.querySelectorAll('.entry-card[data-goalno]').forEach(card => {
-    const mark = () => { card.dataset.dirty = '1'; scheduleAutoSave(); };
+    const mark = () => { card.dataset.dirty = '1'; };
     card.querySelector('.progress-input').addEventListener('input', mark);
     card.querySelector('textarea').addEventListener('input', mark);
   });
 }
 
-/* ---------- Auto-save ---------- */
-function showAutoSave(status) {
-  const el = $('autoSaveIndicator');
-  el.classList.add('show');
-  el.classList.remove('saved');
-  if (status === 'saved') {
-    el.classList.add('saved');
-    $('autoSaveText').textContent = 'Saved';
-    setTimeout(() => el.classList.remove('show'), 1800);
-  } else {
-    $('autoSaveText').textContent = 'Saving...';
+/* Save a single goal's entry (validates only that goal) */
+async function saveOneGoal(no) {
+  if (S.isGuest) { toast('Sign in to save changes', 'warning'); return; }
+  if (!S.cycleId) { toast('No active cycle', 'warning'); return; }
+  const row = document.querySelector(`#entryGrid .entry-card[data-goalno="${no}"]`);
+  if (!row) return;
+  const idx = S.sprint - 1;
+  const raw = row.querySelector('.progress-input').value.trim();
+  const note = row.querySelector('textarea').value.trim();
+  const num = raw === '' ? null : clamp(parseInt(raw, 10) || 0);
+
+  row.classList.remove('invalid');
+  if ((num === null || num < 100) && note === '') {
+    row.classList.add('invalid');
+    showModal({
+      title: 'Justification required',
+      text: `Goal ${String(no).padStart(2, '0')} is below 100% — please add a comment explaining the reason before saving.`,
+      actions: [{ label: 'Got it', kind: 'primary', onClick: () => { row.scrollIntoView({ behavior: 'smooth', block: 'center' }); row.querySelector('textarea').focus(); } }]
+    });
+    return;
+  }
+
+  const g = S.goals.find(x => Number(x.no) === no);
+  if (!g) return;
+  if (!g.tasks) g.tasks = [];
+  while (g.tasks.length <= idx) g.tasks.push({ id: `${g.no}.${g.tasks.length + 1})`, name: '', progress: null, note: '' });
+  g.tasks[idx] = { ...g.tasks[idx], progress: num, note };
+  row.dataset.dirty = '';
+  saveToLocal(S.cycleId, S.goals);
+  try {
+    await setDoc(doc(db, 'cycles', S.cycleId), { goals: S.goals });
+    S.editableGoalNos.delete(no);
+    renderEntry();
+    toast(`Goal ${String(no).padStart(2, '0')} saved`, 'success');
+  } catch (err) {
+    toast('Saved locally — will sync when connection allows', 'warning');
   }
 }
 
-function scheduleAutoSave() {
-  if (S.isGuest) return;
-  showAutoSave('saving');
-  clearTimeout(S.autoSaveTimer);
-  S.autoSaveTimer = setTimeout(() => collectAndSave(true), 2500);
-}
-
-function collectAndSave(isAuto) {
+/* ---------- Save all (manual) ---------- */
+function collectAndSave() {
   if (!S.cycleId || S.isGuest) return;
   const idx = S.sprint - 1;
   let changed = false;
@@ -2150,18 +2255,15 @@ function collectAndSave(isAuto) {
     row.dataset.dirty = '';
     changed = true;
   });
-  if (!changed) { showAutoSave('saved'); return; }
+  if (!changed) return;
   saveToLocal(S.cycleId, S.goals);
-  persistGoals(isAuto);
+  persistGoals();
 }
 
-async function persistGoals(isAuto) {
+async function persistGoals() {
   try {
     await setDoc(doc(db, 'cycles', S.cycleId), { goals: S.goals });
-    showAutoSave('saved');
-    if (isAuto) toast('Auto-saved', 'success', 1800);
   } catch (err) {
-    showAutoSave('saved');
     toast('Saved locally — will sync when connection allows', 'warning');
   }
 }
@@ -2195,11 +2297,12 @@ $('saveBtn').addEventListener('click', () => {
 
   // Mark all dirty and save
   document.querySelectorAll('#entryGrid .entry-card[data-goalno]').forEach(row => row.dataset.dirty = '1');
-  collectAndSave(false);
+  collectAndSave();
   S.editableGoalNos.clear();
+  renderEntry();
   showModal({
     title: 'Saved successfully',
-    text: `Progress saved for Cycle ${S.cycleId}, Task ${S.sprint}. The dashboard is updated instantly.`,
+    text: `Progress saved for Cycle ${S.cycleId}, Sprint ${S.sprint}. The dashboard is updated instantly.`,
     actions: [{ label: 'Done', kind: 'primary' }]
   });
 });
@@ -2573,7 +2676,7 @@ async function exportWord() {
         cells.push(dataCell(taskText, { bold: true }));
         cells.push(dataCell(g.dependency || '', { va: VerticalAlign.CENTER, rowSpan: n }));
         cells.push(dataCell(prog, { bold: true, align: AlignmentType.CENTER }));
-        cells.push(dataCell(avg === null ? '' : Math.round(avg) + '%', { bold: true, align: AlignmentType.CENTER, va: VerticalAlign.CENTER, rowSpan: n }));
+        cells.push(dataCell(avg === null ? '' : fmtPct(avg), { bold: true, align: AlignmentType.CENTER, va: VerticalAlign.CENTER, rowSpan: n }));
         cells.push(dataCell(t.note || ''));
       } else {
         cells.push(dataCell(taskText, { bold: true }));
@@ -2657,7 +2760,7 @@ async function exportExcel() {
   styleHeader(ws1, 2, 5);
   S.goals.forEach(g => {
     const a = goalAvg(g);
-    ws1.addRow([g.no, g.name || '', g.dependency || '', a === null ? '' : Math.round(a), statusOf(a).label]);
+    ws1.addRow([g.no, g.name || '', g.dependency || '', a === null ? '' : Math.round(a * 100) / 100, statusOf(a).label]);
   });
   styleData(ws1, 3, 5, [2, 3], [1, 4, 5]);
 
