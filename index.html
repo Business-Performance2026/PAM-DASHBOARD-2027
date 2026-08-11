@@ -936,10 +936,6 @@ body {
           <div class="chart-wrap"><canvas id="chartStatus"></canvas></div>
         </div>
         <div class="chart-card" style="grid-column: 1 / -1;">
-          <div class="chart-title"><span class="chart-dot" style="background:#D97706;"></span>Task Status by Goal</div>
-          <div class="chart-wrap"><canvas id="chartGoalStatus"></canvas></div>
-        </div>
-        <div class="chart-card" style="grid-column: 1 / -1;">
           <div class="chart-title" style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
             <span><span class="chart-dot" style="background:#8B5CF6;"></span>Task Progress</span>
             <select id="taskChartFilter" class="chart-filter"></select>
@@ -1895,10 +1891,6 @@ function renderPlan() {
           </div>
           <div class="card-title" style="margin-bottom:12px;">${esc(g.name)}</div>
           <div class="card-progress">
-            <div class="ring-col">
-              ${ringSVG(avg, st.color)}
-              <div class="ring-caption">Average</div>
-            </div>
             <div class="card-side">
               <div class="card-side-label">Sprint ${S.sprint}</div>
               <div class="card-side-value">${task ? esc(task.name || '(unnamed)') : '—'}</div>
@@ -1998,80 +1990,65 @@ function renderCharts() {
 
   const avgCtx = $('chartAvg');
   if (avgCtx) {
-    // Professional horizontal progress bars: soft 100% rail + gradient fill + % label at the end
-    const railPlugin = {
-      id: 'rail',
-      beforeDatasetsDraw(chart) {
-        const { ctx, chartArea } = chart;
+    // Pie: one slice per goal, leader-line callouts with each goal's average %
+    const PIE_COLORS = ['#0E7C86', '#0B769F', '#156082', '#16A34A', '#D97706', '#8B5CF6', '#DB2777', '#0891B2', '#4D7C0F', '#B45309', '#64748B', '#7C3AED'];
+    const goalLabels = S.goals.map(g => 'Goal ' + String(g.no).padStart(2, '0'));
+    const callouts = {
+      id: 'callouts',
+      afterDraw(chart) {
+        const { ctx } = chart;
         const meta = chart.getDatasetMeta(0);
-        meta.data.forEach(bar => {
+        meta.data.forEach((arc, i) => {
+          const a = avgs[i];
+          if (a === null || a <= 0) return;
+          const mid = (arc.startAngle + arc.endAngle) / 2;
+          const cos = Math.cos(mid), sin = Math.sin(mid);
+          const x1 = arc.x + cos * arc.outerRadius;
+          const y1 = arc.y + sin * arc.outerRadius;
+          const x2 = arc.x + cos * (arc.outerRadius + 16);
+          const y2 = arc.y + sin * (arc.outerRadius + 16);
+          const right = cos >= 0;
+          const x3 = x2 + (right ? 14 : -14);
           ctx.save();
-          ctx.fillStyle = '#EAF2F4';
-          const h = Math.min(18, bar.height), r = h / 2;
-          const x0 = chartArea.left, x1 = chartArea.right, y = bar.y - h / 2;
+          ctx.strokeStyle = '#9DB4BC';
+          ctx.lineWidth = 1.4;
           ctx.beginPath();
-          ctx.moveTo(x0 + r, y);
-          ctx.arcTo(x1, y, x1, y + h, r);
-          ctx.arcTo(x1, y + h, x0, y + h, r);
-          ctx.arcTo(x0, y + h, x0, y, r);
-          ctx.arcTo(x0, y, x1, y, r);
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.lineTo(x3, y2);
+          ctx.stroke();
+          // color dot
+          ctx.fillStyle = PIE_COLORS[i % PIE_COLORS.length];
+          ctx.beginPath();
+          ctx.arc(x3 + (right ? 5 : -5), y2, 3, 0, Math.PI * 2);
           ctx.fill();
-          ctx.restore();
-        });
-      }
-    };
-    const pctLabels = {
-      id: 'pctLabels',
-      afterDatasetsDraw(chart) {
-        const { ctx, chartArea } = chart;
-        const meta = chart.getDatasetMeta(0);
-        meta.data.forEach((bar, i) => {
-          if (avgs[i] === null) return;
-          ctx.save();
           ctx.font = '800 12px Inter';
           ctx.textBaseline = 'middle';
-          if (avgs[i] > 85) {
-            // inside the bar, white — stays readable on the gradient
-            ctx.fillStyle = '#FFFFFF';
-            ctx.textAlign = 'right';
-            ctx.fillText(fmtPct(avgs[i]), bar.x - 8, bar.y);
-          } else {
-            ctx.fillStyle = statusOf(avgs[i]).color;
-            ctx.textAlign = 'left';
-            ctx.fillText(fmtPct(avgs[i]), bar.x + 8, bar.y);
-          }
+          ctx.textAlign = right ? 'left' : 'right';
+          ctx.fillStyle = '#3D545E';
+          ctx.fillText(goalLabels[i] + ' · ' + fmtPct(a), x3 + (right ? 12 : -12), y2);
           ctx.restore();
         });
       }
     };
     S.charts.avg = new Chart(avgCtx, {
-      type: 'bar',
+      type: 'pie',
       data: {
-        labels: S.goals.map(g => 'Goal ' + String(g.no).padStart(2, '0')),
+        labels: goalLabels,
         datasets: [{
-          data: avgs.map(a => a === null ? 0 : Math.round(a * 100) / 100),
-          backgroundColor(c) {
-            const { ctx, chartArea } = c.chart;
-            if (!chartArea) return '#0B769F';
-            const gr = ctx.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
-            gr.addColorStop(0, '#0E7C86');
-            gr.addColorStop(1, '#0B769F');
-            return gr;
-          },
-          borderRadius: 9,
-          borderSkipped: false,
-          barThickness: 18
+          data: avgs.map(a => (a === null ? 0 : Math.round(a * 100) / 100)),
+          backgroundColor: goalLabels.map((_, i) => PIE_COLORS[i % PIE_COLORS.length]),
+          borderWidth: 3,
+          borderColor: '#fff'
         }]
       },
-      plugins: [railPlugin, pctLabels],
+      plugins: [callouts],
       options: {
-        indexAxis: 'y',
         responsive: true, maintainAspectRatio: false,
-        layout: { padding: { right: 54 } },
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' Average: ' + fmtPct(c.parsed.x) } } },
-        scales: {
-          x: { max: 100, grid: { display: false }, ticks: { display: false }, border: { display: false } },
-          y: { grid: { display: false }, border: { display: false }, ticks: { font: { weight: '700', size: 12 }, color: '#3D545E' } }
+        layout: { padding: { left: 95, right: 95, top: 26, bottom: 26 } },
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: c => ' ' + c.label + ' — Average: ' + fmtPct(avgs[c.dataIndex]) } }
         }
       }
     });
@@ -2157,53 +2134,6 @@ function renderCharts() {
     });
   }
 
-  // TASK-level status doughnut
-  const allTasks = [];
-  S.goals.forEach(g => (g.tasks || []).forEach(t => allTasks.push(t)));
-  const tComplete = allTasks.filter(t => t.progress === 100).length;
-  const tInProg = allTasks.filter(t => t.progress !== null && t.progress !== undefined && t.progress >= 50 && t.progress < 100).length;
-  const tLate = allTasks.filter(t => t.progress !== null && t.progress !== undefined && t.progress < 50).length;
-  const tNone = allTasks.filter(t => t.progress === null || t.progress === undefined).length;
-  const ST_COLORS = ['#16A34A', '#0B769F', '#DC2626', '#CBD8DD'];
-  const ST_LABELS = ['Complete (100%)', 'In Progress (50-99)', 'Late (<50)', 'Not Reported'];
-
-  // Per-goal stacked task status
-  const gsCtx = $('chartGoalStatus');
-  if (gsCtx) {
-    const perGoal = S.goals.map(g => {
-      const ts = g.tasks || [];
-      return [
-        ts.filter(t => t.progress === 100).length,
-        ts.filter(t => t.progress !== null && t.progress !== undefined && t.progress >= 50 && t.progress < 100).length,
-        ts.filter(t => t.progress !== null && t.progress !== undefined && t.progress < 50).length,
-        ts.filter(t => t.progress === null || t.progress === undefined).length
-      ];
-    });
-    S.charts.goalStatus = new Chart(gsCtx, {
-      type: 'bar',
-      data: {
-        labels: S.goals.map(g => 'Goal ' + g.no),
-        datasets: ST_LABELS.map((lb, i) => ({
-          label: lb,
-          data: perGoal.map(row => row[i]),
-          backgroundColor: ST_COLORS[i],
-          borderRadius: 5,
-          maxBarThickness: 40
-        }))
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend: { position: 'bottom', labels: { padding: 12, usePointStyle: true, pointStyle: 'circle', font: { size: 11, weight: 600 } } },
-          tooltip: { callbacks: { label: c => ' ' + c.dataset.label + ': ' + c.parsed.y + ' task' + (c.parsed.y !== 1 ? 's' : '') } }
-        },
-        scales: {
-          x: { stacked: true, grid: { display: false } },
-          y: { stacked: true, ticks: { stepSize: 1 }, title: { display: true, text: 'Tasks', font: { size: 11 } } }
-        }
-      }
-    });
-  }
 }
 
 /* ---------- BSC ---------- */
@@ -3068,12 +2998,12 @@ async function exportWord() {
     S.goals.forEach(g => {
       const tasks = (g.tasks && g.tasks.length) ? g.tasks : [{ id: `${g.no}.1`, name: '', progress: null, note: '' }];
       const cnt = tasks.length;
-      // Cumulative average over sprints 1..n only — ALWAYS computed live from the tasks
-      // (avgOverride is only the imported file's snapshot; the export must follow the real entry data):
-      // only tasks reached so far (sprints 1..n), and only REPORTED ones —
-      // a dash (null) = not reported → excluded; a typed 0 = reported zero → counted.
-      const reported = tasks.slice(0, n).filter(t => t && t.progress !== null && t.progress !== undefined && t.progress !== '');
-      const avg = reported.length ? reported.reduce((s, t) => s + Number(t.progress), 0) / reported.length : 0;
+      // Average = SUM of the goal's task percentages ÷ NUMBER of tasks in the goal.
+      // Cumulative: in the Sprint-N table only sprints 1..n contribute their progress
+      // (unreached tasks count as 0 — they are still part of the goal's task count).
+      const upto = tasks.slice(0, n);
+      const sum = upto.reduce((s, t) => s + ((t && t.progress !== null && t.progress !== undefined && t.progress !== '') ? Number(t.progress) : 0), 0);
+      const avg = tasks.length ? sum / tasks.length : 0;
 
       tasks.forEach((t, i) => {
         const reached = i < n; // only sprints reached so far show progress/justification
