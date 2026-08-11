@@ -69,7 +69,7 @@ body {
 @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
 
 /* ============ Login ============ */
-#loginView {
+#loginView, #pendingView {
   min-height: 100vh;
   display: flex; align-items: center; justify-content: center;
   padding: 24px 16px;
@@ -755,6 +755,25 @@ body {
   </div>
 </div>
 
+<!-- ================= PENDING APPROVAL ================= -->
+<div id="pendingView" class="hidden">
+  <div class="login-card" style="text-align:center;">
+    <div class="login-logo" style="background:#F59E0B; margin:0 auto 18px;">
+      <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    </div>
+    <div class="login-title">Account pending approval</div>
+    <div class="login-sub" style="margin:10px 0 22px; line-height:1.7;">
+      Your account has been created successfully.<br>
+      An administrator needs to approve it and assign your permissions before you can access the dashboard.<br>
+      Please contact the PAM admin.
+    </div>
+    <button class="btn btn-block" id="pendingSignOutBtn">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign Out
+    </button>
+  </div>
+</div>
+
 <!-- ================= APP ================= -->
 <div id="appView" class="hidden">
 
@@ -1027,13 +1046,11 @@ body {
         </div>
         <div class="admin-row" style="margin-top:10px;">
           <div class="field"><label>Plan Period (title)</label><input type="text" id="riPlanPeriod" placeholder="16th August 2026 – 12th November 2026"></div>
-        </div>
-        <div class="admin-row" style="margin-top:10px;">
-          <div class="field"><label>Sprint Period</label><input type="text" id="riSprintPeriod" placeholder="Sun 16th Aug 2026 – 27th Aug 2026"></div>
-          <div class="field"><label>Submission Deadline</label><input type="text" id="riDeadline" placeholder="Sun 30th Aug 2026"></div>
           <div class="field"><label>Submission To CEO</label><input type="text" id="riCeo" placeholder="3rd Sep 26"></div>
         </div>
-        <div class="modal-actions" style="flex-direction:row;">
+        <div class="field" style="margin-top:14px;"><label>Sprint Dates <span style="text-transform:none; font-weight:500;">— each sprint table in the Word export uses its own period &amp; deadline</span></label></div>
+        <div id="riSprintDates"></div>
+        <div class="modal-actions" style="flex-direction:row; margin-top:12px;">
           <button class="btn btn-primary" id="saveReportInfoBtn" style="flex:1;">Save Report Info</button>
         </div>
       </div>
@@ -1056,7 +1073,7 @@ body {
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           Users &amp; Access
         </div>
-        <div class="admin-block-sub">Control what each user can update (goals) and which pages they can open. Nothing checked = full access.</div>
+        <div class="admin-block-sub">Only users listed here can sign in — adding a user approves their account. Control what each user can update (goals) and which pages they can open. Nothing checked = full access.</div>
 
         <div id="usersList"></div>
 
@@ -1527,10 +1544,22 @@ onAuthStateChanged(auth, async (user) => {
     S.user = user;
     S.isAdmin = await detectAdmin(user.email);
     await loadUserPermissions(user.email);
+    if (!S.isAdmin && !S.approved) {
+      // New account not yet approved by admin — block access
+      $('appView').classList.add('hidden');
+      $('bottomNav').classList.add('hidden');
+      $('saveBar').classList.add('hidden');
+      $('loginView').classList.add('hidden');
+      $('pendingView').classList.remove('hidden');
+      $('splash').classList.add('hide');
+      return;
+    }
+    $('pendingView').classList.add('hidden');
     await loadLiveData();
     enterApp();
   } else if (!S.isGuest) {
     S.user = null;
+    $('pendingView').classList.add('hidden');
     $('appView').classList.add('hidden');
     $('bottomNav').classList.add('hidden');
     $('saveBar').classList.add('hidden');
@@ -1540,14 +1569,19 @@ onAuthStateChanged(auth, async (user) => {
   $('splash').classList.add('hide');
 });
 
+$('pendingSignOutBtn').addEventListener('click', async () => {
+  try { await signOut(auth); } catch (e) {}
+});
+
 async function loadUserPermissions(email) {
   try {
     const snap = await getDoc(doc(db, 'entryPermissions', (email || '').toLowerCase()));
+    S.approved = snap.exists();
     const goals = snap.exists() ? (snap.data().goals || []) : [];
     S.allowedGoalNos = goals.length ? goals.map(Number) : null;
     const pages = snap.exists() ? (snap.data().pages || []) : [];
     S.allowedPages = pages.length ? pages.map(String) : null;
-  } catch (e) { S.allowedGoalNos = null; S.allowedPages = null; }
+  } catch (e) { S.approved = false; S.allowedGoalNos = null; S.allowedPages = null; }
 }
 
 /* ===================== Data loading ===================== */
@@ -2375,7 +2409,7 @@ function renderAdmin() {
   const cycSel = $('adminCycle'), sprSel = $('adminSprint');
   if (!cycSel.options.length) {
     for (let i = 1; i <= 12; i++) cycSel.add(new Option('Cycle ' + i, i));
-    for (let i = 1; i <= 6; i++) sprSel.add(new Option('Sprint ' + i, i));
+    for (let i = 1; i <= 12; i++) sprSel.add(new Option('Sprint ' + i, i));
   }
   if (S.cycleId) cycSel.value = S.cycleId;
   sprSel.value = S.sprint;
@@ -2628,9 +2662,24 @@ async function loadReportInfo() {
   $('riGm').value = S.reportInfo.gmName || '';
   $('riFocal').value = S.reportInfo.focalName || '';
   $('riPlanPeriod').value = S.reportInfo.planPeriod || '';
-  $('riSprintPeriod').value = S.reportInfo.sprintPeriod || '';
-  $('riDeadline').value = S.reportInfo.deadline || '';
   $('riCeo').value = S.reportInfo.ceo || '';
+  renderSprintDateRows();
+}
+
+function renderSprintDateRows() {
+  const wrap = $('riSprintDates');
+  if (!wrap) return;
+  const sd = (S.reportInfo && S.reportInfo.sprintDates) || {};
+  let html = '';
+  for (let n = 1; n <= 12; n++) {
+    const d = sd[n] || {};
+    html += '<div class="admin-row" style="align-items:center;">'
+      + '<span style="min-width:30px; font-weight:800; color:var(--navy); font-size:12.5px;">S' + n + '</span>'
+      + '<input class="input" data-sd-period="' + n + '" placeholder="Sprint ' + n + ' period" value="' + esc(d.period || '') + '">'
+      + '<input class="input" data-sd-deadline="' + n + '" placeholder="Sprint ' + n + ' deadline" value="' + esc(d.deadline || '') + '">'
+      + '</div>';
+  }
+  wrap.innerHTML = html;
 }
 
 $('saveReportInfoBtn').addEventListener('click', async () => {
@@ -2638,10 +2687,17 @@ $('saveReportInfoBtn').addEventListener('click', async () => {
     gmName: $('riGm').value.trim(),
     focalName: $('riFocal').value.trim(),
     planPeriod: $('riPlanPeriod').value.trim(),
-    sprintPeriod: $('riSprintPeriod').value.trim(),
-    deadline: $('riDeadline').value.trim(),
-    ceo: $('riCeo').value.trim()
+    ceo: $('riCeo').value.trim(),
+    sprintDates: {}
   };
+  document.querySelectorAll('[data-sd-period]').forEach(inp => {
+    const n = inp.dataset.sdPeriod;
+    const dl = document.querySelector('[data-sd-deadline="' + n + '"]');
+    S.reportInfo.sprintDates[n] = {
+      period: inp.value.trim(),
+      deadline: dl ? dl.value.trim() : ''
+    };
+  });
   try {
     await setDoc(doc(db, 'settings', 'reportInfo'), S.reportInfo);
     toast('Report info saved', 'success');
@@ -2691,9 +2747,10 @@ async function exportWord() {
     ]
   });
 
-  // ===== Build one table per sprint (cumulative: table N shows tasks of sprints 1..N) =====
+  // ===== Build one table per sprint (table N: ALL tasks listed; progress/avg cumulative up to sprint N) =====
   function sprintTable(n) {
     const sn = String(n);
+    const sd = (ri.sprintDates || {})[n] || {};
 
     const row0 = new TableRow({ children: [
       infoCell([], 3, 'FFFFFF'),
@@ -2709,8 +2766,8 @@ async function exportWord() {
       infoCell([run('Focal Point : ', { color: 'FFFFFF', italics: true }), run(ri.focalName || '—', { color: 'FFFFFF', italics: true })], 2, TEAL)
     ]});
     const row2 = new TableRow({ children: [
-      infoCell([run('Sprint-', { italics: true }), run(sn, { italics: true }), run(' Period: ', { italics: true }), run(ri.sprintPeriod || '—', { italics: true })], 5, GRAY, AlignmentType.CENTER),
-      infoCell([run('Submission Deadline: ', { italics: true }), run(ri.deadline || '—', { italics: true })], 4, GRAY, AlignmentType.CENTER),
+      infoCell([run('Sprint-', { italics: true }), run(sn, { italics: true }), run(' Period: ', { italics: true }), run(sd.period || '—', { italics: true })], 5, GRAY, AlignmentType.CENTER),
+      infoCell([run('Submission Deadline: ', { italics: true }), run(sd.deadline || '—', { italics: true })], 4, GRAY, AlignmentType.CENTER),
       infoCell([run('Submission To CEO: ', { italics: true }), run(ri.ceo || '—', { italics: true })], 2, GRAY, AlignmentType.CENTER)
     ]});
 
@@ -2730,16 +2787,21 @@ async function exportWord() {
 
     const dataRows = [];
     S.goals.forEach(g => {
-      let tasks = (g.tasks || []).slice(0, n); // cumulative up to this sprint
-      if (!tasks.length) tasks = [{ id: `${g.no}.1`, name: '', progress: null, note: '' }];
+      const tasks = (g.tasks && g.tasks.length) ? g.tasks : [{ id: `${g.no}.1`, name: '', progress: null, note: '' }];
       const cnt = tasks.length;
+      // Cumulative average over sprints 1..n only
       let avg;
       if (g.avgOverride !== null && g.avgOverride !== undefined) avg = Number(g.avgOverride);
-      else avg = tasks.reduce((s, t) => s + ((t && t.progress !== null && t.progress !== undefined) ? Number(t.progress) : 0), 0) / cnt;
+      else {
+        const upto = tasks.slice(0, n);
+        avg = upto.reduce((s, t) => s + ((t && t.progress !== null && t.progress !== undefined) ? Number(t.progress) : 0), 0) / upto.length;
+      }
 
       tasks.forEach((t, i) => {
+        const reached = i < n; // only sprints reached so far show progress/justification
         const taskText = `${(t.id || `${g.no}.${i + 1}`).replace(/\)$/, '')}  ${t.name || ''}`;
-        const prog = (t.progress === null || t.progress === undefined) ? '' : t.progress + '%';
+        const prog = (!reached || t.progress === null || t.progress === undefined) ? '' : t.progress + '%';
+        const note = reached ? (t.note || '') : '';
         const cells = [];
         if (i === 0) {
           cells.push(dataCell(String(g.no), { bold: true, align: AlignmentType.CENTER, rowSpan: cnt, span: SPANS[0] }));
@@ -2748,11 +2810,11 @@ async function exportWord() {
           cells.push(dataCell(g.dependency || '', { align: AlignmentType.CENTER, rowSpan: cnt, span: SPANS[3] }));
           cells.push(dataCell(prog, { bold: true, align: AlignmentType.CENTER, span: SPANS[4] }));
           cells.push(dataCell(fmtPct(avg), { bold: true, align: AlignmentType.CENTER, rowSpan: cnt, span: SPANS[5] }));
-          cells.push(dataCell(t.note || '', { align: AlignmentType.CENTER, span: SPANS[6] }));
+          cells.push(dataCell(note, { align: AlignmentType.CENTER, span: SPANS[6] }));
         } else {
           cells.push(dataCell(taskText, { bold: true, span: SPANS[2], va: VerticalAlign.CENTER }));
           cells.push(dataCell(prog, { bold: true, align: AlignmentType.CENTER, span: SPANS[4] }));
-          cells.push(dataCell(t.note || '', { align: AlignmentType.CENTER, span: SPANS[6] }));
+          cells.push(dataCell(note, { align: AlignmentType.CENTER, span: SPANS[6] }));
         }
         dataRows.push(new TableRow({ children: cells }));
       });
@@ -3107,7 +3169,7 @@ document.addEventListener('keydown', e => {
 });
 
 // Console helpers (also used for diagnostics)
-window.PAM = { exportWord, exportExcel, _restrict: p => { S.allowedPages = p; markLockedNav(); }, _test: p => { S.isGuest = false; S.isAdmin = false; S.allowedPages = p; markLockedNav(); }, _admin: () => { S.isGuest = false; S.isAdmin = true; renderAll(); switchTab('admin'); } };
+window.PAM = { exportWord, exportExcel, _setRI: ri => { S.reportInfo = ri; }, _setSprint: n => { S.sprint = n; }, _renderSD: () => renderSprintDateRows(), _restrict: p => { S.allowedPages = p; markLockedNav(); }, _test: p => { S.isGuest = false; S.isAdmin = false; S.allowedPages = p; markLockedNav(); }, _admin: () => { S.isGuest = false; S.isAdmin = true; renderAll(); switchTab('admin'); } };
 
 // Splash safety: hide after 6s no matter what
 setTimeout(() => $('splash').classList.add('hide'), 6000);
