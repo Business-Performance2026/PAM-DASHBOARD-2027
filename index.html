@@ -1033,6 +1033,16 @@ body {
 
       <div class="admin-block">
         <div class="admin-block-title">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          Cycles Manager
+        </div>
+        <div class="admin-block-sub">Every cycle is fully independent — its own goals, tasks and progress. Open a cycle to view &amp; edit it, add a new one, or delete an old one.</div>
+        <div id="cyclesList"></div>
+        <button class="btn btn-primary" id="addCycleBtn" style="width:100%; margin-top:6px;">+ Add Cycle</button>
+      </div>
+
+      <div class="admin-block">
+        <div class="admin-block-title">
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
           Reports &amp; Data
         </div>
@@ -1695,8 +1705,14 @@ async function loadLiveData() {
 function subscribeCycle(cycleId) {
   if (S.unsubCycle) S.unsubCycle();
   S.unsubCycle = onSnapshot(doc(db, 'cycles', cycleId), (snap) => {
-    const goals = snap.exists() ? (snap.data().goals || []) : [];
-    S.goals = goals.length ? goals : JSON.parse(JSON.stringify(DEMO_GOALS));
+    // An existing cycle doc is authoritative — even when its goals list is still empty (fresh cycle).
+    // Demo goals only appear when the cycle doc does not exist at all.
+    S.goals = snap.exists() ? (snap.data().goals || []) : JSON.parse(JSON.stringify(DEMO_GOALS));
+    if (S._cycleJustSwitched) {
+      S._cycleJustSwitched = false;
+      S.adminGoalsDraft = JSON.parse(JSON.stringify(S.goals));
+      if (typeof currentTab !== 'undefined' && currentTab === 'admin') renderAdminGoals();
+    }
     if (S.isOffline) {
       const local = loadFromLocal(cycleId);
       if (local && local.goals && local.goals.length) S.goals = local.goals;
@@ -2511,8 +2527,116 @@ function renderAdmin() {
   if (!S.adminGoalsDraft) S.adminGoalsDraft = JSON.parse(JSON.stringify(S.goals));
   renderAdminGoals();
   renderUsersAccess();
+  renderCyclesList();
   loadReportInfo();
 }
+
+/* ---------- Cycles Manager (add / open / delete independent cycles) ---------- */
+function ensureCycleOption(id) {
+  const cycSel = $('adminCycle');
+  if (![...cycSel.options].some(o => o.value === String(id))) {
+    cycSel.add(new Option('Cycle ' + id, id));
+    [...cycSel.options].sort((a, b) => Number(a.value) - Number(b.value)).forEach(o => cycSel.appendChild(o));
+  }
+}
+
+async function renderCyclesList() {
+  const wrap = $('cyclesList');
+  if (!wrap) return;
+  wrap.innerHTML = '<div style="font-size:12.5px; color:var(--text-dim); padding:8px 0;">Loading cycles…</div>';
+  try {
+    const snap = await getDocs(collection(db, 'cycles'));
+    const docs = snap.docs.sort((a, b) => (parseInt(a.id, 10) || 0) - (parseInt(b.id, 10) || 0));
+    if (!docs.length) {
+      wrap.innerHTML = '<div style="font-size:12.5px; color:var(--text-dim); padding:8px 0;">No cycles yet — add your first cycle below.</div>';
+      return;
+    }
+    docs.forEach(d => ensureCycleOption(d.id));
+    wrap.innerHTML = docs.map(d => {
+      const goals = d.data().goals || [];
+      const tasks = goals.reduce((s, g) => s + ((g.tasks || []).length), 0);
+      const active = String(d.id) === String(S.cycleId);
+      return `<div class="perm-list-item" style="flex-wrap:wrap; gap:8px;${active ? ' border-color:var(--primary); background:var(--primary-bg);' : ''}">
+        <div style="flex:1; min-width:160px;">
+          <div style="font-weight:800; font-size:13.5px;">Cycle ${esc(d.id)}${active ? ' <span class="pill cyan" style="margin-left:6px;">Active</span>' : ''}</div>
+          <div style="font-size:11.5px; color:var(--text-dim); margin-top:3px;">${goals.length} goal${goals.length !== 1 ? 's' : ''} · ${tasks} task${tasks !== 1 ? 's' : ''}</div>
+        </div>
+        ${active ? '' : `<button class="btn btn-sm btn-primary cyc-open" data-id="${esc(d.id)}" style="padding:6px 14px;">Open</button>`}
+        <button class="btn btn-sm btn-danger cyc-del" data-id="${esc(d.id)}" style="padding:6px 14px;" ${active ? 'disabled title="Cannot delete the active cycle"' : ''}>Delete</button>
+      </div>`;
+    }).join('');
+    wrap.querySelectorAll('.cyc-open').forEach(btn => {
+      btn.addEventListener('click', () => switchCycle(btn.dataset.id));
+    });
+    wrap.querySelectorAll('.cyc-del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        showModal({
+          title: `Delete Cycle ${id}?`,
+          text: `All its goals, tasks and progress will be permanently removed. This cannot be undone.`,
+          actions: [
+            { label: 'Cancel', kind: 'ghost' },
+            { label: 'Delete Cycle', kind: 'danger', onClick: async () => {
+              try {
+                await deleteDoc(doc(db, 'cycles', id));
+                toast(`Cycle ${id} deleted`, 'success');
+                renderCyclesList();
+              } catch (err) { toast('Could not delete: ' + (err.code || err.message), 'error', 5000); }
+            } }
+          ]
+        });
+      });
+    });
+  } catch (e) {
+    wrap.innerHTML = '<div style="font-size:12.5px; color:var(--red); padding:8px 0;">Could not load cycles — check your connection.</div>';
+  }
+}
+
+async function switchCycle(id, sprint) {
+  try {
+    const spr = sprint || Number($('adminSprint').value) || S.sprint || 1;
+    await setDoc(doc(db, 'settings', 'entryDefault'), { cycle: String(id), sprint: spr });
+    S.cycleId = String(id);
+    S.sprint = spr;
+    S.adminGoalsDraft = null;
+    S._cycleJustSwitched = true;
+    ensureCycleOption(id);
+    $('adminCycle').value = String(id);
+    subscribeCycle(S.cycleId);
+    renderCyclesList();
+    toast(`Cycle ${id} is now active`, 'success');
+  } catch (err) {
+    toast('Could not switch: ' + (err.code || err.message), 'error', 5000);
+  }
+}
+
+$('addCycleBtn').addEventListener('click', () => {
+  showModal({
+    title: 'Add a new cycle',
+    html: `<div style="text-align:left;">
+      <div class="input-group" style="margin-bottom:6px;">
+        <label>Cycle number</label>
+        <input type="number" id="newCycleNo" min="1" max="99" placeholder="e.g. 10" inputmode="numeric">
+      </div>
+      <div style="font-size:12px; color:var(--text-dim); line-height:1.6;">The new cycle starts empty — then add its goals in <b>Goals &amp; Tasks</b> below (or import a Word file).</div>
+    </div>`,
+    actions: [
+      { label: 'Cancel', kind: 'ghost' },
+      { label: 'Create Cycle', kind: 'primary', onClick: async () => {
+        const v = (document.getElementById('newCycleNo') || {}).value;
+        const id = String(parseInt(v, 10) || '');
+        if (!v || id === 'NaN' || Number(id) < 1) { toast('Enter a valid cycle number', 'warning'); return; }
+        try {
+          const ex = await getDoc(doc(db, 'cycles', id));
+          if (ex.exists()) { toast(`Cycle ${id} already exists`, 'warning'); return; }
+          await setDoc(doc(db, 'cycles', id), { goals: [] });
+          toast(`Cycle ${id} created`, 'success');
+          switchCycle(id, 1);
+        } catch (err) { toast('Could not create: ' + (err.code || err.message), 'error', 5000); }
+      } }
+    ]
+  });
+});
 
 function renderAdminGoals() {
   const wrap = $('adminGoalsList');
@@ -2944,15 +3068,12 @@ async function exportWord() {
     S.goals.forEach(g => {
       const tasks = (g.tasks && g.tasks.length) ? g.tasks : [{ id: `${g.no}.1`, name: '', progress: null, note: '' }];
       const cnt = tasks.length;
-      // Cumulative average over sprints 1..n only
-      let avg;
-      if (g.avgOverride !== null && g.avgOverride !== undefined) avg = Number(g.avgOverride);
-      else {
-        // Cumulative: only tasks reached so far (sprints 1..n), and only REPORTED ones —
-        // a dash (null) = not reported → excluded; a typed 0 = reported zero → counted.
-        const reported = tasks.slice(0, n).filter(t => t && t.progress !== null && t.progress !== undefined && t.progress !== '');
-        avg = reported.length ? reported.reduce((s, t) => s + Number(t.progress), 0) / reported.length : 0;
-      }
+      // Cumulative average over sprints 1..n only — ALWAYS computed live from the tasks
+      // (avgOverride is only the imported file's snapshot; the export must follow the real entry data):
+      // only tasks reached so far (sprints 1..n), and only REPORTED ones —
+      // a dash (null) = not reported → excluded; a typed 0 = reported zero → counted.
+      const reported = tasks.slice(0, n).filter(t => t && t.progress !== null && t.progress !== undefined && t.progress !== '');
+      const avg = reported.length ? reported.reduce((s, t) => s + Number(t.progress), 0) / reported.length : 0;
 
       tasks.forEach((t, i) => {
         const reached = i < n; // only sprints reached so far show progress/justification
