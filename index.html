@@ -307,6 +307,35 @@ body {
 .card-id-lg { font-size: 16px; padding: 7px 13px; }
 .ring-col { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; }
 .ring-caption { font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: .04em; }
+
+/* Task chart filter */
+.chart-filter {
+  font-family: inherit; font-size: 12px; font-weight: 600; color: var(--text);
+  background: var(--input); border: 1.5px solid var(--border); border-radius: 9px;
+  padding: 6px 10px; outline: none; max-width: 210px; cursor: pointer;
+}
+.chart-filter:focus { border-color: var(--primary); }
+
+/* Goal card expandable tasks */
+.card-task-toggle {
+  display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%;
+  margin-top: 12px; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--input); font-family: inherit; font-size: 12.5px; font-weight: 700;
+  color: var(--primary); cursor: pointer; transition: all .18s;
+}
+.card-task-toggle:hover { border-color: var(--primary); background: var(--primary-bg); }
+.card-task-toggle .chev { display: inline-flex; transition: transform .3s ease; }
+.card-task-toggle .chev svg { width: 14px; height: 14px; }
+.card-task-toggle.open .chev { transform: rotate(180deg); }
+.card-tasks { overflow: hidden; max-height: 0; opacity: 0; transition: max-height .4s ease, opacity .3s ease; }
+.card-tasks.open { max-height: 800px; opacity: 1; }
+.card-task-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 8px 2px; border-bottom: 1px dashed var(--border); font-size: 12.5px;
+}
+.card-task-row:last-child { border-bottom: none; }
+.card-task-row .tname { color: var(--text-mid); font-weight: 600; min-width: 0; }
+.card-task-row .tid { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--primary); font-weight: 700; margin-right: 6px; }
 .card-meta {
   font-size: 11.5px; color: var(--text-dim); font-weight: 500;
   display: flex; justify-content: space-between; gap: 8px;
@@ -835,6 +864,13 @@ body {
         <div class="chart-card">
           <div class="chart-title"><span class="chart-dot" style="background:#22C55E;"></span>Status Overview</div>
           <div class="chart-wrap"><canvas id="chartStatus"></canvas></div>
+        </div>
+        <div class="chart-card" style="grid-column: 1 / -1;">
+          <div class="chart-title" style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+            <span><span class="chart-dot" style="background:#8B5CF6;"></span>Task Progress</span>
+            <select id="taskChartFilter" class="chart-filter"></select>
+          </div>
+          <div class="chart-wrap"><canvas id="chartTasks"></canvas></div>
         </div>
       </div>
 
@@ -1695,6 +1731,20 @@ function renderPlan() {
             <span>${esc(g.dependency || 'Internal')}</span>
             <span>${doneTasks}/${(g.tasks || []).length} tasks done</span>
           </div>
+          <button class="card-task-toggle" data-goal="${g.no}">
+            <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+            View ${(g.tasks || []).length} task${(g.tasks || []).length !== 1 ? 's' : ''}
+          </button>
+          <div class="card-tasks" data-tasks="${g.no}">
+            ${(g.tasks || []).map(t => {
+              const has = t.progress !== null && t.progress !== undefined;
+              const pc = !has ? 'gray' : t.progress === 100 ? 'green' : t.progress >= 70 ? 'amber' : 'red';
+              return `<div class="card-task-row">
+                <span class="tname"><span class="tid">${esc((t.id || '').replace(/\)$/, ''))}</span>${esc(t.name || '(unnamed)')}</span>
+                <span class="pill ${pc}">${has ? t.progress + '%' : '—'}</span>
+              </div>`;
+            }).join('')}
+          </div>
         </div>`;
     }).join('');
   }
@@ -1734,6 +1784,15 @@ function renderPlan() {
 
   renderCharts();
 }
+
+/* Goal card: expand/collapse tasks (delegated) */
+$('goalsGrid').addEventListener('click', e => {
+  const btn = e.target.closest('.card-task-toggle');
+  if (!btn) return;
+  const list = btn.parentElement.querySelector('.card-tasks');
+  btn.classList.toggle('open');
+  list.classList.toggle('open');
+});
 
 $('dashSearch').addEventListener('input', e => {
   S.search = e.target.value;
@@ -1795,6 +1854,66 @@ function renderCharts() {
         layout: { padding: { top: 18 } },
         plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + c.parsed.y + '% complete' } } },
         scales: { y: { max: 100, ticks: { callback: v => v + '%' } }, x: { grid: { display: false } } }
+      }
+    });
+  }
+
+  // Task progress chart (with goal filter)
+  const tCtx = $('chartTasks');
+  const tFilter = $('taskChartFilter');
+  if (tCtx && tFilter) {
+    const prevVal = tFilter.value || 'all';
+    tFilter.innerHTML = '<option value="all">All Goals</option>' + S.goals.map(g =>
+      `<option value="${g.no}">Goal ${String(g.no).padStart(2, '0')} · ${esc((g.name || '').slice(0, 26))}${(g.name || '').length > 26 ? '…' : ''}</option>`).join('');
+    tFilter.value = [...tFilter.options].some(o => o.value === prevVal) ? prevVal : 'all';
+    if (!tFilter.dataset.bound) {
+      tFilter.dataset.bound = '1';
+      tFilter.addEventListener('change', renderCharts);
+    }
+    const sel = tFilter.value;
+    const goalsToShow = sel === 'all' ? S.goals : S.goals.filter(g => String(g.no) === sel);
+    const taskRows = [];
+    goalsToShow.forEach(g => (g.tasks || []).forEach(t => {
+      const has = t.progress !== null && t.progress !== undefined;
+      taskRows.push({
+        id: (t.id || `${g.no}.?`).replace(/\)$/, ''),
+        name: t.name || '(unnamed)',
+        goalName: g.name || '',
+        pct: has ? t.progress : 0,
+        has
+      });
+    }));
+    const barColor = r => !r.has ? '#CBD8DD' : r.pct === 100 ? '#16A34A' : r.pct >= 70 ? '#0B769F' : r.pct >= 40 ? '#D97706' : '#DC2626';
+    S.charts.tasks = new Chart(tCtx, {
+      type: 'bar',
+      data: {
+        labels: taskRows.map(r => r.id),
+        datasets: [{
+          data: taskRows.map(r => r.pct),
+          backgroundColor: taskRows.map(barColor),
+          borderRadius: 6,
+          maxBarThickness: 34
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'nearest', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title: items => items.length ? taskRows[items[0].dataIndex].name : '',
+              label: item => {
+                const r = taskRows[item.dataIndex];
+                return (r.has ? ' ' + r.pct + '% complete' : ' Not reported yet') + '  ·  ' + r.goalName.slice(0, 40);
+              }
+            }
+          }
+        },
+        scales: {
+          y: { max: 100, ticks: { callback: v => v + '%' } },
+          x: { grid: { display: false }, ticks: { autoSkip: true, maxRotation: 45, font: { size: 10 } } }
+        }
       }
     });
   }
