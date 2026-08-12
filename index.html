@@ -1555,10 +1555,19 @@ async function doSignup() {
   btn.disabled = true; btn.textContent = 'Creating...';
   try {
     await createUserWithEmailAndPassword(auth, email, pw);
-    // Register the signup request so the admin sees it in Users & Access
+    // Register the signup request so the admin sees it in Users & Access —
+    // try the dedicated collection first, then fall back to a pending flag in entryPermissions
+    let registered = false;
     try {
       await setDoc(doc(db, 'signupRequests', email), { email, requestedAt: Date.now() });
-    } catch (e) { /* rules may block — admin can still add manually */ }
+      registered = true;
+    } catch (e1) {
+      try {
+        await setDoc(doc(db, 'entryPermissions', email), { pending: true, requestedAt: Date.now(), goals: [], pages: [] });
+        registered = true;
+      } catch (e2) { /* both blocked by rules — admin must add the user manually */ }
+    }
+    if (!registered) console.warn('Signup request could not be saved (Firestore rules)');
     $('signupOverlay').classList.remove('open');
     toast('Account created — waiting for admin approval', 'success', 4000);
   } catch (err) {
@@ -1670,7 +1679,9 @@ onAuthStateChanged(auth, async (user) => {
       // New/suspended account — block access until admin approves/re-activates
       if (S.suspended) {
         $('pendingTitle').textContent = 'Account suspended';
-        $('pendingMsg').innerHTML = 'Your account has been suspended by the administrator.<br>Please contact the PAM admin to re-activate it.';
+        $('pendingMsg').innerHTML = 'Your account has been suspended by the administrator.'
+          + (S.suspendReason ? '<br><b>Reason:</b> ' + esc(S.suspendReason) : '')
+          + '<br>Please contact the PAM admin to re-activate it.';
       } else {
         $('pendingTitle').textContent = 'Account pending approval';
         $('pendingMsg').innerHTML = 'Your account has been created successfully.<br>An administrator needs to approve it and assign your permissions before you can access the dashboard.<br>Please contact the PAM admin.';
@@ -1705,13 +1716,15 @@ $('pendingSignOutBtn').addEventListener('click', async () => {
 async function loadUserPermissions(email) {
   try {
     const snap = await getDoc(doc(db, 'entryPermissions', (email || '').toLowerCase()));
-    S.approved = snap.exists();
-    S.suspended = snap.exists() && snap.data().suspended === true;
+    const d = snap.exists() ? (snap.data() || {}) : {};
+    S.approved = snap.exists() && d.pending !== true;
+    S.suspended = snap.exists() && d.suspended === true;
+    S.suspendReason = d.suspendReason || '';
     const goals = snap.exists() ? (snap.data().goals || []) : [];
     S.allowedGoalNos = goals.length ? goals.map(Number) : null;
     const pages = snap.exists() ? (snap.data().pages || []) : [];
     S.allowedPages = pages.length ? pages.map(String) : null;
-  } catch (e) { S.approved = false; S.suspended = false; S.allowedGoalNos = null; S.allowedPages = null; }
+  } catch (e) { S.approved = false; S.suspended = false; S.suspendReason = ''; S.allowedGoalNos = null; S.allowedPages = null; }
 }
 
 /* ===================== Data loading ===================== */
@@ -2774,7 +2787,7 @@ $('uaSaveBtn').addEventListener('click', async () => {
   const goals = [...$('uaGoals').querySelectorAll('input:checked')].map(cb => Number(cb.value));
   const pages = [...$('uaPages').querySelectorAll('input:checked')].map(cb => cb.value);
   try {
-    await setDoc(doc(db, 'entryPermissions', email), { goals, pages });
+    await setDoc(doc(db, 'entryPermissions', email), { goals, pages, pending: false });
     try { await deleteDoc(doc(db, 'signupRequests', email)); } catch (e) { /* no pending request */ }
     toast(`Access saved for ${email} — account approved`, 'success');
     closeUserForm();
@@ -2792,57 +2805,71 @@ async function renderUsersAccess() {
     const snap = await getDocs(collection(db, 'entryPermissions'));
     const approvedEmails = new Set(snap.docs.map(d => d.id));
 
-    /* --- Pending signups (waiting for admin approval) --- */
+    /* --- Pending signups (waiting for admin approval): dedicated collection + pending flag --- */
     const pwWrap = $('pendingUsersWrap'), pwList = $('pendingUsersList');
+    const pendingMap = new Map(); // email -> requestedAt
+    snap.docs.forEach(d => { if (d.data().pending === true) pendingMap.set(d.id, d.data().requestedAt || null); });
     try {
       const reqSnap = await getDocs(collection(db, 'signupRequests'));
-      const pending = reqSnap.docs.filter(d => !approvedEmails.has(d.id));
-      if (pending.length) {
-        pwWrap.classList.remove('hidden');
-        pwList.innerHTML = pending.map(d => {
-          const dt = d.data().requestedAt ? new Date(d.data().requestedAt).toLocaleString() : '';
-          return `<div class="perm-list-item" style="flex-wrap:wrap; gap:8px; border-color:#FCD34D; background:#FFFBEB;">
-            <div style="flex:1; min-width:180px;">
-              <div style="font-weight:700; font-size:13.5px;">${esc(d.id)}</div>
-              <div style="font-size:11.5px; color:#B45309; margin-top:3px;">Requested ${esc(dt)} — approve to grant access</div>
-            </div>
-            <button class="btn btn-sm btn-primary ua-approve" data-email="${esc(d.id)}" style="padding:6px 14px;">Approve</button>
-            <button class="btn btn-sm btn-danger ua-reject" data-email="${esc(d.id)}" style="padding:6px 14px;">Reject</button>
-          </div>`;
-        }).join('');
-        pwList.querySelectorAll('.ua-approve').forEach(btn => {
-          btn.addEventListener('click', () => openUserForm(btn.dataset.email, {}));
+      reqSnap.docs.forEach(d => {
+        if (!approvedEmails.has(d.id) || pendingMap.has(d.id)) pendingMap.set(d.id, d.data().requestedAt || pendingMap.get(d.id) || null);
+      });
+    } catch (e) { /* collection may not be readable — pending flags still shown */ }
+    const pending = [...pendingMap.entries()];
+    if (pending.length) {
+      pwWrap.classList.remove('hidden');
+      pwList.innerHTML = pending.map(([email, ts]) => {
+        const dt = ts ? new Date(ts).toLocaleString() : '';
+        return `<div class="perm-list-item" style="flex-wrap:wrap; gap:8px; border-color:#FCD34D; background:#FFFBEB;">
+          <div style="flex:1; min-width:180px;">
+            <div style="font-weight:700; font-size:13.5px;">${esc(email)}</div>
+            <div style="font-size:11.5px; color:#B45309; margin-top:3px;">Requested ${esc(dt)} — approve to grant access</div>
+          </div>
+          <button class="btn btn-sm btn-primary ua-approve" data-email="${esc(email)}" style="padding:6px 14px;">Approve</button>
+          <button class="btn btn-sm btn-danger ua-reject" data-email="${esc(email)}" style="padding:6px 14px;">Reject</button>
+        </div>`;
+      }).join('');
+      pwList.querySelectorAll('.ua-approve').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const email = btn.dataset.email;
+          try {
+            const d = await getDoc(doc(db, 'entryPermissions', email));
+            openUserForm(email, d.exists() ? d.data() : {});
+          } catch (e) { openUserForm(email, {}); }
         });
-        pwList.querySelectorAll('.ua-reject').forEach(btn => {
-          btn.addEventListener('click', () => {
-            const email = btn.dataset.email;
-            showModal({
-              title: 'Reject this signup?',
-              text: `${email} will NOT get access. The signup request is removed.`,
-              actions: [
-                { label: 'Cancel', kind: 'ghost' },
-                { label: 'Reject', kind: 'danger', onClick: async () => {
-                  try {
-                    await deleteDoc(doc(db, 'signupRequests', email));
-                    toast(`Rejected ${email}`, 'success');
-                    renderUsersAccess();
-                  } catch (err) { toast('Could not reject: ' + (err.code || err.message), 'error', 5000); }
-                } }
-              ]
-            });
+      });
+      pwList.querySelectorAll('.ua-reject').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const email = btn.dataset.email;
+          showModal({
+            title: 'Reject this signup?',
+            text: `${email} will NOT get access. The signup request is removed.`,
+            actions: [
+              { label: 'Cancel', kind: 'ghost' },
+              { label: 'Reject', kind: 'danger', onClick: async () => {
+                try {
+                  try { await deleteDoc(doc(db, 'signupRequests', email)); } catch (e) {}
+                  const ep = await getDoc(doc(db, 'entryPermissions', email));
+                  if (ep.exists() && ep.data().pending === true) await deleteDoc(doc(db, 'entryPermissions', email));
+                  toast(`Rejected ${email}`, 'success');
+                  renderUsersAccess();
+                } catch (err) { toast('Could not reject: ' + (err.code || err.message), 'error', 5000); }
+              } }
+            ]
           });
         });
-      } else {
-        pwWrap.classList.add('hidden');
-        pwList.innerHTML = '';
-      }
-    } catch (e) { pwWrap.classList.add('hidden'); }
+      });
+    } else {
+      pwWrap.classList.add('hidden');
+      pwList.innerHTML = '';
+    }
 
-    if (snap.empty) {
+    const approvedDocs = snap.docs.filter(d => d.data().pending !== true);
+    if (!approvedDocs.length) {
       wrap.innerHTML = '<div style="font-size:12.5px; color:var(--text-dim); padding:8px 0;">No approved users yet. Approve a signup above or add a user manually.</div>';
       return;
     }
-    wrap.innerHTML = snap.docs.map(d => {
+    wrap.innerHTML = approvedDocs.map(d => {
       const data = d.data() || {};
       const goals = data.goals || [];
       const pages = (data.pages || []).map(p => PAGE_NAMES[p] || p);
@@ -2856,6 +2883,7 @@ async function renderUsersAccess() {
             <span class="pill cyan">Update: ${esc(goalLabel)}</span>
             <span class="pill ${pages.length ? 'amber' : 'cyan'}">Open: ${esc(pageLabel)}</span>
           </div>
+          ${suspended && data.suspendReason ? `<div style="font-size:11.5px; color:var(--red); margin-top:5px;">Reason: ${esc(data.suspendReason)}</div>` : ''}
         </div>
         <button class="btn btn-sm ua-edit" data-email="${esc(d.id)}" style="padding:6px 14px;">Edit</button>
         <button class="btn btn-sm ua-susp" data-email="${esc(d.id)}" data-susp="${suspended ? 1 : 0}" style="padding:6px 14px;${suspended ? '' : ' color:#B45309; border-color:#FCD34D;'}">${suspended ? 'Activate' : 'Suspend'}</button>
@@ -2863,14 +2891,49 @@ async function renderUsersAccess() {
       </div>`;
     }).join('');
     wrap.querySelectorAll('.ua-susp').forEach(btn => {
-      btn.addEventListener('click', async () => {
+      btn.addEventListener('click', () => {
         const email = btn.dataset.email;
         const susp = btn.dataset.susp === '1';
-        try {
-          await setDoc(doc(db, 'entryPermissions', email), { suspended: !susp }, { merge: true });
-          toast(susp ? `Activated ${email}` : `Suspended ${email} — sign-in blocked`, 'success');
-          renderUsersAccess();
-        } catch (err) { toast('Could not update: ' + (err.code || err.message), 'error', 5000); }
+        if (susp) {
+          // Re-activate directly
+          showModal({
+            title: 'Re-activate this account?',
+            text: `${email} will be able to sign in again.`,
+            actions: [
+              { label: 'Cancel', kind: 'ghost' },
+              { label: 'Activate', kind: 'primary', onClick: async () => {
+                try {
+                  await setDoc(doc(db, 'entryPermissions', email), { suspended: false, suspendReason: '' }, { merge: true });
+                  toast(`Activated ${email}`, 'success');
+                  renderUsersAccess();
+                } catch (err) { toast('Could not update: ' + (err.code || err.message), 'error', 5000); }
+              } }
+            ]
+          });
+        } else {
+          // Suspend WITH a reason (shown to the user on sign-in)
+          showModal({
+            title: 'Suspend this account?',
+            html: `<div style="text-align:left;">
+              <div style="font-size:13px; margin-bottom:10px;">${esc(email)} will be blocked from signing in.</div>
+              <div class="input-group" style="margin-bottom:2px;">
+                <label>Reason for suspension <span style="text-transform:none; font-weight:500;">(shown to the user)</span></label>
+                <textarea id="suspReason" class="input" rows="3" placeholder="e.g. Left the project team — contact admin to re-activate" style="resize:vertical;"></textarea>
+              </div>
+            </div>`,
+            actions: [
+              { label: 'Cancel', kind: 'ghost' },
+              { label: 'Suspend', kind: 'danger', onClick: async () => {
+                const reason = ((document.getElementById('suspReason') || {}).value || '').trim();
+                try {
+                  await setDoc(doc(db, 'entryPermissions', email), { suspended: true, suspendReason: reason }, { merge: true });
+                  toast(`Suspended ${email} — sign-in blocked`, 'success');
+                  renderUsersAccess();
+                } catch (err) { toast('Could not update: ' + (err.code || err.message), 'error', 5000); }
+              } }
+            ]
+          });
+        }
       });
     });
     wrap.querySelectorAll('.ua-edit').forEach(btn => {
