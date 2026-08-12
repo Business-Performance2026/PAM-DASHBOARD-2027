@@ -1990,65 +1990,56 @@ function renderCharts() {
 
   const avgCtx = $('chartAvg');
   if (avgCtx) {
-    // Pie: one slice per goal, leader-line callouts with each goal's average %
-    const PIE_COLORS = ['#0E7C86', '#0B769F', '#156082', '#16A34A', '#D97706', '#8B5CF6', '#DB2777', '#0891B2', '#4D7C0F', '#B45309', '#64748B', '#7C3AED'];
+    // Vertical bars: each goal its own color, % label on top, hover shows the FULL goal name
+    const BAR_COLORS = ['#0E7C86', '#0B769F', '#156082', '#16A34A', '#D97706', '#8B5CF6', '#DB2777', '#0891B2', '#4D7C0F', '#B45309', '#64748B', '#7C3AED'];
     const goalLabels = S.goals.map(g => 'Goal ' + String(g.no).padStart(2, '0'));
-    const callouts = {
-      id: 'callouts',
-      afterDraw(chart) {
+    const pctLabels = {
+      id: 'pctLabels',
+      afterDatasetsDraw(chart) {
         const { ctx } = chart;
         const meta = chart.getDatasetMeta(0);
-        meta.data.forEach((arc, i) => {
-          const a = avgs[i];
-          if (a === null || a <= 0) return;
-          const mid = (arc.startAngle + arc.endAngle) / 2;
-          const cos = Math.cos(mid), sin = Math.sin(mid);
-          const x1 = arc.x + cos * arc.outerRadius;
-          const y1 = arc.y + sin * arc.outerRadius;
-          const x2 = arc.x + cos * (arc.outerRadius + 16);
-          const y2 = arc.y + sin * (arc.outerRadius + 16);
-          const right = cos >= 0;
-          const x3 = x2 + (right ? 14 : -14);
+        meta.data.forEach((bar, i) => {
+          if (avgs[i] === null) return;
           ctx.save();
-          ctx.strokeStyle = '#9DB4BC';
-          ctx.lineWidth = 1.4;
-          ctx.beginPath();
-          ctx.moveTo(x1, y1);
-          ctx.lineTo(x2, y2);
-          ctx.lineTo(x3, y2);
-          ctx.stroke();
-          // color dot
-          ctx.fillStyle = PIE_COLORS[i % PIE_COLORS.length];
-          ctx.beginPath();
-          ctx.arc(x3 + (right ? 5 : -5), y2, 3, 0, Math.PI * 2);
-          ctx.fill();
           ctx.font = '800 12px Inter';
-          ctx.textBaseline = 'middle';
-          ctx.textAlign = right ? 'left' : 'right';
-          ctx.fillStyle = '#3D545E';
-          ctx.fillText(goalLabels[i] + ' · ' + fmtPct(a), x3 + (right ? 12 : -12), y2);
+          ctx.textAlign = 'center';
+          ctx.fillStyle = BAR_COLORS[i % BAR_COLORS.length];
+          ctx.fillText(fmtPct(avgs[i]), bar.x, bar.y - 8);
           ctx.restore();
         });
       }
     };
     S.charts.avg = new Chart(avgCtx, {
-      type: 'pie',
+      type: 'bar',
       data: {
         labels: goalLabels,
         datasets: [{
-          data: avgs.map(a => (a === null ? 0 : Math.round(a * 100) / 100)),
-          backgroundColor: goalLabels.map((_, i) => PIE_COLORS[i % PIE_COLORS.length]),
-          borderWidth: 3,
-          borderColor: '#fff'
+          data: avgs.map(a => a === null ? 0 : Math.round(a * 100) / 100),
+          backgroundColor: goalLabels.map((_, i) => BAR_COLORS[i % BAR_COLORS.length]),
+          borderRadius: 8,
+          borderSkipped: 'bottom',
+          maxBarThickness: 52
         }]
       },
-      plugins: [callouts],
+      plugins: [pctLabels],
       options: {
         responsive: true, maintainAspectRatio: false,
-        layout: { padding: { left: 95, right: 95, top: 26, bottom: 26 } },
+        layout: { padding: { top: 24 } },
         plugins: {
           legend: { display: false },
-          tooltip: { callbacks: { label: c => ' ' + c.label + ' — Average: ' + fmtPct(avgs[c.dataIndex]) } }
+          tooltip: {
+            callbacks: {
+              title: items => {
+                const g = S.goals[items[0].dataIndex];
+                return g ? ('Goal ' + String(g.no).padStart(2, '0') + ' — ' + (g.name || '')) : '';
+              },
+              label: c => ' Average: ' + fmtPct(avgs[c.dataIndex])
+            }
+          }
+        },
+        scales: {
+          y: { max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#EDF3F5' }, border: { display: false } },
+          x: { grid: { display: false }, border: { display: false }, ticks: { font: { weight: '700', size: 12 }, color: '#3D545E' } }
         }
       }
     });
