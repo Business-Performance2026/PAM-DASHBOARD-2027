@@ -1415,6 +1415,14 @@ function bandColor(p) {
   if (p < 100) return '#0E7C86';
   return '#16A34A';
 }
+/* Goal-card average bands (user spec): <40 red · 40-69 amber · 70-89 blue · 90-100 green */
+function avgBandColor(p) {
+  if (p === null || p === undefined) return '#8CA0A9';
+  if (p < 40) return '#DC2626';
+  if (p < 70) return '#D97706';
+  if (p < 90) return '#0B769F';
+  return '#16A34A';
+}
 /* Small ring (no text inside) */
 function miniRing(pct, color, size = 24) {
   const r = 9, c = 2 * Math.PI * r;
@@ -1931,6 +1939,7 @@ function renderPlan() {
       const st = statusOf(avg);
       const doneTasks = (g.tasks || []).filter(t => t.progress === 100).length;
       const pctW = avg === null ? 0 : Math.min(100, avg);
+      const bandC = avgBandColor(avg);
       return `
         <div class="gcard" style="animation-delay:${i * 50}ms;">
           <div class="gcard-top">
@@ -1938,9 +1947,9 @@ function renderPlan() {
             <div class="gcard-name">${esc(g.name)}</div>
             <span class="gcard-badge" style="color:${st.color}; background:${st.color}18;">${st.label}</span>
           </div>
-          <div class="gcard-bar"><div class="gcard-fill" style="width:${pctW}%; background:${st.color};"></div></div>
+          <div class="gcard-bar"><div class="gcard-fill" style="width:${pctW}%; background:${bandC};"></div></div>
           <div class="gcard-row">
-            <span class="gcard-pct" style="color:${st.color};">${avg === null ? '—' : fmtPct(avg)}</span>
+            <span class="gcard-pct" style="color:${bandC};">${avg === null ? '—' : fmtPct(avg)}</span>
             <span>${doneTasks}/${(g.tasks || []).length} tasks done</span>
           </div>
           <div class="card-tasks">
