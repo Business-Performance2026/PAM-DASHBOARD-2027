@@ -373,6 +373,42 @@ body {
   background: var(--card); outline: none; cursor: pointer;
 }
 #goalSort:focus { border-color: var(--primary); }
+
+/* BSC / KPI compact cards */
+.bkcard {
+  background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+  padding: 14px 15px; position: relative; transition: transform .18s, box-shadow .18s, border-color .18s;
+}
+.bkcard:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(21,61,99,.09); border-color: #BFE0E4; }
+.bk-top { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+.bk-num {
+  width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 13px; color: #fff;
+}
+.bk-title {
+  flex: 1; font-weight: 700; font-size: 13.5px; color: var(--navy); line-height: 1.35;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.bk-badge { font-size: 10px; font-weight: 800; padding: 4px 9px; border-radius: 99px; letter-spacing: .03em; white-space: nowrap; }
+.bk-scope { font-size: 12px; color: var(--text-mid); font-weight: 600; margin-bottom: 9px; line-height: 1.5; }
+.bk-bar { height: 7px; background: #EDF3F5; border-radius: 99px; margin: 4px 0 7px; overflow: hidden; }
+.bk-fill { height: 100%; border-radius: 99px; transition: width .6s ease; }
+.bk-row { display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; color: var(--text-dim); font-weight: 600; }
+.bk-pct { font-weight: 800; font-size: 13px; }
+.bk-tags { margin-top: 9px; border-top: 1px dashed var(--border); padding-top: 8px; display: flex; flex-direction: column; gap: 5px; }
+.bk-tag {
+  font-size: 11.5px; font-weight: 600; color: var(--text-mid);
+  padding: 4px 9px; background: var(--input); border-radius: 8px; border-left: 3px solid var(--primary);
+}
+.bk-edit {
+  width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border: 1.5px solid #DDD6FE; background: #F5F3FF; color: #7C3AED; cursor: pointer; transition: all .18s;
+}
+.bk-edit:hover { background: #7C3AED; color: #fff; border-color: #7C3AED; }
+.bk-edit svg { width: 14px; height: 14px; }
+.bk-note { font-size: 11px; color: var(--text-dim); margin-top: 6px; font-style: italic; }
 .card-task-row {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   padding: 8px 2px; border-bottom: 1px dashed var(--border); font-size: 12.5px;
@@ -1676,7 +1712,20 @@ onAuthStateChanged(auth, async (user) => {
     S.isAdmin = await detectAdmin(user.email);
     await loadUserPermissions(user.email);
     if (!S.isAdmin && (!S.approved || S.suspended)) {
-      // New/suspended account — block access until admin approves/re-activates
+      // New/suspended account — block access until admin approves/re-activates.
+      // IMPORTANT: re-register the signup request on every sign-in attempt, so accounts
+      // created before the request-tracking fix (or blocked by rules at signup) still show up for the admin.
+      if (!S.suspended) {
+        const em = (user.email || '').toLowerCase();
+        try {
+          await setDoc(doc(db, 'signupRequests', em), { email: em, requestedAt: Date.now() });
+        } catch (e1) {
+          try {
+            const ep = await getDoc(doc(db, 'entryPermissions', em));
+            if (!ep.exists()) await setDoc(doc(db, 'entryPermissions', em), { pending: true, requestedAt: Date.now(), goals: [], pages: [] });
+          } catch (e2) { /* both blocked — admin adds manually */ }
+        }
+      }
       if (S.suspended) {
         $('pendingTitle').textContent = 'Account suspended';
         $('pendingMsg').innerHTML = 'Your account has been suspended by the administrator.'
@@ -2217,29 +2266,71 @@ function renderBsc() {
 
   $('bscCards').innerHTML = data.map((r, i) => {
     const color = r.status === 'Completed' ? '#16A34A' : r.status === 'Pending Report' ? '#0E7C86' : '#D97706';
-    const cls = r.status === 'Completed' ? 'complete' : r.status === 'Pending Report' ? 'pending' : 'delayed';
+    const hasPct = r.pct !== null && r.pct !== undefined;
+    const bandC = hasPct ? avgBandColor(r.pct) : '#8CA0A9';
     return `
-      <div class="card" style="animation-delay:${i * 50}ms;">
-        <div class="card-header">
-          <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">
-            <div class="card-id">${String(r.no).padStart(2, '0')}</div>
-            <div class="card-title">${esc(r.title)}</div>
-          </div>
-          <div class="card-status ${cls}">${esc(r.status)}</div>
+      <div class="bkcard" style="animation-delay:${i * 50}ms;">
+        <div class="bk-top">
+          <div class="bk-num" style="background:${color};">${String(r.no).padStart(2, '0')}</div>
+          <div class="bk-title">${esc(r.title)}</div>
+          <span class="bk-badge" style="color:${color}; background:${color}18;">${esc(r.status)}</span>
+          ${S.isAdmin ? `<button class="bk-edit bk-edit-bsc" data-idx="${i}" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>` : ''}
         </div>
-        <div class="card-progress">
-          ${ringSVG(r.pct, color)}
-          <div class="card-side">
-            <div class="card-side-label">Scope</div>
-            <div class="card-side-note">${esc(r.scope)}</div>
-          </div>
+        <div class="bk-scope">${esc(r.scope)}</div>
+        <div class="bk-bar"><div class="bk-fill" style="width:${hasPct ? Math.min(100, r.pct) : 0}%; background:${bandC};"></div></div>
+        <div class="bk-row">
+          <span class="bk-pct" style="color:${bandC};">${hasPct ? fmtPct(r.pct) : '—'}</span>
+          <span>${(r.progress || []).length} update${(r.progress || []).length !== 1 ? 's' : ''}</span>
         </div>
-        <div class="tag-list">
-          ${(r.progress || []).map(p => `<div class="tag-item" style="border-left-color:${color};">${esc(p)}</div>`).join('')}
-        </div>
+        ${(r.progress || []).length ? `<div class="bk-tags">${(r.progress || []).map(p => `<div class="bk-tag" style="border-left-color:${color};">${esc(p)}</div>`).join('')}</div>` : ''}
       </div>`;
   }).join('');
 }
+
+/* BSC edit (admin) — delegated */
+$('bscCards').addEventListener('click', e => {
+  const btn = e.target.closest('.bk-edit-bsc');
+  if (!btn || !S.isAdmin) return;
+  const i = Number(btn.dataset.idx);
+  const r = S.bsc[i];
+  if (!r) return;
+  showModal({
+    title: 'Edit BSC Item ' + String(r.no).padStart(2, '0'),
+    html: `<div style="text-align:left; display:flex; flex-direction:column; gap:10px;">
+      <div class="input-group"><label>Title</label><input class="input" id="bksTitle" value="${esc(r.title)}"></div>
+      <div class="input-group"><label>Scope</label><input class="input" id="bksScope" value="${esc(r.scope)}"></div>
+      <div style="display:flex; gap:10px;">
+        <div class="input-group" style="flex:1;"><label>Status</label>
+          <select class="input" id="bksStatus">
+            ${['Ongoing', 'Completed', 'Pending Report'].map(s => `<option ${r.status === s ? 'selected' : ''}>${s}</option>`).join('')}
+          </select></div>
+        <div class="input-group" style="width:110px;"><label>Progress %</label><input class="input" id="bksPct" type="number" min="0" max="100" placeholder="—" value="${r.pct ?? ''}"></div>
+      </div>
+      <div class="input-group"><label>Updates <span style="text-transform:none; font-weight:500;">(one per line)</span></label>
+        <textarea class="input" id="bksProg" rows="4" style="resize:vertical;">${esc((r.progress || []).join('\n'))}</textarea></div>
+    </div>`,
+    actions: [
+      { label: 'Cancel', kind: 'ghost' },
+      { label: 'Save Changes', kind: 'primary', onClick: async () => {
+        const gv = id => (document.getElementById(id) || {}).value ?? '';
+        const pctRaw = gv('bksPct').trim();
+        S.bsc[i] = {
+          ...r,
+          title: gv('bksTitle').trim() || r.title,
+          scope: gv('bksScope').trim(),
+          status: gv('bksStatus'),
+          pct: pctRaw === '' ? null : clamp(parseInt(pctRaw, 10) || 0),
+          progress: gv('bksProg').split('\n').map(x => x.trim()).filter(Boolean)
+        };
+        try {
+          await setDoc(doc(db, 'settings', 'bsc'), { items: S.bsc });
+          toast('BSC item updated', 'success');
+        } catch (err) { toast('Saved locally — sync failed: ' + (err.code || ''), 'warning', 4000); }
+        renderBsc();
+      } }
+    ]
+  });
+});
 
 /* ---------- KPIs ---------- */
 function renderKpis() {
@@ -2264,24 +2355,72 @@ function renderKpis() {
 
   $('kpiCards').innerHTML = data.map((k, i) => {
     const isKpi = k.type === 'kpi';
-    const color = k.pct === null || k.pct === undefined ? '#8CA0A9' : k.pct >= 70 ? '#16A34A' : k.pct >= 40 ? '#D97706' : '#DC2626';
+    const typeC = isKpi ? '#D97706' : '#0E7C86';
+    const hasPct = k.pct !== null && k.pct !== undefined;
+    const bandC = hasPct ? avgBandColor(k.pct) : '#8CA0A9';
     return `
-      <div class="card" style="animation-delay:${i * 50}ms;">
-        <div class="card-header">
-          <div class="card-title" style="flex:1;">${esc(k.title)}</div>
-          <div class="card-status ${isKpi ? 'delayed' : 'pending'}">${isKpi ? 'KPI' : 'Initiative'}</div>
+      <div class="bkcard" style="animation-delay:${i * 50}ms;">
+        <div class="bk-top">
+          <div class="bk-num" style="background:${typeC};">${isKpi ? 'K' : 'I'}</div>
+          <div class="bk-title">${esc(k.title)}</div>
+          <span class="bk-badge" style="color:${typeC}; background:${typeC}18;">${isKpi ? 'KPI' : 'Initiative'}</span>
+          ${S.isAdmin ? `<button class="bk-edit bk-edit-kpi" data-idx="${i}" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>` : ''}
         </div>
-        <div class="card-progress">
-          ${ringSVG(k.pct ?? null, color)}
-          <div class="card-side">
-            <div class="card-side-label">Execution</div>
-            <div class="card-side-value" style="font-size:13px;">${esc(k.exec || 'No data')}</div>
-            ${k.update ? `<div class="card-side-note">${esc(k.update)}</div>` : ''}
-          </div>
+        <div class="bk-scope">${esc(k.exec || 'No data')}</div>
+        <div class="bk-bar"><div class="bk-fill" style="width:${hasPct ? Math.min(100, k.pct) : 0}%; background:${bandC};"></div></div>
+        <div class="bk-row">
+          <span class="bk-pct" style="color:${bandC};">${hasPct ? fmtPct(k.pct) : '—'}</span>
+          <span>${isKpi ? 'KPI' : 'Initiative'}</span>
         </div>
+        ${k.update ? `<div class="bk-note">${esc(k.update)}</div>` : ''}
       </div>`;
   }).join('');
 }
+
+/* KPI edit (admin) — delegated */
+$('kpiCards').addEventListener('click', e => {
+  const btn = e.target.closest('.bk-edit-kpi');
+  if (!btn || !S.isAdmin) return;
+  const i = Number(btn.dataset.idx);
+  const k = S.kpis[i];
+  if (!k) return;
+  showModal({
+    title: 'Edit ' + (k.type === 'kpi' ? 'KPI' : 'Initiative'),
+    html: `<div style="text-align:left; display:flex; flex-direction:column; gap:10px;">
+      <div class="input-group"><label>Title</label><input class="input" id="bkkTitle" value="${esc(k.title)}"></div>
+      <div style="display:flex; gap:10px;">
+        <div class="input-group" style="flex:1;"><label>Type</label>
+          <select class="input" id="bkkType">
+            <option value="kpi" ${k.type === 'kpi' ? 'selected' : ''}>KPI</option>
+            <option value="initiative" ${k.type !== 'kpi' ? 'selected' : ''}>Initiative</option>
+          </select></div>
+        <div class="input-group" style="width:110px;"><label>Exec %</label><input class="input" id="bkkPct" type="number" min="0" max="100" placeholder="—" value="${k.pct ?? ''}"></div>
+      </div>
+      <div class="input-group"><label>Execution</label><input class="input" id="bkkExec" value="${esc(k.exec || '')}"></div>
+      <div class="input-group"><label>Update note</label><input class="input" id="bkkUpdate" value="${esc(k.update || '')}"></div>
+    </div>`,
+    actions: [
+      { label: 'Cancel', kind: 'ghost' },
+      { label: 'Save Changes', kind: 'primary', onClick: async () => {
+        const gv = id => (document.getElementById(id) || {}).value ?? '';
+        const pctRaw = gv('bkkPct').trim();
+        S.kpis[i] = {
+          ...k,
+          title: gv('bkkTitle').trim() || k.title,
+          type: gv('bkkType'),
+          pct: pctRaw === '' ? null : clamp(parseInt(pctRaw, 10) || 0),
+          exec: gv('bkkExec').trim(),
+          update: gv('bkkUpdate').trim()
+        };
+        try {
+          await setDoc(doc(db, 'settings', 'kpis'), { items: S.kpis });
+          toast('KPI updated', 'success');
+        } catch (err) { toast('Saved locally — sync failed: ' + (err.code || ''), 'warning', 4000); }
+        renderKpis();
+      } }
+    ]
+  });
+});
 
 /* ===================== Entry ===================== */
 function visibleEntryGoals() {
