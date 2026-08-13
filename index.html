@@ -408,6 +408,15 @@ body {
 }
 .bk-edit:hover { background: #7C3AED; color: #fff; border-color: #7C3AED; }
 .bk-edit svg { width: 14px; height: 14px; }
+
+/* BSC/KPI edit form — tidy 2-column grid */
+.bkform { text-align: left; display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
+.bkform .full { grid-column: 1 / -1; }
+.bkform .input-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-dim); margin-bottom: 5px; }
+.bkform .input, .bkform select.input { width: 100%; box-sizing: border-box; }
+.bkform select.input { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238CA0A9' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 10px center; background-size: 13px; padding-right: 30px; cursor: pointer; }
+.bkform textarea.input { resize: vertical; font-family: inherit; }
+@media (max-width: 560px) { .bkform { grid-template-columns: 1fr; } }
 .bk-note { font-size: 11px; color: var(--text-dim); margin-top: 6px; font-style: italic; }
 .card-task-row {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
@@ -1218,6 +1227,10 @@ body {
             <label class="perm-check" data-page="bsc"><input type="checkbox" value="bsc"><span>BSC</span></label>
             <label class="perm-check" data-page="kpis"><input type="checkbox" value="kpis"><span>KPIs</span></label>
           </div>
+          <div class="field" style="margin-top:12px;"><label>Extra permissions</label></div>
+          <div class="perm-goal-checks">
+            <label class="perm-check" id="uaEditBKWrap"><input type="checkbox" id="uaEditBK"><span>Can edit BSC & KPI cards</span></label>
+          </div>
           <div class="modal-actions" style="flex-direction:row; margin-top:14px;">
             <button class="btn" id="uaCancelBtn" style="flex:1; background:#fff;">Cancel</button>
             <button class="btn btn-primary" id="uaSaveBtn" style="flex:1;">Save User</button>
@@ -1769,11 +1782,12 @@ async function loadUserPermissions(email) {
     S.approved = snap.exists() && d.pending !== true;
     S.suspended = snap.exists() && d.suspended === true;
     S.suspendReason = d.suspendReason || '';
+    S.canEditBK = snap.exists() && d.editBK === true;
     const goals = snap.exists() ? (snap.data().goals || []) : [];
     S.allowedGoalNos = goals.length ? goals.map(Number) : null;
     const pages = snap.exists() ? (snap.data().pages || []) : [];
     S.allowedPages = pages.length ? pages.map(String) : null;
-  } catch (e) { S.approved = false; S.suspended = false; S.suspendReason = ''; S.allowedGoalNos = null; S.allowedPages = null; }
+  } catch (e) { S.approved = false; S.suspended = false; S.suspendReason = ''; S.allowedGoalNos = null; S.allowedPages = null; S.canEditBK = false; }
 }
 
 /* ===================== Data loading ===================== */
@@ -2274,7 +2288,7 @@ function renderBsc() {
           <div class="bk-num" style="background:${color};">${String(r.no).padStart(2, '0')}</div>
           <div class="bk-title">${esc(r.title)}</div>
           <span class="bk-badge" style="color:${color}; background:${color}18;">${esc(r.status)}</span>
-          ${S.isAdmin ? `<button class="bk-edit bk-edit-bsc" data-idx="${i}" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>` : ''}
+          ${(S.isAdmin || S.canEditBK) ? `<button class="bk-edit bk-edit-bsc" data-idx="${i}" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>` : ''}
         </div>
         <div class="bk-scope">${esc(r.scope)}</div>
         <div class="bk-bar"><div class="bk-fill" style="width:${hasPct ? Math.min(100, r.pct) : 0}%; background:${bandC};"></div></div>
@@ -2290,24 +2304,22 @@ function renderBsc() {
 /* BSC edit (admin) — delegated */
 $('bscCards').addEventListener('click', e => {
   const btn = e.target.closest('.bk-edit-bsc');
-  if (!btn || !S.isAdmin) return;
+  if (!btn || !(S.isAdmin || S.canEditBK)) return;
   const i = Number(btn.dataset.idx);
   const r = S.bsc[i];
   if (!r) return;
   showModal({
     title: 'Edit BSC Item ' + String(r.no).padStart(2, '0'),
-    html: `<div style="text-align:left; display:flex; flex-direction:column; gap:10px;">
-      <div class="input-group"><label>Title</label><input class="input" id="bksTitle" value="${esc(r.title)}"></div>
-      <div class="input-group"><label>Scope</label><input class="input" id="bksScope" value="${esc(r.scope)}"></div>
-      <div style="display:flex; gap:10px;">
-        <div class="input-group" style="flex:1;"><label>Status</label>
-          <select class="input" id="bksStatus">
-            ${['Ongoing', 'Completed', 'Pending Report'].map(s => `<option ${r.status === s ? 'selected' : ''}>${s}</option>`).join('')}
-          </select></div>
-        <div class="input-group" style="width:110px;"><label>Progress %</label><input class="input" id="bksPct" type="number" min="0" max="100" placeholder="—" value="${r.pct ?? ''}"></div>
-      </div>
-      <div class="input-group"><label>Updates <span style="text-transform:none; font-weight:500;">(one per line)</span></label>
-        <textarea class="input" id="bksProg" rows="4" style="resize:vertical;">${esc((r.progress || []).join('\n'))}</textarea></div>
+    html: `<div class="bkform">
+      <div class="input-group full"><label>Title</label><input class="input" id="bksTitle" value="${esc(r.title)}"></div>
+      <div class="input-group full"><label>Scope</label><input class="input" id="bksScope" value="${esc(r.scope)}"></div>
+      <div class="input-group"><label>Status</label>
+        <select class="input" id="bksStatus">
+          ${['Ongoing', 'Completed', 'Pending Report'].map(s => `<option ${r.status === s ? 'selected' : ''}>${s}</option>`).join('')}
+        </select></div>
+      <div class="input-group"><label>Progress %</label><input class="input" id="bksPct" type="number" min="0" max="100" placeholder="—" value="${r.pct ?? ''}"></div>
+      <div class="input-group full"><label>Updates <span style="text-transform:none; font-weight:500;">(one per line)</span></label>
+        <textarea class="input" id="bksProg" rows="4">${esc((r.progress || []).join('\n'))}</textarea></div>
     </div>`,
     actions: [
       { label: 'Cancel', kind: 'ghost' },
@@ -2364,7 +2376,7 @@ function renderKpis() {
           <div class="bk-num" style="background:${typeC};">${isKpi ? 'K' : 'I'}</div>
           <div class="bk-title">${esc(k.title)}</div>
           <span class="bk-badge" style="color:${typeC}; background:${typeC}18;">${isKpi ? 'KPI' : 'Initiative'}</span>
-          ${S.isAdmin ? `<button class="bk-edit bk-edit-kpi" data-idx="${i}" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>` : ''}
+          ${(S.isAdmin || S.canEditBK) ? `<button class="bk-edit bk-edit-kpi" data-idx="${i}" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>` : ''}
         </div>
         <div class="bk-scope">${esc(k.exec || 'No data')}</div>
         <div class="bk-bar"><div class="bk-fill" style="width:${hasPct ? Math.min(100, k.pct) : 0}%; background:${bandC};"></div></div>
@@ -2380,24 +2392,22 @@ function renderKpis() {
 /* KPI edit (admin) — delegated */
 $('kpiCards').addEventListener('click', e => {
   const btn = e.target.closest('.bk-edit-kpi');
-  if (!btn || !S.isAdmin) return;
+  if (!btn || !(S.isAdmin || S.canEditBK)) return;
   const i = Number(btn.dataset.idx);
   const k = S.kpis[i];
   if (!k) return;
   showModal({
     title: 'Edit ' + (k.type === 'kpi' ? 'KPI' : 'Initiative'),
-    html: `<div style="text-align:left; display:flex; flex-direction:column; gap:10px;">
-      <div class="input-group"><label>Title</label><input class="input" id="bkkTitle" value="${esc(k.title)}"></div>
-      <div style="display:flex; gap:10px;">
-        <div class="input-group" style="flex:1;"><label>Type</label>
-          <select class="input" id="bkkType">
-            <option value="kpi" ${k.type === 'kpi' ? 'selected' : ''}>KPI</option>
-            <option value="initiative" ${k.type !== 'kpi' ? 'selected' : ''}>Initiative</option>
-          </select></div>
-        <div class="input-group" style="width:110px;"><label>Exec %</label><input class="input" id="bkkPct" type="number" min="0" max="100" placeholder="—" value="${k.pct ?? ''}"></div>
-      </div>
-      <div class="input-group"><label>Execution</label><input class="input" id="bkkExec" value="${esc(k.exec || '')}"></div>
-      <div class="input-group"><label>Update note</label><input class="input" id="bkkUpdate" value="${esc(k.update || '')}"></div>
+    html: `<div class="bkform">
+      <div class="input-group full"><label>Title</label><input class="input" id="bkkTitle" value="${esc(k.title)}"></div>
+      <div class="input-group"><label>Type</label>
+        <select class="input" id="bkkType">
+          <option value="kpi" ${k.type === 'kpi' ? 'selected' : ''}>KPI</option>
+          <option value="initiative" ${k.type !== 'kpi' ? 'selected' : ''}>Initiative</option>
+        </select></div>
+      <div class="input-group"><label>Exec %</label><input class="input" id="bkkPct" type="number" min="0" max="100" placeholder="—" value="${k.pct ?? ''}"></div>
+      <div class="input-group full"><label>Execution</label><input class="input" id="bkkExec" value="${esc(k.exec || '')}"></div>
+      <div class="input-group full"><label>Update note</label><input class="input" id="bkkUpdate" value="${esc(k.update || '')}"></div>
     </div>`,
     actions: [
       { label: 'Cancel', kind: 'ghost' },
@@ -2900,6 +2910,9 @@ function openUserForm(email, data) {
     cb.checked = pages.includes(cb.value);
     cb.closest('.perm-check').classList.toggle('checked', cb.checked);
   });
+  const bk = $('uaEditBK');
+  bk.checked = !!(data && data.editBK);
+  $('uaEditBKWrap').classList.toggle('checked', bk.checked);
   $('userForm').classList.remove('hidden');
   $('userForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
@@ -2918,6 +2931,8 @@ $('addUserBtn').addEventListener('click', () => {
   openUserForm(null, null);
 });
 
+$('uaEditBK').addEventListener('change', () => $('uaEditBKWrap').classList.toggle('checked', $('uaEditBK').checked));
+
 $('uaCancelBtn').addEventListener('click', closeUserForm);
 
 $('uaSaveBtn').addEventListener('click', async () => {
@@ -2926,7 +2941,7 @@ $('uaSaveBtn').addEventListener('click', async () => {
   const goals = [...$('uaGoals').querySelectorAll('input:checked')].map(cb => Number(cb.value));
   const pages = [...$('uaPages').querySelectorAll('input:checked')].map(cb => cb.value);
   try {
-    await setDoc(doc(db, 'entryPermissions', email), { goals, pages, pending: false });
+    await setDoc(doc(db, 'entryPermissions', email), { goals, pages, pending: false, editBK: $('uaEditBK').checked });
     try { await deleteDoc(doc(db, 'signupRequests', email)); } catch (e) { /* no pending request */ }
     toast(`Access saved for ${email} — account approved`, 'success');
     closeUserForm();
@@ -3021,6 +3036,7 @@ async function renderUsersAccess() {
           <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:5px;">
             <span class="pill cyan">Update: ${esc(goalLabel)}</span>
             <span class="pill ${pages.length ? 'amber' : 'cyan'}">Open: ${esc(pageLabel)}</span>
+            ${data.editBK === true ? '<span class="pill green">Edits BSC & KPI</span>' : ''}
           </div>
           ${suspended && data.suspendReason ? `<div style="font-size:11.5px; color:var(--red); margin-top:5px;">Reason: ${esc(data.suspendReason)}</div>` : ''}
         </div>
