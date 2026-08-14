@@ -963,21 +963,68 @@ body {
           </div>
           <div>
             <div class="health-title">Overall Health</div>
-            <div class="health-sub">Average completion across all goals</div>
+            <div class="health-sub" id="healthSub">12-Week Plan + BSC + KPI combined</div>
           </div>
         </div>
         <div class="health-pill" id="healthStatus">—</div>
       </div>
 
-      <div class="stats-row" id="summaryStats"></div>
-
+      <!-- 12-Week Plan block -->
       <div class="section-head" style="margin-top:8px;">
         <div>
-          <div class="section-title" style="font-size:16px;">Sections</div>
-          <div class="section-sub">Tap a card to open</div>
+          <div class="section-title" style="font-size:16px;">12-Week Plan</div>
+          <div class="section-sub">Goal averages — pick a goal to inspect its tasks</div>
         </div>
       </div>
-      <div class="cards-grid" id="summaryCards"></div>
+      <div class="stats-row" id="sumPlanStats"></div>
+      <div class="chart-card">
+        <div class="chart-title" style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+          <span style="display:flex; align-items:center; gap:9px;"><span class="chart-dot" style="background:var(--primary);"></span><span id="sumPlanChartTitle">Average % by Goal</span></span>
+          <select class="input" id="sumPlanFilter" style="width:auto; min-width:170px; padding:7px 30px 7px 12px; font-size:12.5px; margin:0;"></select>
+        </div>
+        <div class="chart-wrap"><canvas id="sumChartPlan"></canvas></div>
+      </div>
+
+      <!-- BSC block -->
+      <div class="section-head" style="margin-top:18px;">
+        <div>
+          <div class="section-title" style="font-size:16px;">PAM BSC</div>
+          <div class="section-sub">Progress per responsibility — filter by status</div>
+        </div>
+      </div>
+      <div class="stats-row" id="sumBscStats"></div>
+      <div class="chart-card">
+        <div class="chart-title" style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+          <span style="display:flex; align-items:center; gap:9px;"><span class="chart-dot" style="background:var(--green);"></span>Progress % by Responsibility</span>
+          <select class="input" id="sumBscFilter" style="width:auto; min-width:150px; padding:7px 30px 7px 12px; font-size:12.5px; margin:0;">
+            <option value="all">All statuses</option>
+            <option value="Completed">Completed</option>
+            <option value="Ongoing">Ongoing</option>
+            <option value="Pending Report">Pending Report</option>
+          </select>
+        </div>
+        <div class="chart-wrap"><canvas id="sumChartBsc"></canvas></div>
+      </div>
+
+      <!-- KPI block -->
+      <div class="section-head" style="margin-top:18px;">
+        <div>
+          <div class="section-title" style="font-size:16px;">KPIs & Initiatives</div>
+          <div class="section-sub">Execution per item — filter by type</div>
+        </div>
+      </div>
+      <div class="stats-row" id="sumKpiStats"></div>
+      <div class="chart-card">
+        <div class="chart-title" style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+          <span style="display:flex; align-items:center; gap:9px;"><span class="chart-dot" style="background:var(--amber);"></span>Execution % by Item</span>
+          <select class="input" id="sumKpiFilter" style="width:auto; min-width:140px; padding:7px 30px 7px 12px; font-size:12.5px; margin:0;">
+            <option value="all">All types</option>
+            <option value="kpi">KPIs</option>
+            <option value="initiative">Initiatives</option>
+          </select>
+        </div>
+        <div class="chart-wrap"><canvas id="sumChartKpi"></canvas></div>
+      </div>
     </section>
 
     <!-- ===== PLAN ===== -->
@@ -1926,59 +1973,179 @@ function renderAll() {
 }
 
 /* ---------- Summary ---------- */
+S.sumPlanGoal = S.sumPlanGoal ?? null;   // null = all goals, else goal.no
+S.sumBscStatus = S.sumBscStatus ?? 'all';
+S.sumKpiType = S.sumKpiType ?? 'all';
+S.sumCharts = S.sumCharts || {};
+
 function renderSummary() {
   const goals = S.goals;
   const avgs = goals.map(goalAvg).filter(a => a !== null);
-  const health = avgs.length ? Math.round(avgs.reduce((a, b) => a + b, 0) / avgs.length) : 0;
-  const complete = goals.filter(g => { const a = goalAvg(g); return a !== null && a >= 80; }).length;
-  const atRisk = goals.filter(g => { const a = goalAvg(g); return a !== null && a >= 50 && a < 80; }).length;
-  const critical = goals.filter(g => { const a = goalAvg(g); return a !== null && a < 50; }).length;
+  const planAvg = avgs.length ? avgs.reduce((a, b) => a + b, 0) / avgs.length : null;
+  const bscWithPct = S.bsc.filter(b => b.pct !== null && b.pct !== undefined);
+  const bscAvg = bscWithPct.length ? bscWithPct.reduce((a, b) => a + b.pct, 0) / bscWithPct.length : (S.bsc.length ? 0 : null);
+  const kpiWithPct = S.kpis.filter(k => k.pct !== null && k.pct !== undefined);
+  const kpiAvg = kpiWithPct.length ? kpiWithPct.reduce((a, k) => a + k.pct, 0) / kpiWithPct.length : (S.kpis.length ? 0 : null);
+  const parts = [planAvg, bscAvg, kpiAvg].filter(v => v !== null);
+  const health = parts.length ? Math.round(parts.reduce((a, b) => a + b, 0) / parts.length) : 0;
 
-  // Health banner
+  // Health banner (combined: plan + BSC + KPI)
   const c = 169.6;
   $('healthRingFill').style.strokeDashoffset = (c - (health / 100) * c).toFixed(1);
   $('healthPct').textContent = health + '%';
   const hs = health >= 80 ? 'On Track' : health >= 50 ? 'Needs Attention' : 'Critical';
   $('healthStatus').textContent = hs;
+  $('healthSub').textContent = `Plan ${planAvg !== null ? fmtPct(planAvg) : '—'} · BSC ${bscAvg !== null ? fmtPct(bscAvg) : '—'} · KPI ${kpiAvg !== null ? fmtPct(kpiAvg) : '—'}`;
 
-  // Stats
-  const stats = [
-    { v: goals.length, label: 'Total Goals', accent: 'var(--primary)' },
-    { v: complete, label: 'On Track', accent: 'var(--green)' },
-    { v: atRisk, label: 'At Risk', accent: 'var(--amber)' },
-    { v: critical, label: 'Critical', accent: 'var(--red)' }
-  ];
-  $('summaryStats').innerHTML = stats.map(s => `
-    <div class="stat-box" style="--accent:${s.accent};">
-      <div class="stat-value" data-count="${s.v}">0</div>
-      <div class="stat-label">${s.label}</div>
-    </div>`).join('');
-  $('summaryStats').querySelectorAll('[data-count]').forEach(el => countUp(el, Number(el.dataset.count)));
+  // --- Per-section stat cards ---
+  const complete = goals.filter(g => { const a = goalAvg(g); return a !== null && a >= 80; }).length;
+  const atRisk = goals.filter(g => { const a = goalAvg(g); return a !== null && a >= 50 && a < 80; }).length;
+  const critical = goals.filter(g => { const a = goalAvg(g); return a !== null && a < 50; }).length;
+  const statRows = {
+    sumPlanStats: [
+      { v: goals.length, label: 'Total Goals', accent: 'var(--primary)' },
+      { v: complete, label: 'On Track', accent: 'var(--green)' },
+      { v: atRisk, label: 'At Risk', accent: 'var(--amber)' },
+      { v: critical, label: 'Critical', accent: 'var(--red)' }
+    ],
+    sumBscStats: [
+      { v: S.bsc.length, label: 'Total Items', accent: 'var(--primary)' },
+      { v: S.bsc.filter(b => b.status === 'Completed').length, label: 'Completed', accent: 'var(--green)' },
+      { v: S.bsc.filter(b => b.status === 'Ongoing').length, label: 'Ongoing', accent: 'var(--amber)' },
+      { v: S.bsc.filter(b => b.status === 'Pending Report').length, label: 'Pending Report', accent: '#0E7C86' }
+    ],
+    sumKpiStats: [
+      { v: S.kpis.length, label: 'Total Items', accent: 'var(--primary)' },
+      { v: S.kpis.filter(k => k.type === 'kpi').length, label: 'KPIs', accent: 'var(--amber)' },
+      { v: S.kpis.filter(k => k.type === 'initiative').length, label: 'Initiatives', accent: 'var(--green)' },
+      { v: kpiAvg !== null ? Math.round(kpiAvg) : 0, label: 'Avg Execution %', accent: '#0E7C86' }
+    ]
+  };
+  Object.entries(statRows).forEach(([id, stats]) => {
+    const el = $(id);
+    if (!el) return;
+    el.innerHTML = stats.map(s => `
+      <div class="stat-box" style="--accent:${s.accent};">
+        <div class="stat-value" data-count="${s.v}">0</div>
+        <div class="stat-label">${s.label}</div>
+      </div>`).join('');
+    el.querySelectorAll('[data-count]').forEach(e2 => countUp(e2, Number(e2.dataset.count)));
+  });
 
-  // Section cards
-  const bscDone = S.bsc.filter(b => b.status === 'Completed').length;
-  const kpiPct = S.kpis.filter(k => k.pct !== null && k.pct !== undefined);
-  const kpiAvg = kpiPct.length ? Math.round(kpiPct.reduce((a, k) => a + k.pct, 0) / kpiPct.length) : null;
-  const cards = [
-    { title: '12-Week Plan', tab: 'plan', pct: health, color: 'var(--primary)', desc: `${goals.length} goals · ${complete} on track` },
-    { title: 'PAM BSC', tab: 'bsc', pct: S.bsc.length ? Math.round(S.bsc.reduce((a, b) => a + (b.pct || 0), 0) / S.bsc.length) : null, color: 'var(--green)', desc: `${S.bsc.length} responsibilities · ${bscDone} completed` },
-    { title: 'KPIs & Initiatives', tab: 'kpis', pct: kpiAvg, color: 'var(--amber)', desc: `${S.kpis.filter(k => k.type === 'kpi').length} KPIs · ${S.kpis.filter(k => k.type === 'initiative').length} initiatives` }
-  ];
-  $('summaryCards').innerHTML = cards.map(cd => `
-    <div class="card clickable" data-goto="${cd.tab}">
-      <div class="card-header">
-        <div class="card-title">${esc(cd.title)}</div>
-        <div class="card-status pending">Open</div>
-      </div>
-      <div class="card-progress">
-        ${ringSVG(cd.pct, cd.color === 'var(--primary)' ? '#0E7C86' : cd.color === 'var(--green)' ? '#16A34A' : '#D97706')}
-        <div class="card-side">
-          <div class="card-side-label">Progress</div>
-          <div class="card-side-note">${esc(cd.desc)}</div>
-        </div>
-      </div>
-    </div>`).join('');
-  $('summaryCards').querySelectorAll('[data-goto]').forEach(el => el.addEventListener('click', () => switchTab(el.dataset.goto)));
+  // --- Filter selects ---
+  const pf = $('sumPlanFilter');
+  pf.innerHTML = '<option value="">All goals (averages)</option>' +
+    S.goals.map(g => `<option value="${g.no}" ${S.sumPlanGoal === g.no ? 'selected' : ''}>Goal ${String(g.no).padStart(2, '0')} — ${esc((g.name || '').slice(0, 26))}${(g.name || '').length > 26 ? '…' : ''}</option>`).join('');
+  pf.value = S.sumPlanGoal === null ? '' : String(S.sumPlanGoal);
+  pf.onchange = () => { S.sumPlanGoal = pf.value === '' ? null : Number(pf.value); renderSummaryCharts(); };
+
+  const bf = $('sumBscFilter');
+  bf.value = S.sumBscStatus;
+  bf.onchange = () => { S.sumBscStatus = bf.value; renderSummaryCharts(); };
+
+  const kf = $('sumKpiFilter');
+  kf.value = S.sumKpiType;
+  kf.onchange = () => { S.sumKpiType = kf.value; renderSummaryCharts(); };
+
+  renderSummaryCharts();
+}
+
+function renderSummaryCharts() {
+  if (typeof Chart === 'undefined') return;
+  Chart.defaults.color = '#546B75';
+  Chart.defaults.borderColor = '#E2E9ED';
+  Chart.defaults.font.family = 'Inter';
+  Object.values(S.sumCharts).forEach(c2 => { try { c2.destroy(); } catch (e) {} });
+  S.sumCharts = {};
+
+  const mkPctLabels = (vals, colors) => ({
+    id: 'pctLabels',
+    afterDatasetsDraw(chart) {
+      const { ctx } = chart;
+      chart.getDatasetMeta(0).data.forEach((bar, i) => {
+        if (vals[i] === null) return;
+        ctx.save();
+        ctx.font = '800 11px Inter';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = colors[i];
+        ctx.fillText(fmtPct(vals[i]), bar.x, bar.y - 7);
+        ctx.restore();
+      });
+    }
+  });
+  const baseOpts = titles => ({
+    responsive: true, maintainAspectRatio: false,
+    layout: { padding: { top: 22 } },
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { title: items => titles[items[0].dataIndex] || '', label: c2 => ' ' + fmtPct(c2.parsed.y) } }
+    },
+    scales: {
+      y: { max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#EDF3F5' }, border: { display: false } },
+      x: { grid: { display: false }, border: { display: false }, ticks: { autoSkip: false, maxRotation: 45, font: { size: 10 } } }
+    }
+  });
+  const BAR_COLORS = ['#0E7C86', '#0B769F', '#156082', '#16A34A', '#D97706', '#8B5CF6', '#DB2777', '#0891B2', '#4D7C0F', '#B45309', '#64748B', '#7C3AED'];
+
+  // --- Plan chart: goals avg, or tasks of selected goal ---
+  const pCtx = $('sumChartPlan');
+  if (pCtx) {
+    let labels, vals, colors, titles;
+    if (S.sumPlanGoal === null) {
+      $('sumPlanChartTitle').textContent = 'Average % by Goal';
+      vals = S.goals.map(g => goalAvg(g));
+      labels = S.goals.map(g => 'G' + String(g.no).padStart(2, '0'));
+      colors = S.goals.map((_, i) => BAR_COLORS[i % BAR_COLORS.length]);
+      titles = S.goals.map(g => 'Goal ' + String(g.no).padStart(2, '0') + ' — ' + (g.name || ''));
+    } else {
+      const g = S.goals.find(x => x.no === S.sumPlanGoal);
+      const tasks = g ? (g.tasks || []) : [];
+      $('sumPlanChartTitle').textContent = 'Tasks — Goal ' + String(S.sumPlanGoal).padStart(2, '0');
+      vals = tasks.map(t => (t.progress === null || t.progress === undefined) ? 0 : Number(t.progress));
+      labels = tasks.map((t, i) => 'T' + (i + 1));
+      colors = vals.map(v => avgBandColor(v));
+      titles = tasks.map(t => t.name || '');
+    }
+    S.sumCharts.plan = new Chart(pCtx, {
+      type: 'bar',
+      data: { labels, datasets: [{ data: vals.map(v => Math.round(v * 100) / 100), backgroundColor: colors, borderRadius: 8, borderSkipped: 'bottom', maxBarThickness: 52 }] },
+      plugins: [mkPctLabels(vals, colors)],
+      options: baseOpts(titles)
+    });
+  }
+
+  // --- BSC chart: per responsibility, filterable by status ---
+  const bCtx = $('sumChartBsc');
+  if (bCtx) {
+    const ST_C = { 'Completed': '#16A34A', 'Ongoing': '#D97706', 'Pending Report': '#0E7C86' };
+    const items = S.bsc.filter(b => S.sumBscStatus === 'all' || b.status === S.sumBscStatus);
+    const vals = items.map(b => (b.pct === null || b.pct === undefined) ? 0 : Number(b.pct));
+    const labels = items.map(b => String(b.no).padStart(2, '0'));
+    const colors = items.map(b => ST_C[b.status] || '#64748B');
+    const titles = items.map(b => (b.title || '') + ' (' + b.status + ')');
+    S.sumCharts.bsc = new Chart(bCtx, {
+      type: 'bar',
+      data: { labels, datasets: [{ data: vals, backgroundColor: colors, borderRadius: 8, borderSkipped: 'bottom', maxBarThickness: 52 }] },
+      plugins: [mkPctLabels(vals, colors)],
+      options: baseOpts(titles)
+    });
+  }
+
+  // --- KPI chart: per item, filterable by type ---
+  const kCtx = $('sumChartKpi');
+  if (kCtx) {
+    const items = S.kpis.filter(k => S.sumKpiType === 'all' || (k.type === 'kpi') === (S.sumKpiType === 'kpi'));
+    const vals = items.map(k => (k.pct === null || k.pct === undefined) ? 0 : Number(k.pct));
+    const labels = items.map((k, i) => (k.type === 'kpi' ? 'K' : 'I') + (i + 1));
+    const colors = items.map(k => k.type === 'kpi' ? '#D97706' : '#0E7C86');
+    const titles = items.map(k => (k.title || '') + ' (' + (k.type === 'kpi' ? 'KPI' : 'Initiative') + ')');
+    S.sumCharts.kpi = new Chart(kCtx, {
+      type: 'bar',
+      data: { labels, datasets: [{ data: vals, backgroundColor: colors, borderRadius: 8, borderSkipped: 'bottom', maxBarThickness: 52 }] },
+      plugins: [mkPctLabels(vals, colors)],
+      options: baseOpts(titles)
+    });
+  }
 }
 
 /* ---------- Plan ---------- */
