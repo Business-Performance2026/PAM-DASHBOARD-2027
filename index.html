@@ -256,7 +256,7 @@ body {
 .health-ring .ring-bg { stroke: rgba(255,255,255,.22); }
 .health-ring-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-size: 15px; font-weight: 700; }
 .health-title { font-size: 17px; font-weight: 800; }
-.health-sub { font-size: 12.5px; opacity: .8; margin-top: 2px; }
+.health-sub { font-size: 15px; font-weight: 700; opacity: .92; margin-top: 4px; letter-spacing: .2px; }
 .health-pill {
   z-index: 1; font-size: 12.5px; font-weight: 700; padding: 8px 20px; border-radius: 30px;
   background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.3);
@@ -1995,7 +1995,7 @@ function renderSummary() {
   $('healthPct').textContent = health + '%';
   const hs = health >= 80 ? 'On Track' : health >= 50 ? 'Needs Attention' : 'Critical';
   $('healthStatus').textContent = hs;
-  $('healthSub').textContent = `Plan ${planAvg !== null ? fmtPct(planAvg) : '—'} · BSC ${bscAvg !== null ? fmtPct(bscAvg) : '—'} · KPI ${kpiAvg !== null ? fmtPct(kpiAvg) : '—'}`;
+  $('healthSub').textContent = `12WP ${planAvg !== null ? fmtPct(planAvg) : '—'} · BSC ${bscAvg !== null ? fmtPct(bscAvg) : '—'} · KPI ${kpiAvg !== null ? fmtPct(kpiAvg) : '—'}`;
 
   // --- Per-section stat cards ---
   const complete = goals.filter(g => { const a = goalAvg(g); return a !== null && a >= 80; }).length;
